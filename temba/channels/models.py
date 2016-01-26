@@ -3,14 +3,13 @@ from __future__ import absolute_import, unicode_literals
 import json
 import time
 import urlparse
-from datetime import timedelta
-from uuid import uuid4
-from urllib import quote_plus
-
 import os
 import phonenumbers
 import plivo
+import regex
 import requests
+
+from datetime import timedelta
 from django.contrib.auth.models import User, Group
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -32,9 +31,14 @@ from temba.orgs.models import Org, OrgLock, APPLICATION_SID, NEXMO_UUID
 from temba.utils.ascii import to_ascii
 from temba.utils.email import send_template_email
 from temba.utils import analytics, random_string, dict_to_struct, dict_to_json
+from time import sleep
 from twilio.rest import TwilioRestClient
 from twython import Twython
 from temba.utils.gsm7 import is_gsm7, replace_non_gsm7_accents
+from temba.utils.models import TembaModel, generate_uuid
+from urllib import quote_plus
+from xml.sax.saxutils import quoteattr, escape
+from uuid import uuid4
 
 AFRICAS_TALKING = 'AT'
 ANDROID = 'A'
@@ -56,6 +60,7 @@ VERBOICE = 'VB'
 VUMI = 'VM'
 ZENVIA = 'ZV'
 YO = 'YO'
+START = 'ST'
 
 SEND_URL = 'send_url'
 SEND_METHOD = 'method'
@@ -64,10 +69,11 @@ PASSWORD = 'password'
 KEY = 'key'
 API_ID = 'api_id'
 VERIFY_SSL = 'verify_ssl'
+USE_NATIONAL = 'use_national'
 ENCODING = 'encoding'
 
 DEFAULT_ENCODING = 'D'  # we just pass the text down to the endpoint
-SMART_ENCODING = 'S'  # we try simple substitutions to GSM7 then go to unicode if it still isn't GSM7
+SMART_ENCODING = 'S'    # we try simple substitutions to GSM7 then go to unicode if it still isn't GSM7
 UNICODE_ENCODING = 'U'  # we send everything as unicode
 
 ENCODING_CHOICES = ((DEFAULT_ENCODING, _("Default Encoding")),
@@ -92,7 +98,7 @@ CHANNEL_SETTINGS = {
     AFRICAS_TALKING: dict(scheme='tel', max_length=160),
     ZENVIA: dict(scheme='tel', max_length=150),
     EXTERNAL: dict(max_length=160),
-    NEXMO: dict(scheme='tel', max_length=1600, max_tps=4),
+    NEXMO: dict(scheme='tel', max_length=1600, max_tps=1),
     INFOBIP: dict(scheme='tel', max_length=1600),
     VERBOICE: dict(scheme='tel', max_length=1600),
     VUMI: dict(scheme='tel', max_length=1600),
@@ -106,7 +112,8 @@ CHANNEL_SETTINGS = {
     BLACKMYNA: dict(scheme='tel', max_length=1600),
     SMSCENTRAL: dict(scheme='tel', max_length=1600),
     M3TECH: dict(scheme='tel', max_length=160),
-    YO: dict(scheme='tel', max_length=1600)
+    YO: dict(scheme='tel', max_length=1600),
+    START: dict(scheme='tel', max_length=1600)
 }
 
 TEMBA_HEADERS = {'User-agent': 'RapidPro'}
@@ -121,10 +128,11 @@ PLIVO_APP_ID = 'PLIVO_APP_ID'
 TWITTER_FATAL_403S = ("messages to this user right now",  # handle is suspended
                       "users who are not following you")  # handle no longer follows us
 
-YO_API_URL = 'http://smgw1.yo.co.ug:9100/sendsms'
+YO_API_URL_1 = 'http://smgw1.yo.co.ug:9100/sendsms'
+YO_API_URL_2 = 'http://41.220.12.201:9100/sendsms'
+YO_API_URL_3 = 'http://164.40.148.210:9100/sendsms'
 
-
-class Channel(SmartModel):
+class Channel(TembaModel):
     TYPE_CHOICES = ((ANDROID, "Android"),
                     (TWILIO, "Twilio"),
                     (AFRICAS_TALKING, "Africa's Talking"),
@@ -143,12 +151,12 @@ class Channel(SmartModel):
                     (HIGH_CONNECTION, "High Connection"),
                     (BLACKMYNA, "Blackmyna"),
                     (SMSCENTRAL, "SMSCentral"),
+                    (START, "Start Mobile"),
                     (YO, "Yo!"),
                     (M3TECH, "M3 Tech"))
 
     channel_type = models.CharField(verbose_name=_("Channel Type"), max_length=3, choices=TYPE_CHOICES,
-                                    default=ANDROID,
-                                    help_text=_("Type of this channel, whether Android, Twilio or SMSC"))
+                                    default=ANDROID, help_text=_("Type of this channel, whether Android, Twilio or SMSC"))
 
     name = models.CharField(verbose_name=_("Name"), max_length=64, blank=True, null=True,
                             help_text=_("Descriptive label for this channel"))
@@ -164,9 +172,6 @@ class Channel(SmartModel):
 
     gcm_id = models.CharField(verbose_name=_("GCM ID"), max_length=255, blank=True, null=True,
                               help_text=_("The registration id for using Google Cloud Messaging"))
-
-    uuid = models.CharField(verbose_name=_("UUID"), max_length=36, blank=True, null=True, db_index=True,
-                            help_text=_("UUID for this channel"))
 
     claim_code = models.CharField(verbose_name=_("Claim Code"), max_length=16, blank=True, null=True, unique=True,
                                   help_text=_("The token the user will us to claim this channel"))
@@ -184,8 +189,7 @@ class Channel(SmartModel):
                           help_text=_("What Android OS version this channel is running on"))
 
     alert_email = models.EmailField(verbose_name=_("Alert Email"), null=True, blank=True,
-                                    help_text=_(
-                                        "We will send email alerts to this address if experiencing issues sending"))
+                                    help_text=_("We will send email alerts to this address if experiencing issues sending"))
 
     config = models.TextField(verbose_name=_("Config"), null=True,
                               help_text=_("Any channel specific configuration, used for the various aggregators"))
@@ -193,7 +197,7 @@ class Channel(SmartModel):
     scheme = models.CharField(verbose_name="URN Scheme", max_length=8, default='tel',
                               help_text=_("The URN scheme this channel can handle"))
 
-    role = models.CharField(verbose_name="Channel Role", max_length=4, default=SEND + RECEIVE,
+    role = models.CharField(verbose_name="Channel Role", max_length=4, default=SEND+RECEIVE,
                             help_text=_("The roles this channel can fulfill"))
 
     parent = models.ForeignKey('self', blank=True, null=True,
@@ -203,8 +207,7 @@ class Channel(SmartModel):
                            help_text=_("Any channel specific state data"))
 
     @classmethod
-    def create(cls, org, user, country, channel_type, name=None, address=None, config=None, role=SEND + RECEIVE,
-               scheme=None, **kwargs):
+    def create(cls, org, user, country, channel_type, name=None, address=None, config=None, role=SEND+RECEIVE, scheme=None, **kwargs):
         type_settings = CHANNEL_SETTINGS[channel_type]
         fixed_scheme = type_settings.get('scheme')
 
@@ -232,9 +235,9 @@ class Channel(SmartModel):
         create_args.update(kwargs)
 
         if 'uuid' not in create_args:
-            create_args['uuid'] = str(uuid4())
+            create_args['uuid'] = generate_uuid()
 
-        return Channel.objects.create(**create_args)
+        return cls.objects.create(**create_args)
 
     @classmethod
     def derive_country_from_phone(cls, phone, country=None):
@@ -260,20 +263,19 @@ class Channel(SmartModel):
         return Channel.create(org, user, country, channel_type, name=phone, address=phone_number, config=config)
 
     @classmethod
-    def add_config_external_channel(cls, org, user, country, address, channel_type, config, role=SEND + RECEIVE,
+    def add_config_external_channel(cls, org, user, country, address, channel_type, config, role=SEND+RECEIVE,
                                     scheme='tel', parent=None):
         return Channel.create(org, user, country, channel_type, name=address, address=address,
                               config=config, role=role, scheme=scheme, parent=parent)
 
     @classmethod
     def add_plivo_channel(cls, org, user, country, phone_number, auth_id, auth_token):
-        plivo_uuid = unicode(uuid4())
+        plivo_uuid = generate_uuid()
         app_name = "%s/%s" % (settings.TEMBA_HOST.lower(), plivo_uuid)
 
         client = plivo.RestAPI(auth_id, auth_token)
 
-        message_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('api.plivo_handler',
-                                                                        args=['receive', plivo_uuid])
+        message_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('handlers.plivo_handler', args=['receive', plivo_uuid])
         answer_url = "https://" + settings.AWS_BUCKET_DOMAIN + "/plivo_voice_unavailable.xml"
 
         plivo_response_status, plivo_response = client.create_application(params=dict(app_name=app_name,
@@ -294,11 +296,10 @@ class Channel(SmartModel):
         plivo_response_status, plivo_response = client.get_number(params=dict(number=plivo_number))
 
         if plivo_response_status != 200:
-            plivo_response_status, plivo_number = client.buy_phone_number(params=dict(number=plivo_number))
+            plivo_response_status, plivo_response = client.buy_phone_number(params=dict(number=plivo_number))
 
             if plivo_response_status != 201:
-                raise Exception(
-                    _("There was a problem claiming that number, please check the balance on your account."))
+                raise Exception(_("There was a problem claiming that number, please check the balance on your account."))
 
             plivo_response_status, plivo_response = client.get_number(params=dict(number=plivo_number))
 
@@ -338,25 +339,23 @@ class Channel(SmartModel):
             try:
                 client.buy_number(country, phone_number)
             except Exception as e:
-                raise Exception(
-                    _("There was a problem claiming that number, please check the balance on your account. " +
-                      "Note that you can only claim numbers after adding credit to your Nexmo account.") + "\n" +
-                    str(e))
+                    raise Exception(_("There was a problem claiming that number, please check the balance on your account. " +
+                                      "Note that you can only claim numbers after adding credit to your Nexmo account.") + "\n" +
+                                      str(e))
 
-        mo_path = reverse('api.nexmo_handler', args=['receive', org_uuid])
+        mo_path = reverse('handlers.nexmo_handler', args=['receive', org_uuid])
 
         # update the delivery URLs for it
         from temba.settings import TEMBA_HOST
         try:
             client.update_number(country, phone_number,
-                                 'http://%s%s' % (TEMBA_HOST, mo_path))
+                               'http://%s%s' % (TEMBA_HOST, mo_path))
 
         except Exception as e:
             # shortcodes don't seem to claim right on nexmo, move forward anyways
             if not is_shortcode:
-                raise Exception(
-                    _("There was a problem claiming that number, please check the balance on your account.") +
-                    "\n" + str(e))
+                raise Exception(_("There was a problem claiming that number, please check the balance on your account.") +
+                                "\n" + str(e))
 
         if is_shortcode:
             phone = phone_number
@@ -368,13 +367,13 @@ class Channel(SmartModel):
             # nexmo ships numbers around as E164 without the leading +
             nexmo_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
 
-        return Channel.create(org, user, country, NEXMO, name=phone, address=phone_number, uuid=nexmo_phone_number)
+        return Channel.create(org, user, country, NEXMO, name=phone, address=phone_number, bod=nexmo_phone_number)
 
     @classmethod
     def add_twilio_channel(cls, org, user, phone_number, country):
         client = org.get_twilio_client()
         twilio_phones = client.phone_numbers.list(phone_number=phone_number)
-
+        
         config = org.config_json()
         application_sid = config.get(APPLICATION_SID)
 
@@ -389,7 +388,7 @@ class Channel(SmartModel):
             raise Exception(_("Your Twilio account is no longer connected. "
                               "First remove your Twilio account, reconnect it and try again."))
 
-        role = SEND + RECEIVE + CALL + ANSWER
+        role = SEND+RECEIVE+CALL+ANSWER
         is_short_code = len(phone_number) <= 6
 
         if is_short_code:
@@ -398,10 +397,10 @@ class Channel(SmartModel):
             if short_codes:
                 short_code = short_codes[0]
                 twilio_sid = short_code.sid
-                app_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('api.twilio_handler')
+                app_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('handlers.twilio_handler')
                 client.sms.short_codes.update(twilio_sid, sms_url=app_url)
 
-                role = SEND + RECEIVE
+                role = SEND+RECEIVE
                 phone = phone_number
 
 
@@ -425,14 +424,13 @@ class Channel(SmartModel):
 
             twilio_sid = twilio_phone.sid
 
-        return Channel.create(org, user, country, TWILIO, name=phone, address=phone_number,
-                              uuid=twilio_sid, role=role)
+        return Channel.create(org, user, country, TWILIO, name=phone, address=phone_number, role=role, bod=twilio_sid)
 
     @classmethod
-    def add_africas_talking_channel(cls, org, user, phone, username, api_key, is_shared=False):
+    def add_africas_talking_channel(cls, org, user, country, phone, username, api_key, is_shared=False):
         config = dict(username=username, api_key=api_key, is_shared=is_shared)
 
-        return Channel.create(org, user, 'KE', AFRICAS_TALKING,
+        return Channel.create(org, user, country, AFRICAS_TALKING,
                               name="Africa's Talking: %s" % phone, address=phone, config=config)
 
     @classmethod
@@ -448,7 +446,7 @@ class Channel(SmartModel):
         nexmo_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
 
         return Channel.create(user.get_org(), user, channel.country, NEXMO, name="Nexmo Sender",
-                              address=channel.address, role=SEND, parent=channel, uuid=nexmo_phone_number)
+                              address=channel.address, role=SEND, parent=channel, bod=nexmo_phone_number)
 
     @classmethod
     def add_call_channel(cls, org, user, channel):
@@ -478,27 +476,61 @@ class Channel(SmartModel):
         return channel
 
     @classmethod
-    def from_gcm_and_status_cmds(cls, gcm, status):
-        # gcm command must be the first one
-        gcm_id = gcm['gcm_id']
-        uuid = gcm.get('uuid', None)
+    def get_or_create_android(cls, gcm, status):
+        """
+        Creates a new Android channel from the gcm and status commands sent during device registration
+        """
+        gcm_id = gcm.get('gcm_id')
+        uuid = gcm.get('uuid')
+        country = status.get('cc')
+        device = status.get('dev')
 
-        country = status['cc']
-        device = status['dev']
+        if not gcm_id or not uuid:
+            raise ValueError("Can't create Android channel without UUID and GCM ID")
 
-        # look for any unclaimed channel
-        existing = Channel.objects.filter(gcm_id=gcm_id, uuid=uuid, org=None, is_active=True)
+        # look for existing active channel with this UUID
+        existing = Channel.objects.filter(uuid=uuid, is_active=True).first()
+
+        # if device exists reset some of the settings (ok because device clearly isn't in use if it's registering)
         if existing:
-            return existing[0]
-        else:
-            secret = random_string(64)
-            claim_code = random_string(9)
-            while Channel.objects.filter(claim_code=claim_code):  # pragma: no cover
-                claim_code = random_string(9)
-            anon = User.objects.get(pk=-1)
+            existing.gcm_id = gcm_id
+            existing.claim_code = cls.generate_claim_code()
+            existing.secret = cls.generate_secret()
+            existing.country = country
+            existing.device = device
+            existing.save(update_fields=('gcm_id', 'secret', 'claim_code', 'country', 'device'))
 
-            return Channel.create(None, anon, country, ANDROID, None, None, uuid=uuid,
-                                  gcm_id=gcm_id, device=device, claim_code=claim_code, secret=secret)
+            return existing
+
+        # if any inactive channel has this UUID, we can steal it
+        for ch in Channel.objects.filter(uuid=uuid, is_active=False):
+            ch.uuid = generate_uuid()
+            ch.save(update_fields=('uuid',))
+
+        # generate random secret and claim code
+        claim_code = cls.generate_claim_code()
+        secret = cls.generate_secret()
+        anon = User.objects.get(pk=-1)
+
+        return Channel.create(None, anon, country, ANDROID, None, None, gcm_id=gcm_id, uuid=uuid,
+                              device=device, claim_code=claim_code, secret=secret)
+
+    @classmethod
+    def generate_claim_code(cls):
+        """
+        Generates a random and guaranteed unique claim code
+        """
+        code = random_string(9)
+        while cls.objects.filter(claim_code=code):  # pragma: no cover
+            code = random_string(9)
+        return code
+
+    @classmethod
+    def generate_secret(cls):
+        """
+        Generates a secret value used for command signing
+        """
+        return random_string(64)
 
     def has_sending_log(self):
         return self.channel_type != 'A'
@@ -667,15 +699,13 @@ class Channel(SmartModel):
     def build_registration_command(self):
         # create a claim code if we don't have one
         if not self.claim_code:
-            self.claim_code = random_string(9)
-            while Channel.objects.filter(claim_code=self.claim_code):  # pragma: no cover
-                self.claim_code = random_string(9)
-            self.save()
+            self.claim_code = self.generate_claim_code()
+            self.save(update_fields=('claim_code',))
 
         # create a secret if we don't have one
         if not self.secret:
-            self.secret = random_string(64)
-            self.save()
+            self.secret = self.generate_secret()
+            self.save(update_fields=('secret',))
 
         # return our command
         return dict(cmd='reg',
@@ -685,7 +715,7 @@ class Channel(SmartModel):
 
     def get_latest_sent_message(self):
         # all message states that are successfully sent
-        messages = self.msgs.filter(status__in=['S', 'D']).exclude(sent_on=None).order_by('-sent_on')
+        messages = self.msgs.filter(status__in=['S', 'D'], purged=False).exclude(sent_on=None).order_by('-sent_on')
 
         # only outgoing messages
         messages = messages.filter(direction='O')
@@ -702,11 +732,11 @@ class Channel(SmartModel):
 
         # ignore really recent unsent messages
         messages = messages.exclude(created_on__gt=timezone.now() - timedelta(hours=1))
-
+        
         # if there is one message successfully sent ignore also all message created before it was sent 
         if latest_sent_message:
-            messages = messages.exclude(created_on__lt=latest_sent_message.sent_on)
-
+            messages = messages.exclude(created_on__lt=latest_sent_message.sent_on)        
+        
         return messages
 
     def get_recent_syncs(self):
@@ -738,7 +768,7 @@ class Channel(SmartModel):
 
     def get_unsent_messages(self):
         # all message states that are incomplete
-        messages = self.msgs.filter(status__in=['P', 'Q'])
+        messages = self.msgs.filter(status__in=['P', 'Q'], purged=False)
 
         # only outgoing messages on real contacts
         messages = messages.filter(direction='O', contact__is_test=False)
@@ -748,7 +778,10 @@ class Channel(SmartModel):
         # is this channel newer than an hour
         return self.created_on > timezone.now() - timedelta(hours=1) or not self.get_last_sync()
 
-    def claim(self, org, phone, user):
+    def claim(self, org, user, phone):
+        """
+        Claims this channel for the given org/user
+        """
         if not self.country:
             self.country = Channel.derive_country_from_phone(phone)
 
@@ -760,44 +793,42 @@ class Channel(SmartModel):
         self.save()
 
     def release(self, trigger_sync=True, notify_mage=True):
-
-        org = self.org
-
+        """
+        Releases this channel, removing it from the org and making it inactive
+        """
         # release any channels working on our behalf as well
         for delegate_channel in Channel.objects.filter(parent=self, org=self.org):
             delegate_channel.release()
 
-        if self.channel_type == PLIVO:
-            import plivo
-            client = plivo.RestAPI(self.config_json()[PLIVO_AUTH_ID], self.config_json()[PLIVO_AUTH_TOKEN])
+        if not settings.DEBUG:
+            # only call out to external aggregator services if not in debug mode
 
-            # remove the application
-            client.delete_application(params=dict(app_id=self.config_json()[PLIVO_APP_ID]))
+            # delete Plivo application
+            if self.channel_type == PLIVO:
+                client = plivo.RestAPI(self.config_json()[PLIVO_AUTH_ID], self.config_json()[PLIVO_AUTH_TOKEN])
+                client.delete_application(params=dict(app_id=self.config_json()[PLIVO_APP_ID]))
 
+            # delete Twilio SMS application
+            if self.channel_type == TWILIO:
+                client = self.org.get_twilio_client()
+                number_update_args = dict()
 
-        # if we are a twilio channel, remove our sms application from twilio to handle the incoming sms
-        if self.channel_type == TWILIO:
-            client = self.org.get_twilio_client()
-            number_update_args = dict()
+                if not self.is_delegate_sender():
+                    number_update_args['sms_application_sid'] = ""
 
-            if not self.is_delegate_sender():
-                number_update_args['sms_application_sid'] = ""
+                if self.supports_ivr():
+                    number_update_args['voice_application_sid'] = ""
 
-            if self.supports_ivr():
-                number_update_args['voice_application_sid'] = ""
+                try:
+                    client.phone_numbers.update(self.bod, **number_update_args)
+                except Exception:
+                    if client:
+                        matching = client.phone_numbers.list(phone_number=self.address)
+                        if matching:
+                            client.phone_numbers.update(matching[0].sid, **number_update_args)
 
-            try:
-                client.phone_numbers.update(self.uuid,
-                                            **number_update_args)
-
-            except Exception as e:
-                if client:
-                    matching = client.phone_numbers.list(phone_number=self.address)
-                    if matching:
-                        client.phone_numbers.update(matching[0].sid,
-                                                    **number_update_args)
-
-        # save off our gcm id so we can trigger a sync
+        # save off our org and gcm id before nullifying
+        org = self.org
         gcm_id = self.gcm_id
 
         # remove all identifying bits from the client
@@ -810,7 +841,7 @@ class Channel(SmartModel):
 
         # mark any messages in sending mode as failed for this channel
         from temba.msgs.models import Msg
-        Msg.objects.filter(channel=self, status__in=['Q', 'P', 'E']).update(status='F')
+        Msg.current_messages.filter(channel=self, status__in=['Q', 'P', 'E']).update(status='F')
 
         # trigger the orphaned channel
         if trigger_sync and self.channel_type == ANDROID:  # pragma: no cover
@@ -836,8 +867,7 @@ class Channel(SmartModel):
         if ANSWER in self.role:
             if not org.get_schemes(ANSWER):
                 from temba.triggers.models import Trigger
-                Trigger.objects.filter(trigger_type=Trigger.TYPE_INBOUND_CALL, org=org, is_archived=False).update(
-                    is_archived=True)
+                Trigger.objects.filter(trigger_type=Trigger.TYPE_INBOUND_CALL, org=org, is_archived=False).update(is_archived=True)
 
         from temba.triggers.models import Trigger
         Trigger.objects.filter(channel=self, org=org).update(is_active=False)
@@ -859,7 +889,7 @@ class Channel(SmartModel):
             raise Exception("Trigger sync called on non Android channel. [%d]" % self.pk)
 
     @classmethod
-    def sync_channel(cls, gcm_id, channel=None):  # pragma: no cover
+    def sync_channel(cls, gcm_id, channel=None): # pragma: no cover
         try:
             gcm = GCM(settings.GCM_API_KEY)
             gcm.plaintext_request(registration_id=gcm_id, data=dict(msg='sync'))
@@ -881,8 +911,7 @@ class Channel(SmartModel):
         from temba.msgs.models import Msg, WIRED
 
         # build our callback dlr url, kannel will call this when our message is sent or delivered
-        dlr_url = 'https://%s%s?id=%d&status=%%d' % (
-            settings.HOSTNAME, reverse('api.kannel_handler', args=['status', channel.uuid]), msg.id)
+        dlr_url = 'https://%s%s?id=%d&status=%%d' % (settings.HOSTNAME, reverse('handlers.kannel_handler', args=['status', channel.uuid]), msg.id)
         dlr_mask = 31
 
         # build our payload
@@ -894,6 +923,13 @@ class Channel(SmartModel):
         payload['to'] = msg.urn_path
         payload['dlr-url'] = dlr_url
         payload['dlr-mask'] = dlr_mask
+
+        # should our to actually be in national format?
+        use_national = channel.config.get(USE_NATIONAL, False)
+        if use_national:
+            # parse and remap our 'to' address
+            parsed = phonenumbers.parse(msg.urn_path)
+            payload['to'] = str(parsed.national_number)
 
         # figure out if we should send encoding or do any of our own substitution
         encoding = channel.config.get(ENCODING, DEFAULT_ENCODING)
@@ -1069,9 +1105,9 @@ class Channel(SmartModel):
             'to': msg.urn_path,
             'ret_id': msg.id,
             'datacoding': 8,
-            'ret_url': 'https://%s%s' % (settings.HOSTNAME, reverse('api.hcnx_handler', args=['status', channel.uuid])),
-            'ret_mo_url': 'https://%s%s' % (
-                settings.HOSTNAME, reverse('api.hcnx_handler', args=['receive', channel.uuid]))
+            'userdata': 'textit',
+            'ret_url': 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['status', channel.uuid])),
+            'ret_mo_url': 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['receive', channel.uuid]))
         }
 
         # build our send URL
@@ -1163,6 +1199,61 @@ class Channel(SmartModel):
                                request=log_payload,
                                response=response.text,
                                response_status=response.status_code)
+
+    @classmethod
+    def send_start_message(cls, channel, msg, text):
+        from temba.msgs.models import Msg, WIRED
+
+        post_body = u"""
+          <message>
+            <service id="single" source=$$FROM$$ />
+            <to>$$TO$$</to>
+            <body content-type="plain/text" encoding="plain">$$BODY$$</body>
+          </message>
+        """
+        post_body = post_body.replace("$$FROM$$", quoteattr(channel.address))
+        post_body = post_body.replace("$$TO$$", escape(msg.urn_path))
+        post_body = post_body.replace("$$BODY$$", escape(msg.text))
+        post_body = post_body.encode('utf8')
+
+        url = 'http://bulk.startmobile.com.ua/clients.php'
+
+        start = time.time()
+        try:
+            headers = {'Content-Type': 'application/xml; charset=utf8'}
+            headers.update(TEMBA_HEADERS)
+
+            response = requests.post(url,
+                                     data=post_body,
+                                     headers=headers,
+                                     auth=(channel.config[USERNAME], channel.config[PASSWORD]),
+                                     timeout=30)
+        except Exception as e:
+            raise SendException(unicode(e),
+                                method='POST',
+                                url=url,
+                                request=post_body.decode('utf8'),
+                                response='',
+                                response_status=503)
+
+        if (response.status_code != 200 and response.status_code != 201) or response.text.find("error") >= 0:
+            raise SendException("Error Sending Message",
+                                method='POST',
+                                url=url,
+                                request=post_body.decode('utf8'),
+                                response=response.text,
+                                response_status=response.status_code)
+
+        Msg.mark_sent(channel.config['r'], channel, msg, WIRED, time.time() - start)
+
+        ChannelLog.log_success(msg=msg,
+                               description="Successfully delivered",
+                               method='POST',
+                               url=url,
+                               request=post_body.decode('utf8'),
+                               response=response.text,
+                               response_status=response.status_code)
+
 
     @classmethod
     def send_smscentral_message(cls, channel, msg, text):
@@ -1288,7 +1379,21 @@ class Channel(SmartModel):
 
         client = NexmoClient(channel.org_config[NEXMO_KEY], channel.org_config[NEXMO_SECRET])
         start = time.time()
-        (message_id, response) = client.send_message(channel.address, msg.urn_path, text)
+
+        attempts = 0
+        response = None
+        while not response:
+            try:
+                (message_id, response) = client.send_message(channel.address,  msg.urn_path, text)
+            except SendException as e:
+                match = regex.match(r'.*Throughput Rate Exceeded - please wait \[ (\d+) \] and retry.*', e.response)
+
+                # this is a throughput failure, attempt to wait up to three times
+                if match and attempts < 3:
+                    sleep(float(match.group(1)) / 1000)
+                    attempts += 1
+                else:
+                    raise e
 
         Msg.mark_sent(channel.config['r'], channel, msg, SENT, time.time() - start, external_id=message_id)
 
@@ -1298,6 +1403,7 @@ class Channel(SmartModel):
                                url=response.request.url,
                                response=response.text,
                                response_status=response.status_code)
+
 
     @classmethod
     def send_yo_message(cls, channel, msg, text):
@@ -1312,31 +1418,31 @@ class Channel(SmartModel):
         log_params = params.copy()
         log_params['password'] = 'x' * len(log_params['password'])
 
-        url = YO_API_URL + '?' + urlencode(params)
-        log_url = YO_API_URL + '?' + urlencode(log_params)
-
         start = time.time()
-        try:
-            response = requests.get(url, headers=TEMBA_HEADERS, timeout=5)
-            response_qs = urlparse.parse_qs(response.text)
-        except Exception as e:
-            raise SendException(u"Unable to send message: %s" % unicode(e),
-                                url=log_url,
-                                method='GET',
-                                request='',
-                                response=response.text,
-                                response_status=response.status_code)
 
-        if response.status_code != 200 and response.status_code != 201:
-            raise SendException("Received non 200 status: %d" % response.status_code,
-                                url=log_url,
-                                method='GET',
-                                request='',
-                                response=response.text,
-                                response_status=response.status_code)
+        for send_url in [YO_API_URL_1, YO_API_URL_2, YO_API_URL_3]:
+            url = send_url + '?' + urlencode(params)
+            log_url = send_url + '?' + urlencode(log_params)
 
-        # if it wasn't successfully delivered, throw
-        if response_qs.get('ybs_autocreate_status', [''])[0] != 'OK':
+            failed = False
+            try:
+                response = requests.get(url, headers=TEMBA_HEADERS, timeout=5)
+                response_qs = urlparse.parse_qs(response.text)
+            except Exception as e:
+                failed = True
+
+            if not failed and response.status_code != 200 and response.status_code != 201:
+                failed = True
+
+            # if it wasn't successfully delivered, throw
+            if not failed and response_qs.get('ybs_autocreate_status', [''])[0] != 'OK':
+                failed = True
+
+            # if we sent the message, then move on
+            if not failed:
+                break
+
+        if failed:
             raise SendException("Received error from Yo! API",
                                 url=log_url,
                                 method='GET',
@@ -1381,7 +1487,7 @@ class Channel(SmartModel):
 
         try:
             response = requests.post(url, data=json.dumps(payload), headers=headers, timeout=5)
-        except:
+        except Exception:
             try:
                 # we failed to connect, try our backup URL
                 url = BACKUP_API_URL
@@ -1416,8 +1522,7 @@ class Channel(SmartModel):
                                 response=response.text,
                                 response_status=response.status_code)
 
-        Msg.mark_sent(channel.config['r'], channel, msg, SENT, time.time() - start,
-                      external_id=messages[0]['messageid'])
+        Msg.mark_sent(channel.config['r'], channel, msg, SENT, time.time() - start, external_id=messages[0]['messageid'])
 
         ChannelLog.log_success(msg=msg,
                                description="Successfully delivered",
@@ -1501,7 +1606,7 @@ class Channel(SmartModel):
             try:
                 if e.message and e.message.reason:
                     reason = e.message.reason
-            except:
+            except Exception:
                 pass
             raise SendException(u"Unable to send message: %s" % unicode(reason)[:64],
                                 url=masked_url,
@@ -1668,8 +1773,7 @@ class Channel(SmartModel):
             raise SendException(str(e),
                                 'https://api.twitter.com/1.1/direct_messages/new.json',
                                 'POST',
-                                urlencode(dict(screen_name=msg.urn_path, text=text)),
-                                # not complete, but useful in the log
+                                urlencode(dict(screen_name=msg.urn_path, text=text)),  # not complete, but useful in the log
                                 str(e),
                                 error_code,
                                 fatal=fatal)
@@ -1743,7 +1847,7 @@ class Channel(SmartModel):
         url = 'https://api.plivo.com/v1/Account/%s/Message/' % channel.config[PLIVO_AUTH_ID]
 
         client = plivo.RestAPI(channel.config[PLIVO_AUTH_ID], channel.config[PLIVO_AUTH_TOKEN])
-        status_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('api.plivo_handler',
+        status_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('handlers.plivo_handler',
                                                                        args=['status', channel.uuid])
 
         payload = {'src': channel.address.lstrip('+'),
@@ -1862,10 +1966,10 @@ class Channel(SmartModel):
         now = timezone.now()
         hours_ago = now - timedelta(hours=12)
 
-        pending = Msg.objects.filter(org=org, direction=OUTGOING) \
-            .filter(Q(status=PENDING) |
-                    Q(status=QUEUED, queued_on__lte=hours_ago) |
-                    Q(status=ERRORED, next_attempt__lte=now)).exclude(channel__channel_type=ANDROID)
+        pending = Msg.current_messages.filter(org=org, direction=OUTGOING)\
+                             .filter(Q(status=PENDING) |
+                                     Q(status=QUEUED, queued_on__lte=hours_ago) |
+                                     Q(status=ERRORED, next_attempt__lte=now)).exclude(channel__channel_type=ANDROID)
 
         # only SMS'es that have a topup and aren't the test contact
         pending = pending.exclude(topup=None).exclude(contact__is_test=True)
@@ -1882,7 +1986,7 @@ class Channel(SmartModel):
         # check whether this message was already sent somehow
         pipe = r.pipeline()
         pipe.sismember(timezone.now().strftime(MSG_SENT_KEY), str(msg.id))
-        pipe.sismember((timezone.now() - timedelta(days=1)).strftime(MSG_SENT_KEY), str(msg.id))
+        pipe.sismember((timezone.now()-timedelta(days=1)).strftime(MSG_SENT_KEY), str(msg.id))
         (sent_today, sent_yesterday) = pipe.execute()
 
         # get our cached channel
@@ -1919,6 +2023,7 @@ class Channel(SmartModel):
                       HIGH_CONNECTION: Channel.send_high_connection_message,
                       BLACKMYNA: Channel.send_blackmyna_message,
                       SMSCENTRAL: Channel.send_smscentral_message,
+                      START: Channel.send_start_message,
                       M3TECH: Channel.send_m3tech_message,
                       YO: Channel.send_yo_message}
 
@@ -1994,20 +2099,20 @@ class Channel(SmartModel):
 
         # update the number of sms it took to send this if it was more than 1
         if len(parts) > 1:
-            Msg.objects.filter(pk=msg.id).update(msg_count=len(parts))
+            Msg.all_messages.filter(pk=msg.id).update(msg_count=len(parts))
 
     @classmethod
     def track_status(cls, channel, status):
-        # track success, errors and failures
-        analytics.track('System', 'temba.channel_%s' % status.lower(),
-                        dict(channel_type=channel.get_channel_type_display()))
+        if channel:
+            # track success, errors and failures
+            analytics.gauge('temba.channel_%s_%s' % (status.lower(), channel.channel_type.lower()))
 
     @classmethod
     def build_twilio_callback_url(cls, sms_id):
         url = "https://" + settings.TEMBA_HOST + "/api/v1/twilio/?action=callback&id=%d" % sms_id
         return url
 
-    def __unicode__(self):  # pragma: no cover
+    def __unicode__(self): # pragma: no cover
         if self.name:
             return self.name
         elif self.device:
@@ -2018,8 +2123,8 @@ class Channel(SmartModel):
             return unicode(self.pk)
 
     def get_count(self, count_types):
-        count = ChannelCount.objects.filter(channel=self, count_type__in=count_types) \
-            .aggregate(Sum('count')).get('count__sum', 0)
+        count = ChannelCount.objects.filter(channel=self, count_type__in=count_types)\
+                                    .aggregate(Sum('count')).get('count__sum', 0)
 
         return 0 if count is None else count
 
@@ -2040,7 +2145,6 @@ class Channel(SmartModel):
 
     class Meta:
         ordering = ('-last_seen', '-pk')
-
 
 SOURCE_AC = "AC"
 SOURCE_USB = "USB"
@@ -2064,8 +2168,8 @@ class ChannelCount(models.Model):
     OUTGOING_MSG_TYPE = 'OM'  # Outgoing message
     INCOMING_IVR_TYPE = 'IV'  # Incoming IVR step
     OUTGOING_IVR_TYPE = 'OV'  # Outgoing IVR step
-    SUCCESS_LOG_TYPE = 'LS'  # ChannelLog record
-    ERROR_LOG_TYPE = 'LE'  # ChannelLog record that is an error
+    SUCCESS_LOG_TYPE = 'LS'   # ChannelLog record
+    ERROR_LOG_TYPE = 'LE'     # ChannelLog record that is an error
 
     COUNT_TYPE_CHOICES = ((INCOMING_MSG_TYPE, _("Incoming Message")),
                           (OUTGOING_MSG_TYPE, _("Outgoing Message")),
@@ -2084,8 +2188,8 @@ class ChannelCount(models.Model):
 
     @classmethod
     def get_day_count(cls, channel, count_type, day):
-        count = ChannelCount.objects.filter(channel=channel, count_type=count_type, day=day). \
-            order_by('day', 'count_type').aggregate(count_sum=Sum('count'))
+        count = ChannelCount.objects.filter(channel=channel, count_type=count_type, day=day).\
+          order_by('day', 'count_type').aggregate(count_sum=Sum('count'))
 
         return 0 if not count else count['count_sum']
 
@@ -2095,8 +2199,8 @@ class ChannelCount(models.Model):
     class Meta:
         index_together = ['channel', 'count_type', 'day']
 
-
 class SendException(Exception):
+
     def __init__(self, description, url, method, request, response, response_status, fatal=False):
         super(SendException, self).__init__(description)
 
@@ -2134,10 +2238,10 @@ class ChannelLog(models.Model):
     @classmethod
     def write(cls, log):
         if log.is_error:
-            print("[%d] ERROR - %s %s \"%s\" %s \"%s\"" %
+            print(u"[%d] ERROR - %s %s \"%s\" %s \"%s\"" %
                   (log.msg.pk, log.method, log.url, log.request, log.response_status, log.response))
         else:
-            print("[%d] SENT - %s %s \"%s\" %s \"%s\"" %
+            print(u"[%d] SENT - %s %s \"%s\" %s \"%s\"" %
                   (log.msg.pk, log.method, log.url, log.request, log.response_status, log.response))
 
     @classmethod
@@ -2174,7 +2278,7 @@ class ChannelLog(models.Model):
 
 class SyncEvent(SmartModel):
     channel = models.ForeignKey(Channel, verbose_name=_("Channel"),
-                                help_text=_("The channel that synced to the server"))
+                                help_text = _("The channel that synced to the server"))
     power_source = models.CharField(verbose_name=_("Power Source"), max_length=64,
                                     help_text=_("The power source the device is using"))
     power_status = models.CharField(verbose_name=_("Power Status"), max_length=64, default="STATUS_UNKNOWN",
@@ -2184,17 +2288,13 @@ class SyncEvent(SmartModel):
                                     help_text=_("The data network type to which the channel is connected"))
     lifetime = models.IntegerField(verbose_name=_("Lifetime"), null=True, blank=True, default=0)
     pending_message_count = models.IntegerField(verbose_name=_("Pending Messages Count"),
-                                                help_text=_("The number of messages on the channel in PENDING state"),
-                                                default=0)
+                                                help_text=_("The number of messages on the channel in PENDING state"), default=0)
     retry_message_count = models.IntegerField(verbose_name=_("Retry Message Count"),
-                                              help_text=_("The number of messages on the channel in RETRY state"),
-                                              default=0)
+                                              help_text=_("The number of messages on the channel in RETRY state"), default=0)
     incoming_command_count = models.IntegerField(verbose_name=_("Incoming Command Count"),
-                                                 help_text=_("The number of commands that the channel gave us"),
-                                                 default=0)
+                                                 help_text=_("The number of commands that the channel gave us"), default=0)
     outgoing_command_count = models.IntegerField(verbose_name=_("Outgoing Command Count"),
-                                                 help_text=_("The number of commands that we gave the channel"),
-                                                 default=0)
+                                                 help_text=_("The number of commands that we gave the channel"), default=0)
 
     @classmethod
     def create(cls, channel, cmd, incoming_commands):
@@ -2216,7 +2316,7 @@ class SyncEvent(SmartModel):
 
         args['pending_message_count'] = len(cmd.get('pending', cmd.get('pending_messages')))
         args['retry_message_count'] = len(cmd.get('retry', cmd.get('retry_messages')))
-        args['incoming_command_count'] = max(len(incoming_commands) - 2, 0)
+        args['incoming_command_count'] = max(len(incoming_commands)-2, 0)
 
         anon_user = User.objects.get(pk=-1)
         args['channel'] = channel
@@ -2254,7 +2354,7 @@ def pre_save(sender, instance, **kwargs):
             td = (timezone.now() - last_sync_event.created_on)
             last_sync_event.lifetime = td.seconds + td.days * 24 * 3600
             last_sync_event.save()
-
+    
 
 ALERT_DISCONNECTED = 'D'
 ALERT_POWER = 'P'
@@ -2262,9 +2362,9 @@ ALERT_SMS = 'S'
 
 
 class Alert(SmartModel):
-    ALERT_TYPES = ((ALERT_POWER, _("Power")),  # channel has low power
-                   (ALERT_DISCONNECTED, _("Disconnected")),  # channel hasn't synced in a while
-                   (ALERT_SMS, _("SMS")))  # channel has many unsent messages
+    ALERT_TYPES = ((ALERT_POWER, _("Power")),                 # channel has low power
+                   (ALERT_DISCONNECTED, _("Disconnected")),   # channel hasn't synced in a while
+                   (ALERT_SMS, _("SMS")))                     # channel has many unsent messages
 
     channel = models.ForeignKey(Channel, verbose_name=_("Channel"),
                                 help_text=_("The channel that this alert is for"))
@@ -2281,8 +2381,8 @@ class Alert(SmartModel):
         alert_user = get_alert_user()
 
         if (sync.power_status == STATUS_DISCHARGING or
-                    sync.power_status == STATUS_UNKNOWN or
-                    sync.power_status == STATUS_NOT_CHARGING) and int(sync.power_level) < 25:
+            sync.power_status == STATUS_UNKNOWN or
+            sync.power_status == STATUS_NOT_CHARGING) and int(sync.power_level) < 25:
 
             alerts = Alert.objects.filter(sync_event__channel=sync.channel, alert_type=ALERT_POWER, ended_on=None)
 
@@ -2297,8 +2397,7 @@ class Alert(SmartModel):
                 new_alert.send_alert()
 
         if sync.power_status == STATUS_CHARGING or sync.power_status == STATUS_FULL:
-            alerts = Alert.objects.filter(sync_event__channel=sync.channel, alert_type=ALERT_POWER,
-                                          ended_on=None).order_by('-created_on')
+            alerts = Alert.objects.filter(sync_event__channel=sync.channel, alert_type=ALERT_POWER, ended_on=None).order_by('-created_on')
 
             # end our previous alert
             if alerts and int(alerts[0].sync_event.power_level) < 25:
@@ -2323,8 +2422,7 @@ class Alert(SmartModel):
                 alert.save()
                 alert.send_resolved()
 
-        for channel in Channel.objects.filter(channel_type=ANDROID, is_active=True).exclude(org=None).exclude(
-                last_seen__gte=thirty_minutes_ago):
+        for channel in Channel.objects.filter(channel_type=ANDROID, is_active=True).exclude(org=None).exclude(last_seen__gte=thirty_minutes_ago):
             # have we already sent an alert for this channel
             if not Alert.objects.filter(channel=channel, alert_type=ALERT_DISCONNECTED, ended_on=None):
                 host = getattr(settings, 'HOSTNAME', 'rapidpro.io')
@@ -2339,19 +2437,13 @@ class Alert(SmartModel):
         for alert in Alert.objects.filter(alert_type=ALERT_SMS, ended_on=None):
             # are there still queued messages?
 
-            if not Msg.objects.filter(status__in=['Q', 'P'], channel=alert.channel, contact__is_test=False,
-                                      created_on__lte=thirty_minutes_ago).exclude(created_on__lte=day_ago):
+            if not Msg.current_messages.filter(status__in=['Q', 'P'], channel=alert.channel, contact__is_test=False, created_on__lte=thirty_minutes_ago).exclude(created_on__lte=day_ago):
                 alert.ended_on = timezone.now()
                 alert.save()
 
         # now look for channels that have many unsent messages
-        queued_messages = Msg.objects.filter(status__in=['Q', 'P'], contact__is_test=False).order_by('channel',
-                                                                                                     'created_on').exclude(
-            created_on__gte=thirty_minutes_ago).exclude(created_on__lte=day_ago).exclude(channel=None).values(
-            'channel').annotate(latest_queued=Max('created_on'))
-        sent_messages = Msg.objects.filter(status__in=['S', 'D'], contact__is_test=False).exclude(
-            created_on__lte=day_ago).exclude(channel=None).order_by('channel', 'sent_on').values('channel').annotate(
-            latest_sent=Max('sent_on'))
+        queued_messages = Msg.current_messages.filter(status__in=['Q', 'P'], contact__is_test=False).order_by('channel', 'created_on').exclude(created_on__gte=thirty_minutes_ago).exclude(created_on__lte=day_ago).exclude(channel=None).values('channel').annotate(latest_queued=Max('created_on'))
+        sent_messages = Msg.current_messages.filter(status__in=['S', 'D'], contact__is_test=False).exclude(created_on__lte=day_ago).exclude(channel=None).order_by('channel', 'sent_on').values('channel').annotate(latest_sent=Max('sent_on'))
 
         channels = dict()
         for queued in queued_messages:
@@ -2400,7 +2492,7 @@ class Alert(SmartModel):
         if self.alert_type == ALERT_POWER:
             if resolved:
                 subject = "Your Android phone is now charging"
-                template = 'channels/email/power_charging_alert'
+                template = 'channels/email/power_charging_alert'                
             else:
                 subject = "Your Android phone battery is low"
                 template = 'channels/email/power_alert'
@@ -2416,16 +2508,15 @@ class Alert(SmartModel):
         elif self.alert_type == ALERT_SMS:
             subject = "Your %s is having trouble sending messages" % self.channel.get_channel_type_name()
             template = 'channels/email/sms_alert'
-        else:  # pragma: no cover
-            raise Exception(_("Unknown alert type: %(alert)s") % {'alert': self.alert_type})
+        else: # pragma: no cover
+            raise Exception(_("Unknown alert type: %(alert)s") % {'alert':self.alert_type})
 
         from temba.middleware import BrandingMiddleware
         branding = BrandingMiddleware.get_branding_for_host(self.host)
 
         context = dict(org=self.channel.org, channel=self.channel, now=timezone.now(),
                        last_seen=self.channel.last_seen, sync=self.sync_event)
-        context['unsent_count'] = Msg.objects.filter(channel=self.channel, status__in=['Q', 'P'],
-                                                     contact__is_test=False).count()
+        context['unsent_count'] = Msg.current_messages.filter(channel=self.channel, status__in=['Q', 'P'], contact__is_test=False).count()
         context['subject'] = subject
 
         send_template_email(self.channel.alert_email, subject, template, context, branding)
