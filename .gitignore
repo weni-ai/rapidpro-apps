@@ -29,6 +29,7 @@ static/javascripts/
 temba/settings.py
 temba/smartmin
 temba.db
+smartmin
 
 # Extra
 celerybeat-schedule
