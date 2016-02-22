@@ -98,9 +98,12 @@ wsgiref==0.1.2
 xlrd==0.9.3
 xlwt==0.7.5
 enum34==1.0.3
+Collectfast==0.2.3
+django_cacheds3storage==0.1.2
 plivo==0.10.1
 antlr4-python2-runtime==4.5.2
 django-extensions==1.5.7
 python-telegram-bot==3.3b1
+flower==0.8.4
 -e git+http://github.com/nyaruka/python-librato-bg.git@d670939749e051a7baeedd1d353c9cbd0e8772c4#egg=librato_bg
 

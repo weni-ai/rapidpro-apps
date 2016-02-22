@@ -1,0 +1,32 @@
+---
+services:
+  app:
+    image: "452158872079.dkr.ecr.us-east-1.amazonaws.com/rapidpro:latest"
+    command: "celery beat --app=temba --schedule=/rapidpro/celerybeat-schedule -f /rapidpro/beat.log -l INFO --workdir=/rapidpro --pidfile=/rapidpro/beat.pid"
+    links:
+      - "postgres:postgres"
+      - "redis:redis"
+    environment:
+      REDIS_HOST: "redis"
+      REDIS_PORT: 6379
+      DB_USER: temba
+      DB_NAME: temba
+      DB_PORT: 5432
+      DB_HOST: postgres
+      DB_PASSWORD: temba
+      DEBUG: 'True'
+    ports:
+      - "80:8000"
+  postgres:
+    image: mdillon/postgis
+    environment:
+      POSTGRES_DB: temba
+      POSTGRES_PASSWORD: temba
+      POSTGRES_USER: temba
+    ports:
+      - "5432:5432"
+  redis:
+   image: "redis"
+   ports:
+    - "6379:6379"
+version: "2"

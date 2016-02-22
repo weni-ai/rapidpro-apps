@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 if count['exit_type__count'] > 0:
                     FlowRunCount.objects.create(flow=flow, exit_type=count['exit_type'], count=count['exit_type__count'])
 
-            print "%s - %s" % (flow.name, counts)
+            #print "%s - %s" % (flow.name, counts)
 
     def install_flowruncount_triggers(apps, schema_editor):
         """
