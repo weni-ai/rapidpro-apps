@@ -12,6 +12,8 @@ RUN tar xvfz gdal-1.11.0.tar.gz
 RUN cd gdal-1.11.0;./configure --with-python; make -j4; make install
 RUN ldconfig
 RUN rm -rf /tmp/gdal-1.11.0
+
+#RapidPro setup
 RUN mkdir /rapidpro
 WORKDIR /rapidpro
 RUN virtualenv env
@@ -23,12 +25,24 @@ ADD . /rapidpro
 COPY settings.py.pre /rapidpro/temba/settings.py
 RUN python manage.py collectstatic --noinput
 RUN python manage.py hamlcompress --extension=.haml
+
+#Nginx setup
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 RUN rm /etc/nginx/sites-enabled/default
 RUN ln -s /rapidpro/nginx.conf /etc/nginx/sites-enabled/
+
 COPY settings.py.static /rapidpro/temba/settings.py
+
 EXPOSE 8000
 EXPOSE 80
+
 COPY docker-entrypoint.sh /rapidpro/
+
 ENTRYPOINT ["/rapidpro/docker-entrypoint.sh"]
+
 CMD ["supervisor"]
+
+#Image cleanup
+RUN apt-get clean
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*[~]$ 
+

@@ -1,4 +1,4 @@
-#Build steps for Konami's base image
+#RapidPro docker build management
 REGISTRY = 452158872079.dkr.ecr.us-east-1.amazonaws.com
 NAME = rapidpro
 VERSION = latest
