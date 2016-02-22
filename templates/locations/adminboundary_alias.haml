@@ -223,7 +223,7 @@
 -block extra-script
   {{ block.super }}
   %script{src:"{{ STATIC_URL }}leaflet-0.7.2/leaflet.js"}
-  %script{type:"text/javascript", src:"{{ STATIC_URL }}/js/elastic.js"}
+  %script{type:"text/javascript", src:"{{ STATIC_URL }}js/elastic.js"}
 
   -compress js
     %script{src:"{{ STATIC_URL }}coffee/leaflet.coffee", type:'text/coffeescript'}
