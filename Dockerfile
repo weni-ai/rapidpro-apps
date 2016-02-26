@@ -11,8 +11,7 @@ RUN wget http://download.osgeo.org/gdal/1.11.0/gdal-1.11.0.tar.gz
 RUN tar xvfz gdal-1.11.0.tar.gz
 RUN cd gdal-1.11.0;./configure --with-python; make -j4; make install
 RUN ldconfig
-RUN rm -rf /tmp/gdal-1.11.0
-
+RUN rm -rf /tmp/*
 #RapidPro setup
 RUN mkdir /rapidpro
 WORKDIR /rapidpro
@@ -23,7 +22,11 @@ RUN pip install -r pip-freeze.txt
 RUN pip install uwsgi
 ADD . /rapidpro
 COPY settings.py.pre /rapidpro/temba/settings.py
+
 RUN python manage.py collectstatic --noinput
+
+RUN touch tmp.txt
+
 RUN python manage.py hamlcompress --extension=.haml
 
 #Nginx setup
