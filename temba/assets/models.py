@@ -76,8 +76,8 @@ class BaseAssetStore(object):
                                                           key=default_storage._encode_name(path),
                                                           query_auth=default_storage.querystring_auth,
                                                           force_http=not default_storage.secure_urls,
-                                                          response_headers={'response-content-disposition':
-                                                                            'attachment;filename=%s' % filename})
+                                                          response_headers={})
+                                                                           
 
         # otherwise, let the backend generate the URL
         else:
