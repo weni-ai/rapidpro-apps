@@ -1,6 +1,6 @@
 #RapidPro docker build management
 REGISTRY = 452158872079.dkr.ecr.us-east-1.amazonaws.com
-NAME = rapidpro
+IMAGE = rapidpro
 BUILD_NUMBER?=latest
 
 .PHONY: build release 
