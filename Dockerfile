@@ -25,7 +25,7 @@ COPY settings.py.pre /rapidpro/temba/settings.py
 
 RUN python manage.py collectstatic --noinput
 
-RUN touch tmp.txt
+RUN touch `echo $RANDOM`.txt
 
 RUN python manage.py hamlcompress --extension=.haml
 
