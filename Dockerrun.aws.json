@@ -1,7 +1,7 @@
 {
   "AWSEBDockerrunVersion": "1",
   "Image": {
-    "Name": "452158872079.dkr.ecr.us-east-1.amazonaws.com/rapidpro:latest",
+    "Name": "452158872079.dkr.ecr.us-east-1.amazonaws.com/rapidpro:BUILD_NUMBER",
     "Update": "true"
   },
   "Ports": [
