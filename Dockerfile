@@ -34,7 +34,7 @@ RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 RUN rm /etc/nginx/sites-enabled/default
 RUN ln -s /rapidpro/nginx.conf /etc/nginx/sites-enabled/
 
-RUN rm /rapidpro/temba/settings.py
+RUN rm /rapidpro/temba/settings.pyc
 
 COPY settings.py.static /rapidpro/temba/settings.py
 
