@@ -1,9 +1,10 @@
 from __future__ import absolute_import, unicode_literals
 
 import json
+import logging
 import plivo
 import regex
-import logging
+import six
 
 from collections import OrderedDict
 from datetime import datetime
@@ -32,16 +33,16 @@ from temba.assets.models import AssetType
 from temba.channels.models import Channel, PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN
 from temba.formax import FormaxMixin
 from temba.middleware import BrandingMiddleware
-from temba.nexmo import NexmoClient
-from temba.orgs.models import get_stripe_credentials
+from temba.nexmo import NexmoClient, NexmoValidationError
+from temba.orgs.models import get_stripe_credentials, NEXMO_UUID, NEXMO_SECRET, NEXMO_KEY
 from temba.utils import analytics, build_json_response, languages
 from temba.utils.middleware import disable_middleware
 from timezones.forms import TimeZoneField
-from twilio import TwilioRestException
 from twilio.rest import TwilioRestClient
 from .bundles import WELCOME_TOPUP_SIZE
 from .models import Org, OrgCache, OrgEvent, TopUp, Invitation, UserSettings
 from .models import MT_SMS_EVENTS, MO_SMS_EVENTS, MT_CALL_EVENTS, MO_CALL_EVENTS, ALARM_EVENTS
+from .models import SUSPENDED, WHITELISTED, RESTORED
 
 
 def check_login(request):
@@ -148,13 +149,13 @@ class ModalMixin(SmartFormView):
     def get_context_data(self, **kwargs):
         context = super(ModalMixin, self).get_context_data(**kwargs)
 
-        if 'HTTP_X_PJAX' in self.request.META and not 'HTTP_X_FORMAX' in self.request.META:  # pragma: no cover
+        if 'HTTP_X_PJAX' in self.request.META and 'HTTP_X_FORMAX' not in self.request.META:  # pragma: no cover
             context['base_template'] = "smartmin/modal.html"
         if 'success_url' in kwargs:  # pragma: no cover
             context['success_url'] = kwargs['success_url']
 
-        context['action_url'] = self.request.path + "?" + \
-                                "&".join(urlquote(_) + "=" + urlquote(self.request.REQUEST[_]) for _ in self.request.REQUEST.keys() if _ != '_')
+        pairs = [urlquote(k) + "=" + urlquote(v) for k, v in six.iteritems(self.request.REQUEST) if k != '_']
+        context['action_url'] = self.request.path + "?" + ("&".join(pairs))
 
         return context
 
@@ -424,8 +425,8 @@ class UserSettingsCRUDL(SmartCRUDL):
 class OrgCRUDL(SmartCRUDL):
     actions = ('signup', 'home', 'webhook', 'edit', 'join', 'grant', 'create_login', 'choose',
                'manage_accounts', 'manage', 'update', 'country', 'languages', 'clear_cache', 'download',
-               'twilio_connect', 'twilio_account', 'nexmo_account', 'nexmo_connect', 'export', 'import',
-               'plivo_connect', 'service', 'surveyor')
+               'twilio_connect', 'twilio_account', 'nexmo_configuration', 'nexmo_account', 'nexmo_connect', 'export',
+               'import', 'plivo_connect', 'service', 'surveyor')
 
     model = Org
 
@@ -509,6 +510,7 @@ class OrgCRUDL(SmartCRUDL):
 
         def get_context_data(self, **kwargs):
             from collections import defaultdict
+
             def connected_components(lists):
                 neighbors = defaultdict(set)
                 seen = set()
@@ -517,7 +519,7 @@ class OrgCRUDL(SmartCRUDL):
                         neighbors[item].update(each)
 
                 def component(node, neighbors=neighbors, seen=seen, see=seen.add):
-                    nodes = set([node])
+                    nodes = {node}
                     next_node = nodes.pop
                     while nodes:
                         node = next_node()
@@ -552,7 +554,6 @@ class OrgCRUDL(SmartCRUDL):
                 all_depends.append((campaign,))
 
             buckets = connected_components(all_depends)
-
 
             # sort our buckets, campaigns, flows, triggers
             bucket_list = []
@@ -624,6 +625,45 @@ class OrgCRUDL(SmartCRUDL):
             response['Temba-Success'] = self.get_success_url()
             return response
 
+    class NexmoConfiguration(InferOrgMixin, OrgPermsMixin, SmartReadView):
+
+        def get(self, request, *args, **kwargs):
+            org = self.get_object()
+
+            nexmo_client = org.get_nexmo_client()
+            if not nexmo_client:
+                return HttpResponseRedirect(reverse("orgs.org_nexmo_connect"))
+
+            nexmo_uuid = org.nexmo_uuid()
+            mo_path = reverse('handlers.nexmo_handler', args=['receive', nexmo_uuid])
+            dl_path = reverse('handlers.nexmo_handler', args=['status', nexmo_uuid])
+            try:
+                from temba.settings import TEMBA_HOST
+                nexmo_client.update_account('http://%s%s' % (TEMBA_HOST, mo_path),
+                                            'http://%s%s' % (TEMBA_HOST, dl_path))
+
+                return HttpResponseRedirect(reverse("channels.channel_claim_nexmo"))
+
+            except NexmoValidationError:
+                return super(OrgCRUDL.NexmoConfiguration, self).get(request, *args, **kwargs)
+
+        def get_context_data(self, **kwargs):
+            context = super(OrgCRUDL.NexmoConfiguration, self).get_context_data(**kwargs)
+
+            from temba.settings import TEMBA_HOST
+            org = self.get_object()
+            config = org.config_json()
+            context['nexmo_api_key'] = config[NEXMO_KEY]
+            context['nexmo_api_secret'] = config[NEXMO_SECRET]
+
+            nexmo_uuid = config.get(NEXMO_UUID, None)
+            mo_path = reverse('handlers.nexmo_handler', args=['receive', nexmo_uuid])
+            dl_path = reverse('handlers.nexmo_handler', args=['status', nexmo_uuid])
+            context['mo_path'] = 'https://%s%s' % (TEMBA_HOST, mo_path)
+            context['dl_path'] = 'https://%s%s' % (TEMBA_HOST, dl_path)
+
+            return context
+
     class NexmoAccount(ModalMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
         fields = ()
         submit_button_name = "Disconnect Nexmo"
@@ -666,7 +706,7 @@ class OrgCRUDL(SmartCRUDL):
 
         form_class = NexmoConnectForm
         submit_button_name = "Save"
-        success_url = '@channels.channel_claim_nexmo'
+        success_url = '@orgs.org_nexmo_configuration'
         field_config = dict(api_key=dict(label=""), api_secret=dict(label=""))
         success_message = "Nexmo Account successfully connected."
 
@@ -675,7 +715,9 @@ class OrgCRUDL(SmartCRUDL):
             api_secret = form.cleaned_data['api_secret']
 
             org = self.get_object()
+
             org.connect_nexmo(api_key, api_secret)
+
             org.save()
 
             response = self.render_to_response(self.get_context_data(form=form,
@@ -730,16 +772,12 @@ class OrgCRUDL(SmartCRUDL):
             response['Temba-Success'] = self.get_success_url()
             return response
 
-
     class Manage(SmartListView):
         fields = ('credits', 'used', 'name', 'owner', 'created_on')
         default_order = ('-credits', '-created_on',)
-        search_fields = ('name__icontains', 'created_by__email__iexact')
+        search_fields = ('name__icontains', 'created_by__email__iexact', 'config__icontains')
         link_fields = ('name', 'owner')
         title = "Organizations"
-
-        def get_paid(self, obj):
-            return "$%s" % (obj.paid / 100)
 
         def get_used(self, obj):
             if not obj.credits:
@@ -771,7 +809,11 @@ class OrgCRUDL(SmartCRUDL):
                    "<div class='owner-email'>%s</div>" % (url, obj.id, owner.first_name, owner.last_name, owner)
 
         def get_name(self, obj):
-            return "<div class='org-name'>%s</div><div class='org-timezone'>%s</div>" % (obj.name, obj.timezone)
+            suspended = ''
+            if obj.is_suspended():
+                suspended = '<span class="suspended">(Suspended)</span>'
+
+            return "<div class='org-name'>%s %s</div><div class='org-timezone'>%s</div>" % (suspended, obj.name, obj.timezone)
 
         def derive_queryset(self, **kwargs):
             queryset = super(OrgCRUDL.Manage, self).derive_queryset(**kwargs)
@@ -805,7 +847,48 @@ class OrgCRUDL(SmartCRUDL):
                 fields = '__all__'
 
         form_class = OrgUpdateForm
-        success_url = '@orgs.org_manage'
+
+        def get_success_url(self):
+            return reverse('orgs.org_update', args=[self.get_object().pk])
+
+        def get_gear_links(self):
+            links = []
+
+            org = self.get_object()
+
+            links.append(dict(title=_('Topups'),
+                              style='btn-primary',
+                              href='%s?org=%d' % (reverse("orgs.topup_manage"), org.pk)))
+
+            if org.is_suspended():
+                links.append(dict(title=_('Restore'),
+                                  style='btn-secondary',
+                                  posterize=True,
+                                  href='%s?status=restored' % reverse("orgs.org_update", args=[org.pk])))
+            else:
+                links.append(dict(title=_('Suspend'),
+                                  style='btn-secondary',
+                                  posterize=True,
+                                  href='%s?status=suspended' % reverse("orgs.org_update", args=[org.pk])))
+
+            if not org.is_whitelisted():
+                links.append(dict(title=_('Whitelist'),
+                                  style='btn-secondary',
+                                  posterize=True,
+                                  href='%s?status=whitelisted' % reverse("orgs.org_update", args=[org.pk])))
+
+            return links
+
+        def post(self, request, *args, **kwargs):
+            if 'status' in request.REQUEST:
+                if request.REQUEST.get('status', None) == SUSPENDED:
+                    self.get_object().set_suspended()
+                elif request.REQUEST.get('status', None) == WHITELISTED:
+                    self.get_object().set_whitelisted()
+                elif request.REQUEST.get('status', None) == RESTORED:
+                    self.get_object().set_restored()
+                return HttpResponseRedirect(self.get_success_url())
+            return super(OrgCRUDL.Update, self).post(request, *args, **kwargs)
 
     class ManageAccounts(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
 
@@ -838,7 +921,7 @@ class OrgCRUDL(SmartCRUDL):
         GROUP_LEVELS = ('administrators', 'editors', 'viewers', 'surveyors')
 
         def derive_title(self):
-            return _("Manage %(name)s Accounts") % {'name':self.get_object().name}
+            return _("Manage %(name)s Accounts") % {'name': self.get_object().name}
 
         def add_check_fields(self, form, objects, org_id, field_dict):
             for obj in objects:
@@ -1058,8 +1141,6 @@ class OrgCRUDL(SmartCRUDL):
         permission = False
 
         def pre_process(self, request, *args, **kwargs):
-            secret = self.kwargs.get('secret')
-
             org = self.get_object()
             if not org:
                 messages.info(request, _("Your invitation link is invalid. Please contact your organization administrator."))
@@ -1121,7 +1202,7 @@ class OrgCRUDL(SmartCRUDL):
 
         def derive_title(self):
             org = self.get_object()
-            return _("Join %(name)s") % {'name':org.name}
+            return _("Join %(name)s") % {'name': org.name}
 
         def get_context_data(self, **kwargs):
             context = super(OrgCRUDL.CreateLogin, self).get_context_data(**kwargs)
@@ -1158,7 +1239,7 @@ class OrgCRUDL(SmartCRUDL):
 
         def derive_title(self):
             org = self.get_object()
-            return _("Join %(name)s") % {'name':org.name}
+            return _("Join %(name)s") % {'name': org.name}
 
         def save(self, org):
             org = self.get_object()
@@ -1353,11 +1434,16 @@ class OrgCRUDL(SmartCRUDL):
             data = self.form.cleaned_data
 
             webhook_events = 0
-            if data['mt_sms']: webhook_events = MT_SMS_EVENTS
-            if data['mo_sms']: webhook_events |= MO_SMS_EVENTS
-            if data['mt_call']: webhook_events |= MT_CALL_EVENTS
-            if data['mo_call']: webhook_events |= MO_CALL_EVENTS
-            if data['alarm']: webhook_events |= ALARM_EVENTS
+            if data['mt_sms']:
+                webhook_events = MT_SMS_EVENTS
+            if data['mo_sms']:
+                webhook_events |= MO_SMS_EVENTS
+            if data['mt_call']:
+                webhook_events |= MT_CALL_EVENTS
+            if data['mo_call']:
+                webhook_events |= MO_CALL_EVENTS
+            if data['alarm']:
+                webhook_events |= ALARM_EVENTS
 
             analytics.track(self.request.user.username, 'temba.org_configured_webhook')
 
@@ -1536,9 +1622,11 @@ class OrgCRUDL(SmartCRUDL):
     class Country(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
 
         class CountryForm(forms.ModelForm):
-            country = forms.ModelChoiceField(Org.get_possible_countries(), required=False,
-                                      label=_("The country used for location values. (optional)"),
-                                      help_text="State and district names will be searched against this country.")
+            country = forms.ModelChoiceField(
+                Org.get_possible_countries(), required=False,
+                label=_("The country used for location values. (optional)"),
+                help_text="State and district names will be searched against this country."
+            )
 
             class Meta:
                 model = Org
@@ -1554,8 +1642,14 @@ class OrgCRUDL(SmartCRUDL):
     class Languages(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
 
         class LanguagesForm(forms.ModelForm):
-            primary_lang = forms.CharField(required=False, label=_('Primary Language'), help_text=_('The primary language will be used for contacts with no language preference.'))
-            languages = forms.CharField(required=False, label=_('Additional Languages'), help_text=('Add any other languages you would like to provide translations for.'))
+            primary_lang = forms.CharField(
+                required=False, label=_('Primary Language'),
+                help_text=_('The primary language will be used for contacts with no language preference.')
+            )
+            languages = forms.CharField(
+                required=False, label=_('Additional Languages'),
+                help_text=_('Add any other languages you would like to provide translations for.')
+            )
 
             def __init__(self, *args, **kwargs):
                 self.org = kwargs['org']
@@ -1656,7 +1750,7 @@ class OrgCRUDL(SmartCRUDL):
             self.org = self.derive_org()
             return self.request.user.has_perm('orgs.org_country') or self.has_org_perm('orgs.org_country')
 
-    class ClearCache(SmartUpdateView): # pragma: no cover
+    class ClearCache(SmartUpdateView):  # pragma: no cover
         fields = ('id',)
         success_message = None
         success_url = 'id@orgs.org_update'

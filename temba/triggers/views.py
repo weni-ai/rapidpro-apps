@@ -17,7 +17,7 @@ from temba.contacts.models import ContactGroup, URN_SCHEMES_SUPPORTING_FOLLOW
 from temba.contacts.fields import OmniboxField
 from temba.formax import FormaxMixin
 from temba.orgs.views import OrgPermsMixin
-from temba.schedules.models import Schedule, repeat_choices
+from temba.schedules.models import Schedule
 from temba.schedules.views import BaseScheduleForm
 from temba.channels.models import Channel, RECEIVE, ANSWER
 from temba.flows.models import Flow
@@ -67,7 +67,7 @@ class DefaultTriggerForm(BaseTriggerForm):
     """
     def __init__(self, user, *args, **kwargs):
         flows = Flow.objects.filter(org=user.get_org(), is_active=True, is_archived=False, flow_type__in=[Flow.FLOW, Flow.VOICE])
-        super(DefaultTriggerForm, self).__init__(user, flows,  *args, **kwargs)
+        super(DefaultTriggerForm, self).__init__(user, flows, *args, **kwargs)
 
 
 class GroupBasedTriggerForm(BaseTriggerForm):
@@ -183,8 +183,12 @@ class RegisterTriggerForm(BaseTriggerForm):
     keyword = forms.CharField(max_length=16, required=True,
                               help_text=_("The first word of the message text"))
 
-    action_join_group = AddNewGroupChoiceField(ContactGroup.user_groups.filter(pk__lt=0), required=True, label=_("Group to Join"),
-                                   help_text=_("The group the contact will join when they send the above keyword"))
+    action_join_group = AddNewGroupChoiceField(
+        ContactGroup.user_groups.filter(pk__lt=0),
+        required=True,
+        label=_("Group to Join"),
+        help_text=_("The group the contact will join when they send the above keyword")
+    )
 
     response = forms.CharField(widget=forms.Textarea(attrs=dict(rows=3)), required=False, label=_("Response"),
                                help_text=_("The message to send in response after they join the group (optional)"))
@@ -204,7 +208,7 @@ class RegisterTriggerForm(BaseTriggerForm):
 
 
 class ScheduleTriggerForm(BaseScheduleForm, forms.ModelForm):
-    repeat_period = forms.ChoiceField(choices=repeat_choices, label="Repeat")
+    repeat_period = forms.ChoiceField(choices=Schedule.REPEAT_CHOICES, label="Repeat")
     repeat_days = forms.IntegerField(required=False)
     start = forms.CharField(max_length=16)
     start_datetime_value = forms.IntegerField(required=False)
@@ -435,7 +439,7 @@ class TriggerCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super(TriggerCRUDL.BaseList, self).get_context_data(**kwargs)
             context['org_has_triggers'] = Trigger.objects.filter(org=self.request.user.get_org()).count()
-            context['folders']= self.get_folders()
+            context['folders'] = self.get_folders()
             context['request_url'] = self.request.path
             context['actions'] = self.actions
             return context
@@ -600,7 +604,6 @@ class TriggerCRUDL(SmartCRUDL):
 
             self.post_save(trigger)
 
-
             response = self.render_to_response(self.get_context_data(form=form))
             response['REDIRECT'] = self.get_success_url()
             return response
@@ -626,7 +629,7 @@ class TriggerCRUDL(SmartCRUDL):
         def pre_save(self, obj, *args, **kwargs):
             obj = super(TriggerCRUDL.InboundCall, self).pre_save(obj, *args, **kwargs)
             obj.org = self.request.user.get_org()
-            obj.trigger_type=Trigger.TYPE_INBOUND_CALL
+            obj.trigger_type = Trigger.TYPE_INBOUND_CALL
             return obj
 
         def get_form_kwargs(self):

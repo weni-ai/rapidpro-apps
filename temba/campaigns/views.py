@@ -130,7 +130,7 @@ class CampaignCRUDL(SmartCRUDL):
                 super(CampaignCRUDL.Create.CampaignForm, self).__init__(*args, **kwargs)
 
                 group = self.fields['group']
-                group.queryset = ContactGroup.user_groups.filter(org=self.user.get_org(), is_active=True).order_by('name')
+                group.queryset = ContactGroup.user_groups.filter(org=self.user.get_org()).order_by('name')
                 group.user = user
 
             class Meta:
@@ -160,7 +160,7 @@ class CampaignCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super(CampaignCRUDL.BaseList, self).get_context_data(**kwargs)
             context['org_has_campaigns'] = Campaign.objects.filter(org=self.request.user.get_org()).count()
-            context['folders']= self.get_folders()
+            context['folders'] = self.get_folders()
             context['request_url'] = self.request.path
             context['actions'] = self.actions
             return context

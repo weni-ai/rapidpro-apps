@@ -20,7 +20,7 @@ class MageStreamAction(Enum):
 
 
 @task(track_started=True, name='sync_channel_task')
-def sync_channel_task(gcm_id, channel_id=None):  #pragma: no cover
+def sync_channel_task(gcm_id, channel_id=None):  # pragma: no cover
     channel = Channel.objects.filter(pk=channel_id).first()
     Channel.sync_channel(gcm_id, channel)
 
@@ -30,17 +30,15 @@ def send_msg_task():
     """
     Pops the next message off of our msg queue to send.
     """
-    logger = send_msg_task.get_logger()
-
     # pop off the next task
-    task = pop_task(SEND_MSG_TASK)
+    cur_task = pop_task(SEND_MSG_TASK)
 
     # it is possible we have no message to send, if so, just return
-    if not task:
+    if not cur_task:
         return
 
-    msg = dict_to_struct('MockMsg', task, datetime_fields=['delivered_on', 'sent_on', 'created_on',
-                         'queued_on', 'next_attempt'])
+    msg = dict_to_struct('MockMsg', cur_task,
+                         datetime_fields=['modified_on', 'sent_on', 'created_on', 'queued_on', 'next_attempt'])
 
     # send it off
     r = get_redis_connection()
@@ -94,6 +92,7 @@ def notify_mage_task(channel_uuid, action):
         mage.deactivate_twitter_stream(channel_uuid)
     else:
         raise ValueError('Invalid action: %s' % action)
+
 
 @task(track_started=True, name="squash_channelcounts")
 def squash_channelcounts():

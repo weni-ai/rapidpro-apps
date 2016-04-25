@@ -3,14 +3,15 @@ from __future__ import absolute_import, unicode_literals
 import requests
 
 from datetime import timedelta
-from urlparse import parse_qs
+from django.utils.translation import ugettext_lazy as _
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.generic import View
 from smartmin.views import SmartTemplateView, SmartReadView, SmartListView
 from temba.api.models import WebHookEvent, WebHookResult
 from temba.orgs.views import OrgPermsMixin
-from django.utils.translation import ugettext, ugettext_lazy as _
+from urlparse import parse_qs
+
 
 def webhook_status_processor(request):
     status = dict()
@@ -66,7 +67,7 @@ class WebHookEventReadView(WebHookEventMixin, SmartReadView):
     permission = 'api.webhookevent_read'
     field_config = {'next_attempt': dict(label=_("Next Delivery")), 'tries': dict(label=_("Attempts"))}
 
-    def get_next_attempt(self, obj): # pragma: no cover
+    def get_next_attempt(self, obj):  # pragma: no cover
         if obj.next_attempt:
             return _("Around %s") % obj.next_attempt
         else:
@@ -86,11 +87,11 @@ class WebHookEventReadView(WebHookEventMixin, SmartReadView):
 
 
 class WebHookTunnelView(View):
-    http_method_names = ['post',]
+    http_method_names = ['post']
 
     def post(self, request):
         try:
-            if not 'url' in request.POST or not 'data' in request.POST:
+            if 'url' not in request.POST or 'data' not in request.POST:
                 return HttpResponse(_("Must include both 'url' and 'data' parameters."), status=400)
 
             url = request.POST['url']

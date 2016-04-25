@@ -5,7 +5,6 @@ import regex
 import pytz
 import time
 
-
 from collections import OrderedDict
 from datetime import timedelta, datetime
 from django import forms
@@ -23,17 +22,16 @@ from itertools import chain
 from smartmin.csv_imports.models import ImportTask
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartCSVImportView, SmartDeleteView, SmartFormView
 from smartmin.views import SmartListView, SmartReadView, SmartUpdateView, SmartXlsView, smart_url
-from temba.channels.models import RECEIVE
-from temba.contacts.models import Contact, ContactGroup, ContactField, ContactURN, URN_SCHEME_CHOICES, URN_SCHEME_CONFIG
-from temba.contacts.models import ExportContactsTask
-from temba.contacts.tasks import export_contacts_task
 from temba.orgs.views import OrgPermsMixin, OrgObjPermsMixin, ModalMixin
-from temba.msgs.models import Broadcast, Call, Msg, VISIBLE, ARCHIVED
+from temba.msgs.models import Broadcast, Call, Msg
 from temba.msgs.views import SendMessageForm
 from temba.values.models import Value
 from temba.utils import analytics, slugify_with, languages
 from temba.utils.views import BaseActionForm
+from .models import Contact, ContactGroup, ContactField, ContactURN, URN_SCHEME_CHOICES, URN_SCHEME_CONFIG
+from .models import ExportContactsTask
 from .omnibox import omnibox_query, omnibox_results_to_dict
+from .tasks import export_contacts_task
 
 
 class RemoveContactForm(forms.Form):
@@ -74,12 +72,18 @@ class ContactGroupForm(forms.ModelForm):
         super(ContactGroupForm, self).__init__(*args, **kwargs)
 
     def clean_name(self):
-        data = self.cleaned_data['name'].strip()
+        name = self.cleaned_data['name'].strip()
 
-        if not ContactGroup.is_valid_name(data):
-            raise forms.ValidationError("Group name must not be blank or begin with + or -")
+        # make sure the name isn't already taken
+        existing = ContactGroup.get_user_group(self.user.get_org(), name)
+        if existing and self.instance != existing:
+            raise forms.ValidationError(_("Name is used by another group"))
 
-        return data
+        # and that the name is valid
+        if not ContactGroup.is_valid_name(name):
+            raise forms.ValidationError(_("Group name must not be blank or begin with + or -"))
+
+        return name
 
     class Meta:
         fields = '__all__'
@@ -114,7 +118,7 @@ class ContactListView(OrgPermsMixin, SmartListView):
         Order contacts by name, case insensitive
         """
         return queryset
-            
+
     def get_context_data(self, **kwargs):
         org = self.request.user.get_org()
         counts = ContactGroup.get_system_group_counts(org)
@@ -130,7 +134,7 @@ class ContactListView(OrgPermsMixin, SmartListView):
                    dict(count=counts[ContactGroup.TYPE_FAILED], label=_("Failed"), url=reverse('contacts.contact_failed')),
                    dict(count=counts[ContactGroup.TYPE_BLOCKED], label=_("Blocked"), url=reverse('contacts.contact_blocked'))]
 
-        groups_qs = ContactGroup.user_groups.filter(org=org, is_active=True).select_related('org')
+        groups_qs = ContactGroup.user_groups.filter(org=org).select_related('org')
         groups_qs = groups_qs.extra(select={'lower_group_name': 'lower(contacts_contactgroup.name)'}).order_by('lower_group_name')
         groups = [dict(pk=g.pk, label=g.name, count=g.get_member_count(), is_dynamic=g.is_dynamic) for g in groups_qs]
 
@@ -301,7 +305,7 @@ class UpdateContactForm(ContactForm):
                 lang = languages.get_language_name(self.instance.language)
                 choices += [(self.instance.language, _("%s (Missing)") % lang)]
 
-        choices += [(lang.iso_code, lang.name) for lang in self.instance.org.languages.all().order_by('orgs', 'name')]
+        choices += [(l.iso_code, l.name) for l in self.instance.org.languages.all().order_by('orgs', 'name')]
 
         self.fields['language'] = forms.ChoiceField(required=False, label=_('Language'), initial=self.instance.language, choices=choices)
 
@@ -407,7 +411,6 @@ class ContactCRUDL(SmartCRUDL):
             Adds fields to the form for extra columns found in the spreadsheet. Returns a list of dictionaries
             containing the column label and the names of the fields
             """
-
             org = self.derive_org()
             column_controls = []
             for header in column_headers:
@@ -415,8 +418,6 @@ class ContactCRUDL(SmartCRUDL):
 
                 include_field = forms.BooleanField(label=' ', required=False, initial=True)
                 include_field_name = 'column_%s_include' % header_key
-                label_field = forms.CharField(label=' ', initial=header.title())
-
 
                 label_initial = ContactField.get_by_label(org, header.title())
 
@@ -424,8 +425,7 @@ class ContactCRUDL(SmartCRUDL):
                 if label_initial:
                     label_field_initial = label_initial.label
 
-                label_field = forms.CharField( initial=label_field_initial,
-                                                     required=False, label=' ')
+                label_field = forms.CharField(initial=label_field_initial, required=False, label=' ')
 
                 label_field_name = 'column_%s_label' % header_key
 
@@ -433,13 +433,15 @@ class ContactCRUDL(SmartCRUDL):
                 if label_initial:
                     type_field_initial = label_initial.value_type
 
-                type_field = forms.ChoiceField(label=' ', choices=Value.TYPE_CHOICES, required=True, initial=type_field_initial)
+                type_field = forms.ChoiceField(label=' ', choices=Value.TYPE_CHOICES, required=True,
+                                               initial=type_field_initial)
                 type_field_name = 'column_%s_type' % header_key
 
-                fields = []
-                fields.append((include_field_name, include_field))
-                fields.append((label_field_name, label_field))
-                fields.append((type_field_name, type_field))
+                fields = [
+                    (include_field_name, include_field),
+                    (label_field_name, label_field),
+                    (type_field_name, type_field)
+                ]
 
                 self.form.fields = OrderedDict(self.form.fields.items() + fields)
 
@@ -466,7 +468,7 @@ class ContactCRUDL(SmartCRUDL):
         def get_form(self, form_class):
             form = super(ContactCRUDL.Customize, self).get_form(form_class)
             form.fields.clear()
-            
+
             self.headers = Contact.get_org_import_file_headers(self.get_object().csv_file.file, self.derive_org())
             self.column_controls = self.create_column_controls(self.headers)
 
@@ -710,7 +712,7 @@ class ContactCRUDL(SmartCRUDL):
                 contact_fields.append(dict(label='Language', value=lang, featured=True))
 
             context['contact_fields'] = sorted(contact_fields, key=lambda f: f['label'])
-            context['recent_seconds'] = int(time.mktime((timezone.now() - timedelta(days=7)).timetuple()))
+            context['recent_seconds'] = int(time.mktime((timezone.now() - timedelta(minutes=5)).timetuple()))
             return context
 
         def post(self, request, *args, **kwargs):
@@ -805,7 +807,8 @@ class ContactCRUDL(SmartCRUDL):
             recent = self.request.REQUEST.get('r', False)
             context['recent_date'] = datetime.utcfromtimestamp(recent_seconds).replace(tzinfo=pytz.utc)
 
-            text_messages = Msg.all_messages.filter(contact=contact.id, visibility__in=(VISIBLE, ARCHIVED)).order_by('-created_on')
+            text_messages = Msg.all_messages.filter(contact=contact.id).exclude(visibility=Msg.VISIBILITY_DELETED)
+            text_messages = text_messages.order_by('-created_on')
             if recent:
                 start_time = context['recent_date']
                 text_messages = text_messages.filter(created_on__gt=start_time)
@@ -815,7 +818,7 @@ class ContactCRUDL(SmartCRUDL):
             else:
                 start_message = (page - 1) * msgs_per_page
                 end_message = page * msgs_per_page
-                text_messages = text_messages[start_message:end_message+1]
+                text_messages = text_messages[start_message:end_message + 1]
 
             # ignore our lead message past the first page
             count = len(text_messages)
@@ -830,7 +833,7 @@ class ContactCRUDL(SmartCRUDL):
 
             # grab up to 100 messages from our first message
             if not recent_seconds:
-                text_messages = text_messages[first_message:first_message+100]
+                text_messages = text_messages[first_message:first_message + 100]
 
             activity = []
 
@@ -1266,8 +1269,6 @@ class ContactFieldCRUDL(SmartCRUDL):
             return qs
 
         def render_to_response(self, context, **response_kwargs):
-            org = self.request.user.get_org()
-
             results = []
             for obj in context['object_list']:
                 result = dict(id=obj.pk, key=obj.key, label=obj.label)
@@ -1295,7 +1296,7 @@ class ContactFieldCRUDL(SmartCRUDL):
             num_fields = ContactField.objects.filter(org=self.request.user.get_org(), is_active=True).count()
 
             contact_fields = []
-            for field_idx in range(1, num_fields+2):
+            for field_idx in range(1, num_fields + 2):
                 contact_field = dict(show='show_%d' % field_idx,
                                      type='type_%d' % field_idx,
                                      label='label_%d' % field_idx,
@@ -1316,7 +1317,7 @@ class ContactFieldCRUDL(SmartCRUDL):
 
             i = 1
             for contact_field in contact_fields:
-                form_field_label = _("@contact.%(key)s") % {'key' : contact_field.key }
+                form_field_label = _("@contact.%(key)s") % {'key': contact_field.key}
                 added_fields.append(("show_%d" % i, forms.BooleanField(initial=contact_field.show_in_table, required=False)))
                 added_fields.append(("type_%d" % i, forms.ChoiceField(label=' ', choices=Value.TYPE_CHOICES, initial=contact_field.value_type, required=True)))
                 added_fields.append(("label_%d" % i, forms.CharField(label=' ', max_length=36, help_text=form_field_label, initial=contact_field.label, required=False)))

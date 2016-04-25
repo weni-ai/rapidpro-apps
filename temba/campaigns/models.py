@@ -75,7 +75,7 @@ class Campaign(SmartModel):
 
                 # first check if we have the objects by id
                 if same_site:
-                    group = ContactGroup.user_groups.filter(id=campaign_spec['group']['id'], org=org, is_active=True).first()
+                    group = ContactGroup.user_groups.filter(id=campaign_spec['group']['id'], org=org).first()
                     if group:
                         group.name = campaign_spec['group']['name']
                         group.save()
@@ -319,7 +319,7 @@ class CampaignEvent(SmartModel):
         if date_value:
             date_value = date_value.replace(second=0, microsecond=0)
 
-        if not self.relative_to.is_active: # pragma: no cover
+        if not self.relative_to.is_active:  # pragma: no cover
             return None
 
         # try to parse it to a datetime
