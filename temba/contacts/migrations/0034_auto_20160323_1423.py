@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         for group_id in ContactGroup.all_groups.all().values_list('id', flat=True):
             group = ContactGroup.all_groups.get(id=group_id)
             count = ContactGroupCount.populate_for_group(group)
-            print "%s %d" % (group.name, count.count)
+            #print "%s %d" % (group.name, count.count)
 
     operations = [
         migrations.CreateModel(

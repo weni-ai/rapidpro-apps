@@ -6,8 +6,8 @@ import urllib
 from django import forms
 from django.contrib.auth import authenticate, login
 from django.core.cache import cache
-from django.db.models import Prefetch
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.db.models import Q, Prefetch
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, mixins, status, pagination
 from rest_framework.decorators import api_view, permission_classes
@@ -2511,7 +2511,9 @@ class BoundaryEndpoint(ListAPIMixin, BaseAPIView):
         if not org.country:
             return []
 
-        queryset = org.country.get_descendants(include_self=True).order_by('level', 'name')
+        queryset = self.model.objects.filter(Q(pk=org.country.pk) |
+                                             Q(parent=org.country) |
+                                             Q(parent__parent=org.country)).order_by('level', 'name')
         return queryset.select_related('parent')
 
     def get_serializer_class(self):

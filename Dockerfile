@@ -25,7 +25,7 @@ COPY settings.py.pre /rapidpro/temba/settings.py
 
 RUN python manage.py collectstatic --noinput
 
-RUN touch tmp.txt
+RUN touch `echo $RANDOM`.txt
 
 RUN python manage.py hamlcompress --extension=.haml
 
@@ -33,6 +33,8 @@ RUN python manage.py hamlcompress --extension=.haml
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 RUN rm /etc/nginx/sites-enabled/default
 RUN ln -s /rapidpro/nginx.conf /etc/nginx/sites-enabled/
+
+RUN rm /rapidpro/temba/settings.pyc
 
 COPY settings.py.static /rapidpro/temba/settings.py
 
