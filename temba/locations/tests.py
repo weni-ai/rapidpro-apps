@@ -1,9 +1,13 @@
+from __future__ import unicode_literals
+
 import json
+
 from django.core.urlresolvers import reverse
 from temba.tests import TembaTest
+from .models import STATE_LEVEL
 
 
-class Locationtest(TembaTest):
+class LocationTest(TembaTest):
 
     def test_boundaries(self):
         self.login(self.admin)
@@ -79,16 +83,47 @@ class Locationtest(TembaTest):
         self.assertEquals('kig\nkigs', response_json[1]['aliases'])
 
         # test nested admin level aliases update
+        geo_data = [
+            dict(
+                osm_id=self.state2.osm_id,
+                aliases="Eastern P",
+                children=[
+                    dict(
+                        osm_id=self.district1.osm_id,
+                        aliases="Gatsibo",
+                        children=[
+                            dict(
+                                osm_id=self.ward1.osm_id,
+                                aliases="Kageyo Gat"
+                            )
+                        ]
+                    )
+                ]
+            )
+        ]
         response = self.client.post(reverse('locations.adminboundary_boundaries', args=[self.country.osm_id]),
-                                    json.dumps(
-                                        [dict(osm_id=self.state2.osm_id, aliases="Eastern P",
-                                              children=[dict(osm_id=self.district1.osm_id,
-                                                                 aliases="Gatsibo",
-                                                             children=[dict(osm_id=self.ward1.osm_id,
-                                                                 aliases="Kageyo Gat")])])]),
-                                    content_type='application/json')
+                                    json.dumps(geo_data), content_type='application/json')
 
         self.assertEquals(200, response.status_code)
+
+        # exact match
+        boundary = self.org.find_boundary_by_name('kigali city', STATE_LEVEL, self.country)
+        self.assertEqual(len(boundary), 1)
+        self.assertEqual(boundary[0], self.state1)
+
+        # try to find the location by alias
+        boundary = self.org.find_boundary_by_name('kigs', STATE_LEVEL, self.country)
+        self.assertEqual(len(boundary), 1)
+        self.assertEqual(boundary[0], self.state1)
+
+        # also try with no parent
+        boundary = self.org.find_boundary_by_name('kigs', STATE_LEVEL, None)
+        self.assertEqual(len(boundary), 1)
+        self.assertEqual(boundary[0], self.state1)
+
+        # test no match
+        boundary = self.org.find_boundary_by_name('foobar', STATE_LEVEL, None)
+        self.assertFalse(boundary)
 
         # fetch aliases again
         response = self.client.get(

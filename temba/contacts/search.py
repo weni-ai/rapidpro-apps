@@ -140,7 +140,9 @@ def generate_queryset(lexer, identifier, comparator, value):
         except ObjectDoesNotExist:
             raise SearchException("Unrecognized contact field identifier %s" % identifier)
 
-        if field.value_type == Value.TYPE_TEXT:
+        if comparator.lower() in ('=', 'is') and value == "":
+            q = generate_empty_field_test(field)
+        elif field.value_type == Value.TYPE_TEXT:
             q = generate_text_field_comparison(field, comparator, value)
         elif field.value_type == Value.TYPE_DECIMAL:
             q = generate_decimal_field_comparison(field, comparator, value)
@@ -160,6 +162,11 @@ def generate_non_field_comparison(relation, comparator, value):
         raise SearchException("Unsupported comparator %s for non-field" % comparator)
 
     return Q(**{'%s__%s' % (relation, lookup): value})
+
+
+def generate_empty_field_test(field):
+    contacts_with_field = field.org.org_contacts.filter(Q(**{'values__contact_field__key': field.key}))
+    return ~Q(**{'pk__in': contacts_with_field})
 
 
 def generate_text_field_comparison(field, comparator, value):
@@ -225,7 +232,7 @@ def generate_location_field_comparison(field, comparator, value):
         'values__location_value__name__%s' % lookup: value})
 
 
-#################################### Lexer definition ####################################
+# ================================== Lexer definition ==================================
 
 tokens = ('BINOP', 'COMPARATOR', 'TEXT', 'STRING')
 
@@ -234,10 +241,10 @@ literals = '()'
 # treat reserved words specially
 # http://www.dabeaz.com/ply/ply.html#ply_nn4
 reserved = {
-   'or': 'BINOP',
-   'and': 'BINOP',
-   'has': 'COMPARATOR',
-   'is': 'COMPARATOR',
+    'or': 'BINOP',
+    'and': 'BINOP',
+    'has': 'COMPARATOR',
+    'is': 'COMPARATOR',
 }
 
 t_ignore = ' \t'  # ignore tabs and spaces
@@ -264,7 +271,7 @@ def t_error(t):
     raise SearchException("Invalid character %s" % t.value[0])
 
 
-#################################### Parser definition ####################################
+# ================================== Parser definition ==================================
 
 precedence = (
     (str('left'), str('BINOP')),
@@ -300,7 +307,7 @@ def p_error(p):
     raise SearchException(message)
 
 
-#################################### Module initialization ####################################
+# ================================== Module initialization ==================================
 
 # initalize the PLY library for lexing and parsing
 search_lexer = lex.lex()

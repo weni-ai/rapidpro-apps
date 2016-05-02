@@ -1,10 +1,12 @@
 from __future__ import absolute_import, unicode_literals
 
 from rest_framework import serializers
+from temba.campaigns.models import Campaign, CampaignEvent
+from temba.channels.models import Channel, ANDROID
 from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.flows.models import FlowRun, ACTION_SET, RULE_SET
-from temba.msgs.models import Msg, Label, ARCHIVED, INCOMING, OUTGOING, INBOX, FLOW, IVR, INITIALIZING, PENDING, QUEUED
-from temba.msgs.models import WIRED, SENT, DELIVERED, HANDLED, ERRORED, FAILED, RESENT
+from temba.msgs.models import Broadcast, Msg, Label, Call, STATUS_CONFIG, INCOMING, OUTGOING, INBOX, FLOW, IVR, PENDING
+from temba.msgs.models import QUEUED
 from temba.utils import datetime_to_json_date
 from temba.values.models import Value
 
@@ -20,6 +22,10 @@ class ReadSerializer(serializers.ModelSerializer):
     """
     We deviate slightly from regular REST framework usage with distinct serializers for reading and writing
     """
+    @staticmethod
+    def extract_constants(config):
+        return {t[0]: t[2] for t in config}
+
     def save(self, **kwargs):  # pragma: no cover
         raise ValueError("Can't call save on a read serializer")
 
@@ -27,6 +33,118 @@ class ReadSerializer(serializers.ModelSerializer):
 # ============================================================
 # Serializers (A-Z)
 # ============================================================
+
+class BroadcastReadSerializer(ReadSerializer):
+    STATUSES = ReadSerializer.extract_constants(STATUS_CONFIG)
+
+    urns = serializers.SerializerMethodField()
+    contacts = serializers.SerializerMethodField()
+    groups = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+
+    def get_urns(self, obj):
+        if obj.org.is_anon:
+            return []
+        else:
+            return [urn.urn for urn in obj.urns.all()]
+
+    def get_contacts(self, obj):
+        return [{'uuid': c.uuid, 'name': c.name} for c in obj.contacts.all()]
+
+    def get_groups(self, obj):
+        return [{'uuid': g.uuid, 'name': g.name} for g in obj.groups.all()]
+
+    def get_status(self, obj):
+        return self.STATUSES.get(obj.status)
+
+    class Meta:
+        model = Broadcast
+        fields = ('id', 'urns', 'contacts', 'groups', 'text', 'created_on', 'status')
+
+
+class CallReadSerializer(ReadSerializer):
+    TYPES = ReadSerializer.extract_constants(Call.TYPE_CONFIG)
+
+    type = serializers.SerializerMethodField()
+    contact = serializers.SerializerMethodField()
+    channel = serializers.SerializerMethodField()
+
+    def get_type(self, obj):
+        return self.TYPES.get(obj.call_type)
+
+    def get_contact(self, obj):
+        return {'uuid': obj.contact.uuid, 'name': obj.contact.name}
+
+    def get_channel(self, obj):
+        return {'uuid': obj.channel.uuid, 'name': obj.channel.name}
+
+    class Meta:
+        model = Call
+        fields = ('id', 'type', 'contact', 'channel', 'time', 'duration', 'created_on')
+
+
+class CampaignReadSerializer(ReadSerializer):
+    group = serializers.SerializerMethodField()
+
+    def get_group(self, obj):
+        return {'uuid': obj.group.uuid, 'name': obj.group.name}
+
+    class Meta:
+        model = Campaign
+        fields = ('uuid', 'name', 'group', 'created_on')
+
+
+class CampaignEventReadSerializer(ReadSerializer):
+    UNITS = ReadSerializer.extract_constants(CampaignEvent.UNIT_CONFIG)
+
+    campaign = serializers.SerializerMethodField()
+    flow = serializers.SerializerMethodField()
+    relative_to = serializers.SerializerMethodField()
+    unit = serializers.SerializerMethodField()
+
+    def get_campaign(self, obj):
+        return {'uuid': obj.campaign.uuid, 'name': obj.campaign.name}
+
+    def get_flow(self, obj):
+        if obj.event_type == CampaignEvent.TYPE_FLOW:
+            return {'uuid': obj.flow.uuid, 'name': obj.flow.name}
+        else:
+            return None
+
+    def get_relative_to(self, obj):
+        return {'key': obj.relative_to.key, 'label': obj.relative_to.label}
+
+    def get_unit(self, obj):
+        return self.UNITS.get(obj.unit)
+
+    class Meta:
+        model = CampaignEvent
+        fields = ('uuid', 'campaign', 'relative_to', 'offset', 'unit', 'delivery_hour', 'flow', 'message', 'created_on')
+
+
+class ChannelReadSerializer(ReadSerializer):
+    country = serializers.SerializerMethodField()
+    device = serializers.SerializerMethodField()
+
+    def get_country(self, obj):
+        return unicode(obj.country) if obj.country else None
+
+    def get_device(self, obj):
+        if obj.channel_type != ANDROID:
+            return None
+
+        return {
+            'name': obj.device,
+            'power_level': obj.get_last_power(),
+            'power_status': obj.get_last_power_status(),
+            'power_source': obj.get_last_power_source(),
+            'network_type': obj.get_last_network_type()
+        }
+
+    class Meta:
+        model = Channel
+        fields = ('uuid', 'name', 'address', 'country', 'device', 'last_seen', 'created_on')
+
 
 class ContactReadSerializer(ReadSerializer):
     name = serializers.SerializerMethodField()
@@ -79,10 +197,8 @@ class ContactReadSerializer(ReadSerializer):
 
 
 class ContactFieldReadSerializer(ReadSerializer):
-    VALUE_TYPES = {c[0]: c[2] for c in Value.TYPE_CONFIG}
+    VALUE_TYPES = ReadSerializer.extract_constants(Value.TYPE_CONFIG)
 
-    key = serializers.ReadOnlyField()
-    label = serializers.ReadOnlyField()
     value_type = serializers.SerializerMethodField()
 
     def get_value_type(self, obj):
@@ -94,9 +210,10 @@ class ContactFieldReadSerializer(ReadSerializer):
 
 
 class ContactGroupReadSerializer(ReadSerializer):
-    uuid = serializers.ReadOnlyField()
-    name = serializers.ReadOnlyField()
-    count = serializers.ReadOnlyField()
+    count = serializers.SerializerMethodField()
+
+    def get_count(self, obj):
+        return obj.get_member_count()
 
     class Meta:
         model = ContactGroup
@@ -148,8 +265,6 @@ class FlowRunReadSerializer(ReadSerializer):
 
 
 class LabelReadSerializer(ReadSerializer):
-    uuid = serializers.ReadOnlyField()
-    name = serializers.ReadOnlyField()
     count = serializers.SerializerMethodField()
 
     def get_count(self, obj):
@@ -161,6 +276,8 @@ class LabelReadSerializer(ReadSerializer):
 
 
 class MsgReadSerializer(ReadSerializer):
+    STATUSES = ReadSerializer.extract_constants(STATUS_CONFIG)
+    VISIBILITIES = ReadSerializer.extract_constants(Msg.VISIBILITY_CONFIG)
     DIRECTIONS = {
         INCOMING: 'in',
         OUTGOING: 'out'
@@ -169,17 +286,6 @@ class MsgReadSerializer(ReadSerializer):
         INBOX: 'inbox',
         FLOW: 'flow',
         IVR: 'ivr'
-    }
-    STATUSES = {
-        INITIALIZING: "initializing",
-        QUEUED: "queued",
-        WIRED: "wired",
-        SENT: "sent",
-        DELIVERED: "delivered",
-        HANDLED: "handled",
-        ERRORED: "errored",
-        FAILED: "failed",
-        RESENT: "resent"
     }
 
     broadcast = serializers.SerializerMethodField()
@@ -190,6 +296,7 @@ class MsgReadSerializer(ReadSerializer):
     type = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     archived = serializers.SerializerMethodField()
+    visibility = serializers.SerializerMethodField()
     labels = serializers.SerializerMethodField()
 
     def get_broadcast(self, obj):
@@ -220,7 +327,10 @@ class MsgReadSerializer(ReadSerializer):
         return self.STATUSES.get(QUEUED if obj.status == PENDING else obj.status)
 
     def get_archived(self, obj):
-        return obj.visibility == ARCHIVED
+        return obj.visibility == Msg.VISIBILITY_ARCHIVED
+
+    def get_visibility(self, obj):
+        return self.VISIBILITIES.get(obj.visibility)
 
     def get_labels(self, obj):
         return [{'uuid': l.uuid, 'name': l.name} for l in obj.labels.all()]
@@ -228,5 +338,5 @@ class MsgReadSerializer(ReadSerializer):
     class Meta:
         model = Msg
         fields = ('id', 'broadcast', 'contact', 'urn', 'channel',
-                  'direction', 'type', 'status', 'archived', 'text', 'labels',
-                  'created_on', 'sent_on', 'delivered_on')
+                  'direction', 'type', 'status', 'archived', 'visibility', 'text', 'labels',
+                  'created_on', 'sent_on', 'modified_on')

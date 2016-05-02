@@ -1,12 +1,11 @@
 from __future__ import unicode_literals
 
-from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from temba.orgs.models import Org
 from smartmin.tests import SmartminTest, _CRUDLTest
-from .models import *
+from .models import Lead, Video
 from .views import VideoCRUDL
+
 
 class PublicTest(SmartminTest):
 
@@ -15,7 +14,7 @@ class PublicTest(SmartminTest):
         self.user = self.create_user("tito")
 
     def test_index(self):
-        home_url = reverse('public.public_index');
+        home_url = reverse('public.public_index')
         response = self.client.get(home_url, follow=True)
         self.assertEquals(response.request['PATH_INFO'], '/')
 
@@ -24,7 +23,7 @@ class PublicTest(SmartminTest):
         post_data = dict()
         response = self.client.post(lead_create_url, post_data, follow=True)
         self.assertEquals(response.request['PATH_INFO'], '/')
-        self.assertTrue(response.context['errors']);
+        self.assertTrue(response.context['errors'])
         self.assertEquals(response.context['error_msg'], 'This field is required.')
 
         post_data['email'] = 'wrong_email_format'
@@ -40,8 +39,6 @@ class PublicTest(SmartminTest):
     def test_privacy(self):
         response = self.client.get(reverse('public.public_privacy'))
         self.assertContains(response, "Privacy")
-
-
 
     def test_welcome(self):
         welcome_url = reverse('public.public_welcome')

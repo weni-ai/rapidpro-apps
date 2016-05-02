@@ -5,7 +5,7 @@ version = new Date().getTime()
 quietPeriod = 500
 errorRetries = 10
 
-app.service "utils", ->
+app.service "utils", ['$modal', ($modal) ->
 
   isWindow = (obj) ->
     obj and obj.document and obj.location and obj.alert and obj.setInterval
@@ -95,6 +95,14 @@ app.service "utils", ->
       return false
     return true
 
+  openModal: (templateUrl, controller, resolveObj) ->
+    $modal.open
+      keyboard: false
+      templateUrl: templateUrl
+      controller: controller
+      resolve: resolveObj
+
+]
 #============================================================================
 # DragHelper is all kinds of bad. This facilitates the little helper cues
 # for the user so they learn the mechanics of building a flow. We should
@@ -350,9 +358,12 @@ app.service "Plumb", ["$timeout", "$rootScope", "$log", ($timeout, $rootScope, $
         jsPlumb.repaint(element)
       else
         jsPlumb.repaintEverything()
+    , 0
 
+    $timeout ->
       service.setPageHeight()
     , 0
+
 
   disconnectRules: (rules) ->
     for rule in rules
@@ -390,7 +401,7 @@ app.factory "Revisions", ['$http', '$log', ($http, $log) ->
 
 ]
 
-app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', '$log', '$modal', 'utils', 'Plumb', 'Revisions', 'DragHelper', ($rootScope, $window, $http, $timeout, $interval, $log, $modal, utils, Plumb, Revisions, DragHelper) ->
+app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', '$log', 'utils', 'Plumb', 'Revisions', 'DragHelper', ($rootScope, $window, $http, $timeout, $interval, $log, utils, Plumb, Revisions, DragHelper) ->
 
   new class Flow
 
@@ -421,6 +432,12 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       @rulesets = [
 
         { type: 'wait_message', name:'Wait for Response', verbose_name: 'Wait for response', split:'message response', filter:[TEXT,SURVEY] },
+
+        # survey media types
+        { type: 'wait_photo', name:'Wait for a photo', verbose_name: 'Wait for photo', filter:[SURVEY] },
+        { type: 'wait_audio', name:'Wait for an audio recording', verbose_name: 'Wait for audio', filter:[SURVEY] },
+        { type: 'wait_video', name:'Wait for a video', verbose_name: 'Wait for video', filter:[SURVEY] },
+        { type: 'wait_gps', name:'Wait for GPS coordinates', verbose_name: 'Wait for GPS', filter:[SURVEY] },
 
         # voice flows only
         { type: 'wait_recording', name:'Get Recording', verbose_name: 'Wait for recording', filter:VOICE },
@@ -461,6 +478,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         { type:'phone', name: 'Has a phone', verbose_name:'has a phone number', operands: 0, voice:true }
         { type:'state', name: 'Has a state', verbose_name:'has a state', operands: 0 }
         { type:'district', name: 'Has a district', verbose_name:'has a district', operands: 1, auto_complete: true, placeholder:'@flow.state' }
+        { type:'ward', name: 'Has a ward', verbose_name:'has a ward', operands: 2, operand_required: false,  auto_complete: true, }
         { type:'regex', name: 'Regex', verbose_name:'matches regex', operands: 1, voice:true, localized:true }
         { type:'true', name: 'Other', verbose_name:'contains anything', operands: 0 }
       ]
@@ -540,15 +558,14 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
               if UserVoice
                 UserVoice.push(['set', 'ticket_custom_fields', {'Error': data.description}]);
 
-              modalInstance = $modal.open
-                templateUrl: "/partials/modal?v=" + version
-                controller: ModalController
-                resolve:
-                  type: -> "error"
-                  title: -> "Error Saving"
-                  body: -> "Sorry, but we were unable to save your flow. Please reload the page and try again, this may clear your latest changes."
-                  details: -> data.description
-                  ok: -> 'Reload'
+              resolveObj =
+                type: -> "error"
+                title: -> "Error Saving"
+                body: -> "Sorry, but we were unable to save your flow. Please reload the page and try again, this may clear your latest changes."
+                details: -> data.description
+                ok: -> 'Reload'
+
+              modalInstance = utils.openModal("/partials/modal?v=" + version, ModalController, resolveObj)
 
               modalInstance.result.then (reload) ->
                 if reload
@@ -573,14 +590,12 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
             $rootScope.error = null
             $rootScope.errorDelay = quietPeriod
             if data.status == 'unsaved'
-              modalInstance = $modal.open
-                templateUrl: "/partials/modal?v=" + version
-                controller: ModalController
-                resolve:
-                  type: -> "error"
-                  title: -> "Editing Conflict"
-                  body: -> data.saved_by + " is currently editing this Flow. Your changes will not be saved until the Flow is reloaded."
-                  ok: -> 'Reload'
+              resolveObj =
+                type: -> "error"
+                title: -> "Editing Conflict"
+                body: -> data.saved_by + " is currently editing this Flow. Your changes will not be saved until the Flow is reloaded."
+                ok: -> 'Reload'
+              modalInstance = utils.openModal("/partials/modal?v=" + version, ModalController, resolveObj)
 
               modalInstance.result.then (reload) ->
                 if reload
@@ -1204,9 +1219,10 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         Flow.flow.action_sets.push(actionset)
 
       if Flow.flow.action_sets.length == 1
-        $timeout ->
-          DragHelper.showSaveResponse($('#' + Flow.flow.action_sets[0].uuid + ' .source'))
-        ,0
+        if not Flow.flow.action_sets[0].destination
+          $timeout ->
+            DragHelper.showSaveResponse($('#' + Flow.flow.action_sets[0].uuid + ' .source'))
+          ,0
 
       @checkTerminal(actionset)
       @markDirty()
