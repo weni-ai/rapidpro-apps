@@ -71,14 +71,18 @@ class BaseAssetStore(object):
 
         # if our storage backend is S3
         if settings.DEFAULT_FILE_STORAGE == 'storages.backends.s3boto.S3BotoStorage':
+            if settings.AWS_STORAGE_BUCKET_NAME_CSV:
+                bucket_name = settings.AWS_STORAGE_BUCKET_NAME_CSV
+            else:
+                bucket_name = default_storage.bucket.name
             # generate our URL manually so that we can force the download name for the user
             url = default_storage.connection.generate_url(default_storage.querystring_expire,
-                                                          method='GET', bucket=default_storage.bucket.name,
+                                                          method='GET', bucket=bucket_name,
                                                           key=default_storage._encode_name(path),
                                                           query_auth=default_storage.querystring_auth,
                                                           force_http=not default_storage.secure_urls,
                                                           response_headers={})
-                                                                           
+
 
         # otherwise, let the backend generate the URL
         else:
