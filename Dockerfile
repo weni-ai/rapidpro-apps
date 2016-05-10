@@ -11,6 +11,8 @@ RUN wget http://download.osgeo.org/gdal/1.11.0/gdal-1.11.0.tar.gz
 RUN tar xvfz gdal-1.11.0.tar.gz
 RUN cd gdal-1.11.0;./configure --with-python; make -j4; make install
 RUN ldconfig
+RUN wget http://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem -O /usr/local/share/ca-certificates/rds.crt
+RUN update-ca-certificates
 RUN rm -rf /tmp/*
 #RapidPro setup
 RUN mkdir /rapidpro
