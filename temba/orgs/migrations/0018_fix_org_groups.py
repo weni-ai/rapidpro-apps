@@ -36,8 +36,8 @@ def fix_org_groups(apps, schema_editor):
             if len(memberships) > 1:
                 for leave_group in memberships[1:]:
                     getattr(org, leave_group).remove(user)
-                    print("Removed user '%s' [%d] from group %s in org '%s' [%d] as they are in %s"
-                          % (user.username, user.pk, leave_group, org.name, org.pk, keep_group))
+                    # print("Removed user '%s' [%d] from group %s in org '%s' [%d] as they are in %s"
+                    #       % (user.username, user.pk, leave_group, org.name, org.pk, keep_group))
 
         # delete API tokens where users don't have a valid API role. They may have one at one point or may have
         # requested an API token in a group which can't use the API, e.g. Viewers
@@ -48,8 +48,8 @@ def fix_org_groups(apps, schema_editor):
 
             if token.role.name not in user_allowed_roles:
                 token.delete()
-                print("Deleted token %s with role %s for user '%s' [%d] in org '%s' [%d]"
-                      % (token.key, token.role.name, user.username, user.pk, org.name, org.pk))
+                # print("Deleted token %s with role %s for user '%s' [%d] in org '%s' [%d]"
+                #       % (token.key, token.role.name, user.username, user.pk, org.name, org.pk))
 
 
 class Migration(migrations.Migration):

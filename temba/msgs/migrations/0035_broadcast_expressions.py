@@ -23,7 +23,8 @@ def migrate_broadcasts(apps, schema_editor):
             num_unchanged += 1
 
     if num_migrated or num_unchanged:
-        print "Migrated expressions in %d broadcasts (%d unchanged)" % (num_migrated, num_unchanged)
+        pass
+        # print "Migrated expressions in %d broadcasts (%d unchanged)" % (num_migrated, num_unchanged)
 
 
 class Migration(migrations.Migration):

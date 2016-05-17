@@ -20,10 +20,10 @@ def reevaluate_dynamic_groups(apps, schema_editor):
         member_ids = set(group.contacts.all().values_list('pk', flat=True))
 
         if qualifier_ids != member_ids:
-            print("Fixing member inconsistency for dynamic group '%s' [%d] in org '%s' [%d]..."
-                  % (group.name, group.pk, org.name, org.pk))
-            print(" > Group set contains %d contacts (count field is %d)" % (len(member_ids), group.count))
-            print(" > Query '%s' returns %d contacts" % (group.query, len(qualifier_ids)))
+            # print("Fixing member inconsistency for dynamic group '%s' [%d] in org '%s' [%d]..."
+                  # % (group.name, group.pk, org.name, org.pk))
+            # print(" > Group set contains %d contacts (count field is %d)" % (len(member_ids), group.count))
+            # print(" > Query '%s' returns %d contacts" % (group.query, len(qualifier_ids)))
 
             missing_ids = qualifier_ids - member_ids
             extra_ids = member_ids - qualifier_ids
@@ -31,7 +31,7 @@ def reevaluate_dynamic_groups(apps, schema_editor):
             group.contacts.add(*missing_ids)
             group.contacts.remove(*extra_ids)
 
-            print (" > Added %d missing contacts and removed %d extra contacts" % (len(missing_ids), len(extra_ids)))
+            # print (" > Added %d missing contacts and removed %d extra contacts" % (len(missing_ids), len(extra_ids)))
 
 
 class Migration(migrations.Migration):

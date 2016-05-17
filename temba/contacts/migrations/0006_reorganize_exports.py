@@ -28,7 +28,7 @@ def migrate_export_tasks(apps, schema_editor):
             task.filename = None
             task.save()
         except Exception:
-            print "Unable to copy %s" % task.filename
+            # print "Unable to copy %s" % task.filename
             failed_task_ids.append(task.pk)
 
     # clear filename for tasks that were successfully copied so we don't try to migrate them again

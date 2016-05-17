@@ -53,17 +53,17 @@ def do_update(Msg, batch_size=50000, msg_start=0):
 
             for msg in recordings:
                 if msg.media and msg.media.startswith('http'):
-                    print '  Old: %s' % msg.media
+                    # print '  Old: %s' % msg.media
                     # inbound messages get downloaded to our new location
                     if msg.direction == 'I':
                         url = save_media(msg.org.pk, msg.media)
                         msg.media = url
-                        print '  < %s' % (url)
+                        # print '  < %s' % (url)
 
                     # outbound just get prepended with our content type
                     else:
                         msg.media = 'audio/x-wav:%s' % msg.media
-                        print '  > %s' % (msg.media)
+                        # print '  > %s' % (msg.media)
 
                     msg.save()
 

@@ -24,7 +24,7 @@ def update_msg_purge_status(Broadcast, Msg, update_broadcasts=True, batch_size=5
         if max_pk is not None:
             print "Populating broadcasts purged field.."
             for offset in range(0, max_pk+1, batch_size):
-                print 'Broadcast %d of %d' % (offset, max_pk)
+                # print 'Broadcast %d of %d' % (offset, max_pk)
 
                 # determine which broadcasts are old
                 broadcasts = Broadcast.objects.filter(pk__gte=offset,

@@ -10,7 +10,8 @@ def fix_sim_contacts(apps, schema_editor):
     wonky = Contact.objects.filter(is_test=True).filter(Q(is_failed=True) | Q(is_blocked=True))
     updated = wonky.update(is_failed=False, is_blocked=False)
     if updated:
-        print "Fixed %d test contacts that are blocked or failed" % updated
+        pass
+        # print "Fixed %d test contacts that are blocked or failed" % updated
 
 
 class Migration(migrations.Migration):

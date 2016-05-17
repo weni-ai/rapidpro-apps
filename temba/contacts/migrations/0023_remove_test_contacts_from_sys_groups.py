@@ -12,7 +12,7 @@ def remove_sim_contacts_from_sys_groups(apps, schema_editor):
     for contact in wonky:
         for group in contact.all_groups.filter(group_type__in=SYS_GROUP_TYPES):
             group.contacts.remove(contact)
-            print "Removed test contact #%d from system group #%d (type=%s)" % (contact.pk, group.pk, group.group_type)
+            # print "Removed test contact #%d from system group #%d (type=%s)" % (contact.pk, group.pk, group.group_type)
 
 
 class Migration(migrations.Migration):

@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 old_recording_url = msg.recording_url
                 msg.recording_url = msg.recording_url.replace(old_bucket_domain,
                                                               new_bucket_domain)
-                print "[%d] %s to %s" % (msg.id, old_recording_url, msg.recording_url)
+                # print "[%d] %s to %s" % (msg.id, old_recording_url, msg.recording_url)
                 msg.save(update_fields=['recording_url'])
 
     operations = [

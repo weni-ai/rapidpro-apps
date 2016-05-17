@@ -48,7 +48,7 @@ def normalize_twitter_urns(apps, schema_editor):
         if not urns_by_handle:
             continue
 
-        print "Checking Twitter URNs for org #%d (%d URNs)..." % (org.pk, len(urns_by_handle))
+        # print "Checking Twitter URNs for org #%d (%d URNs)..." % (org.pk, len(urns_by_handle))
 
         # find ones with duplicates
         duplicates = {handle: urn_ids for handle, urn_ids in urns_by_handle.iteritems() if len(urn_ids) > 1}
@@ -64,7 +64,7 @@ def normalize_twitter_urns(apps, schema_editor):
                 # attach messages for the other URNs to the last used URN
                 num_msgs_moved = other_urn.msgs.update(contact_urn_id=chosen_urn.pk)
                 if num_msgs_moved:
-                    print " > Moved %d messages from handle %s to handle %s" % (num_msgs_moved, other_urn.path, chosen_urn.path)
+                    # print " > Moved %d messages from handle %s to handle %s" % (num_msgs_moved, other_urn.path, chosen_urn.path)
 
                 # remove in broadcasts with chosen URN
                 broadcasts = Broadcast.objects.filter(urns=other_urn)
@@ -73,17 +73,18 @@ def normalize_twitter_urns(apps, schema_editor):
                     broadcast.urns.add(chosen_urn)
 
                 if broadcasts:
-                    print " > Replaced URN in %d broadcasts from handle %s to handle %s" % (len(broadcasts), other_urn.path, chosen_urn.path)
+                    pass
+                    # print " > Replaced URN in %d broadcasts from handle %s to handle %s" % (len(broadcasts), other_urn.path, chosen_urn.path)
 
                 # delete this URN
-                print " > Deleting URN #%d (%s)" % (other_urn.pk, other_urn.path)
+                # print " > Deleting URN #%d (%s)" % (other_urn.pk, other_urn.path)
                 other_urn.delete()
 
         # finally with duplicates removed, update all URNs to use lowercase handles
         if urns_by_handle:
             twitter_urns = ContactURN.objects.filter(org=org, scheme='twitter')
             updated = twitter_urns.update(urn=Func(F('urn'), function='LOWER'), path=Func(F('path'), function='LOWER'))
-            print " > Updated %d Twitter URNs to have lowercase handles" % updated
+            # print " > Updated %d Twitter URNs to have lowercase handles" % updated
 
 
 class Migration(migrations.Migration):

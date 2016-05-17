@@ -9,7 +9,8 @@ def fix_archived_outgoing(apps, schema_editor):
     wonky = Msg.objects.filter(direction='O', visibility='A')
     updated = wonky.update(visibility='V')
     if updated:
-        print "Fixed %d outgoing messages that were archived" % updated
+        pass
+        # print "Fixed %d outgoing messages that were archived" % updated
 
 
 class Migration(migrations.Migration):

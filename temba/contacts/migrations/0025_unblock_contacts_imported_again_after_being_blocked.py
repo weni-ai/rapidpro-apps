@@ -14,7 +14,8 @@ def unblock_contacts_imported_again(apps, schema_editor):
     updated = Contact.objects.filter(pk__in=reimported_contacts).update(is_blocked=False)
 
     if updated:
-        print "Fixed %d contacts that are blocked and has another group" % updated
+        pass
+        # print "Fixed %d contacts that are blocked and has another group" % updated
 
 
 class Migration(migrations.Migration):

@@ -11,7 +11,8 @@ def release_inactive_contact_calls(apps, schema_editor):
     Call = apps.get_model('msgs', 'Call')
     updated = Call.objects.filter(contact__is_active=False).update(is_active=False)
     if updated:
-        print("Deactivated %d calls belonging to inactive contacts" % updated)
+        pass
+        # print("Deactivated %d calls belonging to inactive contacts" % updated)
 
 
 class Migration(migrations.Migration):
