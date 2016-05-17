@@ -64,6 +64,7 @@ def normalize_twitter_urns(apps, schema_editor):
                 # attach messages for the other URNs to the last used URN
                 num_msgs_moved = other_urn.msgs.update(contact_urn_id=chosen_urn.pk)
                 if num_msgs_moved:
+                    pass
                     # print " > Moved %d messages from handle %s to handle %s" % (num_msgs_moved, other_urn.path, chosen_urn.path)
 
                 # remove in broadcasts with chosen URN
