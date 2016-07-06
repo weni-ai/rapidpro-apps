@@ -699,6 +699,25 @@ class GSM7Test(TembaTest):
         self.assertTrue(is_gsm7(replaced))
 
 
+class ChunkTest(TembaTest):
+
+    def test_chunking(self):
+        curr = 0
+        for chunk in chunk_list(xrange(100), 7):
+            batch_curr = curr
+            for item in chunk:
+                self.assertEqual(item, curr)
+                curr += 1
+
+            # again to make sure things work twice
+            curr = batch_curr
+            for item in chunk:
+                self.assertEqual(item, curr)
+                curr += 1
+
+        self.assertEqual(curr, 100)
+
+
 class TableExporterTest(TembaTest):
 
     def test_csv(self):

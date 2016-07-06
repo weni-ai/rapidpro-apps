@@ -7,7 +7,7 @@ from django import forms
 from django.contrib.auth import authenticate, login
 from django.core.cache import cache
 from django.db.models import Q, Prefetch
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, mixins, status, pagination
 from rest_framework.decorators import api_view, permission_classes
@@ -464,7 +464,7 @@ class BroadcastEndpoint(ListAPIMixin, CreateAPIMixin, BaseAPIView):
             except Exception:
                 queryset = queryset.filter(pk=-1)
 
-        return queryset.order_by('-created_on').prefetch_related('urns', 'contacts', 'groups')
+        return queryset.order_by('-created_on').select_related('org').prefetch_related('urns', 'contacts', 'groups')
 
     @classmethod
     def get_read_explorer(cls):
