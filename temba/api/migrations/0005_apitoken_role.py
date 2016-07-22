@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from temba.api.models import APIToken
 
 from django.db import models, migrations
-
 
 class Migration(migrations.Migration):
 
@@ -13,13 +11,14 @@ class Migration(migrations.Migration):
     ]
 
     def populate_token_roles(apps, schema_editor):
+        APIToken = apps.get_model('api', 'APIToken')
         for token in APIToken.objects.all():
             group = token.org.get_user_org_group(token.user)
             if group:
                 token.role = group
                 token.save()
             else:
-                print "Removing abandoned token for %s: %s (%s)" % (token.user, token.org, token.key)
+                #print "Removing abandoned token for %s: %s (%s)" % (token.user, token.org, token.key)
                 token.delete()
 
     operations = [
