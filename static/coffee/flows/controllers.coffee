@@ -1413,10 +1413,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
         airtimeConfig = {}
         for elt in airtimeAmountConfig
           amount = elt.amount
-          try
-            elt.amount = parseFloat(amount)
-          catch
-            elt.amount = 0
+          elt.amount = 0
           airtimeConfig[elt.code] = elt
         ruleset.config = airtimeConfig
 
