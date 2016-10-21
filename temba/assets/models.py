@@ -79,7 +79,6 @@ class BaseAssetStore(object):
                                                           force_http=not default_storage.secure_urls,
                                                           response_headers={})
 
-
         # otherwise, let the backend generate the URL
         else:
             url = default_storage.url(path)
@@ -133,21 +132,21 @@ class ContactExportAssetStore(BaseAssetStore):
     model = ExportContactsTask
     directory = 'contact_exports'
     permission = 'contacts.contact_export'
-    extensions = ('xls', 'csv')
+    extensions = ('xlsx', 'csv')
 
 
 class ResultsExportAssetStore(BaseAssetStore):
     model = ExportFlowResultsTask
     directory = 'results_exports'
     permission = 'flows.flow_export_results'
-    extensions = ('xls',)
+    extensions = ('xlsx',)
 
 
 class MessageExportAssetStore(BaseAssetStore):
     model = ExportMessagesTask
     directory = 'message_exports'
     permission = 'msgs.msg_export'
-    extensions = ('xls',)
+    extensions = ('xlsx',)
 
 
 class AssetType(Enum):
