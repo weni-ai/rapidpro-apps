@@ -943,23 +943,23 @@ DEBUG_TOOLBAR_CONFIG = {
 CELERYBEAT_SCHEDULE = {
     "retry-webhook-events": {
         'task': 'retry_events_task',
-        'schedule': timedelta(seconds=10),
+        'schedule': timedelta(seconds=300),
     },
     "check-channels": {
         'task': 'check_channels_task',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(seconds=300),
     },
     "schedules": {
         'task': 'check_schedule_task',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(seconds=60),
     },
     "campaigns": {
         'task': 'check_campaigns_task',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(seconds=60),
     },
     "check-flows": {
         'task': 'check_flows_task',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(seconds=60),
     },
     "check-flow-timeouts": {
         'task': 'check_flow_timeouts_task',
@@ -967,11 +967,11 @@ CELERYBEAT_SCHEDULE = {
     },
     "check-credits": {
         'task': 'check_credits_task',
-        'schedule': timedelta(seconds=5)
+        'schedule': timedelta(seconds=900)
     },
     "check-messages-task": {
         'task': 'check_messages_task',
-        'schedule': timedelta(seconds=5)
+        'schedule': timedelta(seconds=300)
     },
     "fail-old-messages": {
         'task': 'fail_old_messages',
@@ -991,19 +991,19 @@ CELERYBEAT_SCHEDULE = {
     },
     "squash-flowruncounts": {
         'task': 'squash_flowruncounts',
-        'schedule': timedelta(seconds=7),
+        'schedule': timedelta(seconds=300),
     },
     "squash-channelcounts": {
         'task': 'squash_channelcounts',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(seconds=300),
     },
     "squash-systemlabels": {
         'task': 'squash_systemlabels',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(seconds=300),
     },
     "squash-topupcredits": {
         'task': 'squash_topupcredits',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(seconds=300),
     },
     "squash-contactgroupcounts": {
         'task': 'squash_contactgroupcounts',
