@@ -7,7 +7,8 @@ RUN apt-get install -qyy \
     coffeescript node-less yui-compressor gcc libreadline6 libreadline6-dev patch libffi-dev libssl-dev libxml2-dev libxslt1-dev  python-dev \
     python-zmq libzmq-dev nginx libpcre3 libpcre3-dev supervisor wget
 
-RUN add-apt-repository ppa:chris-lea/node.js
+FROM ubuntu:precise
+RUN echo "deb http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
 RUN apt-get update
 RUN apt-get install -y nodejs
 WORKDIR /tmp
