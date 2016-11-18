@@ -1,5 +1,7 @@
 FROM ubuntu:trusty
 RUN apt-get update
+RUN apt-get install nodejs npm
+RUN npm install -g bower
 RUN apt-get install -qyy \
     -o APT::Install-Recommends=false -o APT::Install-Suggests=false \
     build-essential python-imaging git python-setuptools  ncurses-dev python-virtualenv  python-pip postgresql-client-9.3 libpq-dev \
@@ -25,6 +27,7 @@ RUN pip install uwsgi
 ADD . /rapidpro
 COPY settings.py.pre /rapidpro/temba/settings.py
 
+RUN bower install --allow-root
 RUN python manage.py collectstatic --noinput
 
 RUN touch `echo $RANDOM`.txt
