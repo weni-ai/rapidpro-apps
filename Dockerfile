@@ -1,11 +1,3 @@
-FROM ubuntu:precise
-RUN echo "deb http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
-RUN apt-get update
-RUN apt-get install -y curl
-RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
-RUN apt-get install -y nodejs
-RUN npm install -g bower
-
 FROM ubuntu:trusty
 RUN apt-get update
 RUN apt-get install -qyy \
@@ -34,6 +26,10 @@ RUN pip install uwsgi
 ADD . /rapidpro
 COPY settings.py.pre /rapidpro/temba/settings.py
 
+RUN apt-get install -y curl
+RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
+RUN apt-get install -y nodejs
+RUN npm install -g bower
 RUN bower install --allow-root
 RUN python manage.py collectstatic --noinput
 
