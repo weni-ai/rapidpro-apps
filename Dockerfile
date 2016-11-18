@@ -22,6 +22,7 @@ RUN . env/bin/activate
 ADD pip-freeze.txt /rapidpro/pip-freeze.txt
 RUN pip install -r pip-freeze.txt
 RUN pip install uwsgi
+RUN bower install --allow-root
 ADD . /rapidpro
 COPY settings.py.pre /rapidpro/temba/settings.py
 
