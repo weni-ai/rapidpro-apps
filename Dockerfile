@@ -31,6 +31,7 @@ RUN pip install uwsgi
 ADD . /rapidpro
 COPY settings.py.pre /rapidpro/temba/settings.py
 
+RUN npm install -g bower
 RUN bower install --allow-root
 RUN python manage.py collectstatic --noinput
 
