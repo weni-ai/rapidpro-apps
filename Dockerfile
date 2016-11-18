@@ -7,10 +7,6 @@ RUN apt-get install -qyy \
     coffeescript node-less yui-compressor gcc libreadline6 libreadline6-dev patch libffi-dev libssl-dev libxml2-dev libxslt1-dev  python-dev \
     python-zmq libzmq-dev nginx libpcre3 libpcre3-dev supervisor wget
 
-FROM ubuntu:precise
-RUN echo "deb http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
-RUN apt-get update
-RUN apt-get install -y nodejs
 WORKDIR /tmp
 RUN wget http://download.osgeo.org/gdal/1.11.0/gdal-1.11.0.tar.gz
 RUN tar xvfz gdal-1.11.0.tar.gz
@@ -18,6 +14,10 @@ RUN cd gdal-1.11.0;./configure --with-python; make -j4; make install
 RUN ldconfig
 RUN wget http://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem -O /usr/local/share/ca-certificates/rds.crt
 RUN update-ca-certificates
+FROM ubuntu:precise
+RUN echo "deb http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
+RUN apt-get update
+RUN apt-get install -y nodejs
 RUN rm -rf /tmp/*
 #RapidPro setup
 RUN mkdir /rapidpro
