@@ -1,3 +1,8 @@
+FROM ubuntu:precise
+RUN echo "deb http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
+RUN apt-get update
+RUN apt-get install -y nodejs
+
 FROM ubuntu:trusty
 RUN apt-get update
 RUN apt-get install -qyy \
@@ -14,10 +19,6 @@ RUN cd gdal-1.11.0;./configure --with-python; make -j4; make install
 RUN ldconfig
 RUN wget http://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem -O /usr/local/share/ca-certificates/rds.crt
 RUN update-ca-certificates
-FROM ubuntu:precise
-RUN echo "deb http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
-RUN apt-get update
-RUN apt-get install -y nodejs
 RUN rm -rf /tmp/*
 #RapidPro setup
 RUN mkdir /rapidpro
