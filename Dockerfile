@@ -9,6 +9,7 @@ RUN apt-get install -qyy \
 
 FROM ubuntu:precise
 RUN echo "deb http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
+RUN add-apt-repository ppa:chris-lea/node.js
 RUN apt-get update
 RUN apt-get install -y nodejs
 WORKDIR /tmp
