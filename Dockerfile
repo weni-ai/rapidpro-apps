@@ -2,7 +2,7 @@ FROM ubuntu:precise
 RUN echo "deb http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
 RUN apt-get update
 RUN apt-get install -y nodejs npm
-RUN npm install -g bower
+RUN sudo npm install -g bower
 
 FROM ubuntu:trusty
 RUN apt-get update
