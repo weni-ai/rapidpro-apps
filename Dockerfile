@@ -10,7 +10,7 @@ RUN apt-get install -qyy \
 FROM ubuntu:precise
 RUN echo "deb http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
 RUN apt-get update
-RUN apt-get install nodejs
+RUN apt-get install -y nodejs
 WORKDIR /tmp
 RUN wget http://download.osgeo.org/gdal/1.11.0/gdal-1.11.0.tar.gz
 RUN tar xvfz gdal-1.11.0.tar.gz
