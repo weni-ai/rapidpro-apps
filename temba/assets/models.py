@@ -54,7 +54,7 @@ class BaseAssetStore(object):
         """
         asset = self.derive_asset(pk)
 
-        if not user.has_org_perm(asset.org, self.permission):
+        if not user.has_org_perm(asset.org, self.permission):  # pragma: needs cover
             raise AssetAccessDenied()
 
         if not asset.uuid:
@@ -62,7 +62,7 @@ class BaseAssetStore(object):
 
         path = self.derive_path(asset.org, asset.uuid)
 
-        if not default_storage.exists(path):
+        if not default_storage.exists(path):  # pragma: needs cover
             raise AssetFileNotFound()
 
         # create a more friendly download filename
@@ -89,7 +89,7 @@ class BaseAssetStore(object):
         """
         Saves a file asset
         """
-        if extension not in self.extensions:
+        if extension not in self.extensions:  # pragma: needs cover
             raise ValueError("Extension %s not supported by handler" % extension)
 
         asset = self.derive_asset(pk)
@@ -125,7 +125,7 @@ class BaseAssetStore(object):
             if default_storage.exists(path):
                 return path
 
-        raise AssetFileNotFound()
+        raise AssetFileNotFound()  # pragma: needs cover
 
 
 class ContactExportAssetStore(BaseAssetStore):
