@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from __future__ import print_function, unicode_literals
 
 import calendar
 import json
@@ -8,15 +8,15 @@ import pytz
 import random
 import regex
 import resource
+import six
 
 from dateutil.parser import parse
 from decimal import Decimal
 from django.conf import settings
-from django.db import connection, transaction
+from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.timezone import is_aware
-from django.http import HttpResponse
 from django_countries import countries
 from itertools import islice
 
@@ -174,18 +174,28 @@ def ms_to_datetime(ms):
     return dt.replace(microsecond=(ms % 1000) * 1000).replace(tzinfo=pytz.utc)
 
 
+def datetime_to_epoch(dt):
+    """
+    Converts a datetime to seconds since 1970
+    """
+    utc_naive = dt.replace(tzinfo=None) - dt.utcoffset()
+    return (utc_naive - datetime.datetime(1970, 1, 1)).total_seconds()
+
+
+def date_to_utc_range(d, org):
+    """
+    Converts a date in the given org's timezone, to a range of datetimes in UTC
+    """
+    local_midnight = org.timezone.localize(datetime.datetime.combine(d, datetime.time(0, 0)))
+    utc_midnight = local_midnight.astimezone(pytz.UTC)
+    return utc_midnight, utc_midnight + datetime.timedelta(days=1)
+
+
 def str_to_bool(text):
     """
     Parses a boolean value from the given text
     """
     return text and text.lower() in ['true', 'y', 'yes', '1']
-
-
-def build_json_response(json_dict, status=200):
-    """
-    Helper function to build JSON responses form dictionaries.
-    """
-    return HttpResponse(json.dumps(json_dict), status=status, content_type='application/json')
 
 
 def percentage(numerator, denominator):
@@ -207,7 +217,7 @@ def format_decimal(val):
     elif val == 0:
         return '0'
 
-    val = unicode(val)
+    val = six.text_type(val)
 
     if '.' in val:
         val = val.rstrip('0').rstrip('.')  # e.g. 12.3000 -> 12.3
@@ -251,6 +261,7 @@ def get_dict_from_cursor(cursor):
     ]
 
 
+@six.python_2_unicode_compatible
 class DictStruct(object):
     """
     Wraps a dictionary turning it into a structure looking object. This is useful to 'mock' dictionaries
@@ -284,7 +295,7 @@ class DictStruct(object):
 
         self._values[item] = value
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s [%s]" % (self._classname, self._values)
 
 
@@ -350,7 +361,7 @@ def datetime_decoder(d):
         pairs = d.items()
     result = []
     for k, v in pairs:
-        if isinstance(v, basestring):
+        if isinstance(v, six.string_types):
             try:
                 # The %f format code is only supported in Python >= 2.6.
                 # For Python <= 2.5 strip off microseconds
@@ -374,57 +385,6 @@ def json_to_dict(json_string):
     to Python objects. (you shouldn't do this with untrusted input)
     """
     return json.loads(json_string, object_hook=datetime_decoder)
-
-
-class PageableQuery(object):
-    """
-    Allows paging with Paginator of a raw SQL query
-    """
-    def __init__(self, query, order=(), params=()):
-        self.query = query
-        self.order = order
-        self.params = params
-        self._count = None
-
-    def __len__(self):
-        return self.count()
-
-    def __getitem__(self, item):
-        offset, stop, step = item.indices(self.count())
-        limit = stop - offset
-        return self.execute(offset, limit)
-
-    def execute(self, offset, limit):
-        cursor = connection.cursor()
-
-        if self.order:
-            ordering_clauses = [("%s DESC" % col[1:]) if col[0] == '-' else ("%s ASC" % col) for col in self.order]
-            query = "%s ORDER BY %s" % (self.query, ", ".join(ordering_clauses))
-        else:
-            query = self.query
-
-        query = "%s OFFSET %s LIMIT %s" % (query, offset, limit)
-        cursor.execute(query, self.params)
-        return get_dict_from_cursor(cursor)
-
-    def count(self):
-        if self._count is not None:
-            return self._count
-
-        cursor = connection.cursor()
-        cursor.execute("SELECT count(*) FROM (%s) s" % self.query, self.params)
-        self._count = cursor.fetchone()[0]
-        return self._count
-
-
-def non_atomic_when_eager(view_func):
-    """
-    Decorator which disables atomic requests for a view/dispatch function when celery is running in eager mode
-    """
-    if getattr(settings, 'CELERY_ALWAYS_EAGER', False):
-        return transaction.non_atomic_requests(view_func)
-    else:
-        return view_func
 
 
 def non_atomic_gets(view_func):
@@ -467,10 +427,10 @@ def print_max_mem_usage(msg=None):
         msg = "Max usage: "
 
     locale.setlocale(locale.LC_ALL, '')
-    print
-    print "=" * 80
-    print msg + locale.format("%d", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, grouping=True)
-    print "=" * 80
+    print("")
+    print("=" * 80)
+    print(msg + locale.format("%d", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, grouping=True))
+    print("=" * 80)
 
 
 def get_country_code_by_name(name):

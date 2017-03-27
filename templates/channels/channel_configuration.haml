@@ -49,7 +49,7 @@
 
     %hr
 
-    %h4 
+    %h4
       -trans "Delivery URL"
 
     %p
@@ -169,6 +169,18 @@
 
     %code
       https://{{ domain }}{% url 'handlers.nexmo_handler' 'status' object.org.nexmo_uuid %}
+
+
+    %h4
+      -trans "Callback URL for Incoming Call"
+
+    %p
+      -blocktrans
+        The callback URL is called by Nexmo when you receive an incoming call
+
+    %code
+      https://{{ domain }}{% url 'handlers.nexmo_call_handler' 'answer' object.uuid %}
+
 
 
   -elif object.channel_type == 'IB'
@@ -432,6 +444,18 @@
     %code
       https://{{ domain }}{% url 'handlers.hub9_handler' 'delivered' object.uuid %}
 
+    %hr
+
+    %h4
+      -trans "IP Addresses"
+
+    %p
+      Contact your sales agent to make sure the following IPs are whitelisted
+
+    -for ip_address in ip_addresses
+      %code= ip_address
+
+
   -elif object.channel_type == 'DA'
     %h4
       -blocktrans
@@ -474,6 +498,44 @@
     %code
       https://{{ domain }}{% url 'handlers.dartmedia_handler' 'delivered' object.uuid %}
 
+    %hr
+
+    %h4
+      -trans "IP Addresses"
+
+    %p
+      Contact your sales agent to make sure the following IPs are whitelisted
+
+    -for ip_address in ip_addresses
+      %code= ip_address
+
+
+  -elif object.channel_type == 'FCM'
+    %h4
+      -trans "To use your Firebase Cloud Messaging channel you'll have to POST to the following URLs with the parameters below."
+
+    .clearfix
+    %hr
+
+    %h4
+      -trans "Contact Register"
+
+    %p
+      -trans "To register contacts, POST to the following URL with the parameters urn, fcm_token and optionally name."
+
+    %code
+      https://{{ domain }}{% url 'handlers.fcm_handler' 'register' object.uuid %}
+
+    %h4
+      -trans "Receive URL"
+
+    %p
+      -trans "To handle incoming messages, POST to the following URL with the parameters from, msg and fcm_token."
+
+    %code
+      https://{{ domain }}{% url 'handlers.fcm_handler' 'receive' object.uuid %}
+
+    %hr
 
   -elif object.channel_type == 'VM' or object.channel_type == 'VMU'
     %h4
@@ -561,7 +623,7 @@
           keyword = default
           allowed-receiver-prefix = {{channel.address}}
           max-messages = 0
-          post-url = "https://{{domain}}{% url 'handlers.kannel_handler' 'receive' object.uuid %}/?backend=%i&sender=%p&message=%b&ts=%T&id=%I"
+          post-url = "https://{{domain}}{% url 'handlers.kannel_handler' 'receive' object.uuid %}/?backend=%i&sender=%p&message=%b&ts=%T&id=%I&to=%P"
           concatenation = true
           assume-plain-text = true
           accept-x-kannel-headers = true
@@ -585,6 +647,24 @@
 
     %code
       https://{{ domain }}{% url 'handlers.jasmin_handler' 'receive' object.uuid %}
+
+  -elif object.channel_type == 'JN'
+    %h4
+      -blocktrans
+        As a last step you'll need to configure Junebug to call the following URL for MO (incoming) messages.
+
+    %hr
+
+    %h4
+      -trans "Push Message URL"
+
+    %p
+      -blocktrans
+        This endpoint will be called by Junebug when new messages are received to your number, it must be configured
+        to be called as a POST
+
+    %code
+      https://{{ domain }}{% url 'handlers.junebug_handler' 'inbound' object.uuid %}
 
   -elif object.channel_type == 'MB'
     %h4
@@ -621,7 +701,7 @@
       -blocktrans
         To finish configuring your Facebook connection, you'll need to enter the following webhook URL and token on your application's
         Messenger settings page. Make sure to check all boxes within the 'Webhooks' section to subscribe to all incoming Facebook events
-        and, within the same section, select the page whose events you'd like the webhook to subscribe to. 
+        and, within the same section, select the page whose events you'd like the webhook to subscribe to.
 
     .important
       %p
@@ -629,6 +709,11 @@
           It may take up to ten minutes for a new webhook to take effect after being set on your Facebook application. Remember,
           until your Facebook application is approved by Facebook you will only be able to send and receive messages
           with administrators of your application.
+
+      %p
+        -blocktrans
+          When submitting your application for approval, make sure to include the <code>pages_messaging</code>
+          and <code>pages_messaging_subscriptions</code> permissions so that you are able to initiate conversations with your contacts.
 
     %hr
 
@@ -812,7 +897,9 @@
       %pre.prettyprint.example<
         :plain
           {{ object.config_json.method }} {{ example_url }}
-          to=%2B250788123123&from={{ object.address|urlencode }}&channel={{ object.pk }}&id=2599235&text=One+mans+trash+is+another_mans+come+up
+          {{ example_content_type }}
+
+          {{ example_body }}
     %hr
 
     -if object.role != 'S'

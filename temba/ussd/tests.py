@@ -1,4 +1,7 @@
+from __future__ import unicode_literals
+
 import json
+import six
 import uuid
 
 from datetime import datetime
@@ -10,15 +13,25 @@ from django.utils import timezone
 from django_redis import get_redis_connection
 
 from temba.channels.models import Channel
-from temba.msgs.models import WIRED, MSG_SENT_KEY, SENT, Msg, INCOMING, OUTGOING
+from temba.contacts.models import Contact
+from temba.msgs.models import WIRED, MSG_SENT_KEY, SENT, Msg, INCOMING, OUTGOING, USSD
 from temba.tests import TembaTest, MockResponse
 from temba.triggers.models import Trigger
+from temba.flows.models import FlowRun
 from temba.utils import dict_to_struct
 
 from .models import USSDSession
 
 
 class USSDSessionTest(TembaTest):
+
+    def setUp(self):
+        super(USSDSessionTest, self).setUp()
+
+        self.channel.delete()
+        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+                                      role=Channel.ROLE_USSD + Channel.DEFAULT_ROLE,
+                                      uuid='00000000-0000-0000-0000-000000001234')
 
     def test_pull_async_trigger_start(self):
         flow = self.get_flow('ussd_example')
@@ -74,7 +87,7 @@ class USSDSessionTest(TembaTest):
         # message created and sent out
         msg = Msg.objects.get()
 
-        self.assertEqual(flow.steps().get().messages.get().text, msg.text)
+        self.assertEqual(flow.get_steps().get().messages.get().text, msg.text)
 
         return flow
 
@@ -97,17 +110,26 @@ class USSDSessionTest(TembaTest):
 
         # lets check the steps and incoming and outgoing messages
         # first step has 1 outgoing and the answer
-        self.assertEqual(flow.steps().first().messages.count(), 2)
-        self.assertEqual(flow.steps().first().messages.last().direction, OUTGOING)
-        self.assertEqual(flow.steps().first().messages.last().text, u'What would you like to read about?')
+        self.assertEqual(flow.get_steps().first().messages.count(), 2)
+        self.assertEqual(flow.get_steps().first().messages.last().direction, OUTGOING)
+        self.assertEqual(flow.get_steps().first().messages.last().text, u'What would you like to read about?')
 
-        self.assertEqual(flow.steps().first().messages.first().direction, INCOMING)
-        self.assertEqual(flow.steps().first().messages.first().text, u'1')
+        self.assertEqual(flow.get_steps().first().messages.first().direction, INCOMING)
+        self.assertEqual(flow.get_steps().first().messages.first().text, u'1')
 
         # second step sent out the next message and waits for response
-        self.assertEqual(flow.steps().last().messages.count(), 1)
-        self.assertEqual(flow.steps().last().messages.first().direction, OUTGOING)
-        self.assertEqual(flow.steps().last().messages.first().text, u'Thank you!')
+        self.assertEqual(flow.get_steps().last().messages.count(), 1)
+        self.assertEqual(flow.get_steps().last().messages.first().direction, OUTGOING)
+        self.assertEqual(flow.get_steps().last().messages.first().text, u'Thank you!')
+
+    def test_expiration(self):
+        # start off a PUSH session
+        self.test_push_async_start()
+        run = FlowRun.objects.last()
+        run.expire()
+
+        # we should be marked as interrupted now
+        self.assertEqual(USSDSession.INTERRUPTED, run.session.status)
 
     def test_async_interrupt_handling(self):
         # start a flow
@@ -143,12 +165,18 @@ class VumiUssdTest(TembaTest):
         self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_VUMI_USSD, None, '+250788123123',
                                       config=dict(account_key='vumi-key', access_token='vumi-token',
                                                   conversation_key='key'),
-                                      uuid='00000000-0000-0000-0000-000000001234')
+                                      uuid='00000000-0000-0000-0000-000000001234',
+                                      role=Channel.ROLE_USSD)
 
     def test_send(self):
         joe = self.create_contact("Joe", "+250788383383")
         self.create_group("Reporters", [joe])
-        msg = joe.send("Test message", self.admin, trigger_send=False)
+        inbound = Msg.create_incoming(
+            self.channel, "tel:+250788383383", "Send an inbound message",
+            external_id='vumi-message-id', msg_type=USSD)
+        msg = inbound.reply("Test message", self.admin, trigger_send=False)
+        self.assertEqual(inbound.msg_type, USSD)
+        self.assertEqual(msg.msg_type, USSD)
 
         # our outgoing message
         msg.refresh_from_db()
@@ -186,7 +214,10 @@ class VumiUssdTest(TembaTest):
     def test_send_default_url(self):
         joe = self.create_contact("Joe", "+250788383383")
         self.create_group("Reporters", [joe])
-        msg = joe.send("Test message", self.admin, trigger_send=False)
+        inbound = Msg.create_incoming(
+            self.channel, "tel:+250788383383", "Send an inbound message",
+            external_id='vumi-message-id', msg_type=USSD)
+        msg = inbound.reply("Test message", self.admin, trigger_send=False)
 
         # our outgoing message
         msg.refresh_from_db()
@@ -211,7 +242,10 @@ class VumiUssdTest(TembaTest):
     def test_ack(self):
         joe = self.create_contact("Joe", "+250788383383")
         self.create_group("Reporters", [joe])
-        msg = joe.send("Test message", self.admin, trigger_send=False)
+        inbound = Msg.create_incoming(
+            self.channel, "tel:+250788383383", "Send an inbound message",
+            external_id='vumi-message-id', msg_type=USSD)
+        msg = inbound.reply("Test message", self.admin, trigger_send=False)
 
         # our outgoing message
         msg.refresh_from_db()
@@ -236,12 +270,12 @@ class VumiUssdTest(TembaTest):
                 data = {
                     "transport_name": "ussd_transport",
                     "event_type": "ack",
-                    "event_id": unicode(uuid.uuid4()),
-                    "sent_message_id": unicode(uuid.uuid4()),
+                    "event_id": six.text_type(uuid.uuid4()),
+                    "sent_message_id": six.text_type(uuid.uuid4()),
                     "helper_metadata": {},
                     "routing_metadata": {},
                     "message_version": "20110921",
-                    "timestamp": unicode(timezone.now()),
+                    "timestamp": six.text_type(timezone.now()),
                     "transport_metadata": {},
                     "user_message_id": msg.external_id,
                     "message_type": "event"
@@ -260,7 +294,10 @@ class VumiUssdTest(TembaTest):
     def test_nack(self):
         joe = self.create_contact("Joe", "+250788383383")
         self.create_group("Reporters", [joe])
-        msg = joe.send("Test message", self.admin, trigger_send=False)
+        inbound = Msg.create_incoming(
+            self.channel, "tel:+250788383383", "Send an inbound message",
+            external_id='vumi-message-id', msg_type=USSD)
+        msg = inbound.reply("Test message", self.admin, trigger_send=False)
 
         # our outgoing message
         msg.refresh_from_db()
@@ -290,8 +327,8 @@ class VumiUssdTest(TembaTest):
                     "transport_name": "ussd_transport",
                     "event_type": "nack",
                     "nack_reason": "Unknown address.",
-                    "event_id": unicode(uuid.uuid4()),
-                    "timestamp": unicode(timezone.now()),
+                    "event_id": six.text_type(uuid.uuid4()),
+                    "timestamp": six.text_type(timezone.now()),
                     "message_version": "20110921",
                     "transport_metadata": {},
                     "user_message_id": msg.external_id,
@@ -390,15 +427,16 @@ class VumiUssdTest(TembaTest):
 
         self.assertEqual(response.status_code, 200)
 
+        session = USSDSession.objects.last()
+        self.assertEqual(session.external_id, str(int(from_addr) + int(session_start)))
+
         msg = Msg.objects.get()
         self.assertEquals(INCOMING, msg.direction)
         self.assertEquals(self.org, msg.org)
         self.assertEquals(self.channel, msg.channel)
         self.assertEquals("Hello from Vumi 2", msg.text)
         self.assertEquals('123457', msg.external_id)
-
-        session = USSDSession.objects.last()
-        self.assertEqual(session.external_id, str(int(from_addr) + int(session_start)))
+        self.assertEquals(session, msg.session)
 
     @patch('temba.msgs.models.Msg.create_incoming')
     def test_interrupt(self, create_incoming):
@@ -429,3 +467,40 @@ class VumiUssdTest(TembaTest):
         session = USSDSession.objects.get()
         self.assertIsInstance(session.ended_on, datetime)
         self.assertEqual(session.status, USSDSession.INTERRUPTED)
+
+    def test_ussd_trigger_flow(self):
+        # start a session
+        callback_url = reverse('handlers.vumi_handler', args=['receive', self.channel.uuid])
+        ussd_code = "*111#"
+        data = dict(timestamp="2016-04-18 03:54:20.570618", message_id="123456", from_addr="+250788383383",
+                    content="None", transport_type='ussd', session_event="new", to_addr=ussd_code)
+        response = self.client.post(callback_url, json.dumps(data), content_type="application/json")
+        flow = self.get_flow('ussd_trigger_flow')
+        self.assertEquals(0, flow.runs.all().count())
+
+        trigger, _ = Trigger.objects.get_or_create(channel=self.channel, keyword=ussd_code, flow=flow,
+                                                   created_by=self.user, modified_by=self.user, org=self.org,
+                                                   trigger_type=Trigger.TYPE_USSD_PULL)
+
+        # now we added the trigger, let's reinitiate the session
+        response = self.client.post(callback_url, json.dumps(data), content_type="application/json")
+
+        msg = Msg.objects.all().first()
+        self.assertEqual("Please enter a phone number", msg.text)
+
+        from_addr = "+250788383383"
+        data = dict(timestamp="2016-04-18 03:54:20.570618", message_id="123456", from_addr=from_addr,
+                    content="250788123123", to_addr="*113#", transport_type='ussd')
+
+        response = self.client.post(callback_url, json.dumps(data), content_type="application/json")
+
+        self.assertEqual(response.status_code, 200)
+
+        msg = Msg.objects.all().order_by('-created_on').first()
+
+        # We should get the final message
+        self.assertEqual("Thank you", msg.text)
+
+        # Check the new contact was created
+        new_contact = Contact.from_urn(self.org, "tel:+250788123123")
+        self.assertIsNotNone(new_contact)

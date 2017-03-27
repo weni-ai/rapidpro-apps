@@ -1,5 +1,5 @@
 # coding=utf-8
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import inspect
 import json
@@ -9,6 +9,7 @@ import re
 import redis
 import shutil
 import string
+import six
 import time
 
 from datetime import datetime, timedelta
@@ -22,7 +23,7 @@ from django.utils import timezone
 from HTMLParser import HTMLParser
 from selenium.webdriver.firefox.webdriver import WebDriver
 from smartmin.tests import SmartminTest
-from temba.contacts.models import Contact, ContactGroup, URN
+from temba.contacts.models import Contact, ContactGroup, ContactField, URN
 from temba.orgs.models import Org
 from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
@@ -30,6 +31,7 @@ from temba.flows.models import Flow, ActionSet, RuleSet, FlowStep
 from temba.ivr.clients import TwilioClient
 from temba.msgs.models import Msg, INCOMING
 from temba.utils import dict_to_struct
+from temba.values.models import Value
 from twilio.util import RequestValidator
 
 
@@ -133,7 +135,7 @@ class TembaTest(SmartminTest):
         cursor.execute('explain %s' % query)
         plan = cursor.fetchall()
         indexes = []
-        for match in re.finditer('Index Scan using (.*?) on (.*?) \(cost', unicode(plan), re.DOTALL):
+        for match in re.finditer('Index Scan using (.*?) on (.*?) \(cost', six.text_type(plan), re.DOTALL):
             index = match.group(1).strip()
             table = match.group(2).strip()
             indexes.append((table, index))
@@ -142,7 +144,6 @@ class TembaTest(SmartminTest):
         return indexes
 
     def tearDown(self):
-
         if self.get_verbosity() > 2:
             details = []
             for query in connection.queries:
@@ -152,15 +153,18 @@ class TembaTest(SmartminTest):
                     details.append(dict(query=query, indexes=indexes))
 
             for stat in details:
-                print
-                print stat['query']
+                print("")
+                print(stat['query'])
                 for table, index in stat['indexes']:
-                    print '  Index Used: %s.%s' % (table, index)
+                    print('  Index Used: %s.%s' % (table, index))
 
                 if not len(stat['indexes']):
-                    print '  No Index Used'
+                    print('  No Index Used')
 
             settings.DEBUG = False
+
+        from temba.flows.models import clear_flow_users
+        clear_flow_users()
 
     def clear_cache(self):
         """
@@ -186,8 +190,8 @@ class TembaTest(SmartminTest):
         handle.close()
 
         if substitutions:
-            for k, v in substitutions.iteritems():
-                print 'Replacing "%s" with "%s"' % (k, v)
+            for k, v in six.iteritems(substitutions):
+                print('Replacing "%s" with "%s"' % (k, v))
                 data = data.replace(k, str(v))
 
         return data
@@ -252,6 +256,10 @@ class TembaTest(SmartminTest):
                 group.contacts.add(*contacts)
             return group
 
+    def create_field(self, key, label, value_type=Value.TYPE_TEXT):
+        return ContactField.objects.create(org=self.org, key=key, label=label, value_type=value_type,
+                                           created_by=self.admin, modified_by=self.admin)
+
     def create_msg(self, **kwargs):
         if 'org' not in kwargs:
             kwargs['org'] = self.org
@@ -288,13 +296,13 @@ class TembaTest(SmartminTest):
 
         return dict(version=8,
                     action_sets=[dict(uuid=uuid(uuid_start + 1), x=1, y=1, destination=uuid(uuid_start + 5),
-                                      actions=[dict(type='reply', msg=dict(base="What is your favorite color?", fre="Quelle est votre couleur préférée?"))]),
+                                      actions=[dict(type='reply', media=dict(), msg=dict(base="What is your favorite color?", fre="Quelle est votre couleur préférée?"))]),
                                  dict(uuid=uuid(uuid_start + 2), x=2, y=2, destination=None,
-                                      actions=[dict(type='reply', msg=dict(base='I love orange too! You said: @step.value which is category: @flow.color.category You are: @step.contact.tel SMS: @step Flow: @flow'))]),
+                                      actions=[dict(type='reply', media=dict(), msg=dict(base='I love orange too! You said: @step.value which is category: @flow.color.category You are: @step.contact.tel SMS: @step Flow: @flow'))]),
                                  dict(uuid=uuid(uuid_start + 3), x=3, y=3, destination=None,
-                                      actions=[dict(type='reply', msg=dict(base='Blue is sad. :('))]),
+                                      actions=[dict(type='reply', media=dict(), msg=dict(base='Blue is sad. :('))]),
                                  dict(uuid=uuid(uuid_start + 4), x=4, y=4, destination=uuid(uuid_start + 5),
-                                      actions=[dict(type='reply', msg=dict(base='That is a funny color. Try again.'))])],
+                                      actions=[dict(type='reply', media=dict(), msg=dict(base='That is a funny color. Try again.'))])],
                     rule_sets=[dict(uuid=uuid(uuid_start + 5), x=5, y=5,
                                     label='color',
                                     finished_key=None,
@@ -387,6 +395,15 @@ class TembaTest(SmartminTest):
                 self.assertTrue(abs(expected - actual) < timedelta(seconds=1))
             else:
                 self.assertEqual(expected, actual)
+
+    def assertExcelSheet(self, sheet, rows, tz=None):
+        """
+        Asserts the row values in the given worksheet
+        """
+        self.assertEqual(len(list(sheet.rows)), len(rows))
+
+        for r, row in enumerate(rows):
+            self.assertExcelRow(sheet, r, row, tz)
 
 
 class FlowFileTest(TembaTest):
@@ -612,11 +629,15 @@ class MockResponse(object):
     def __init__(self, status_code, text, method='GET', url='http://foo.com/', headers=None):
         self.text = text
         self.content = text
+        self.body = text
         self.status_code = status_code
         self.headers = headers if headers else {}
+        self.url = url
+        self.ok = True
+        self.cookies = dict()
 
         # mock up a request object on our response as well
-        self.request = dict_to_struct('MockRequest', dict(method=method, url=url))
+        self.request = dict_to_struct('MockRequest', dict(method=method, url=url, body='request body'))
 
     def add_header(self, key, value):
         self.headers[key] = value
@@ -682,7 +703,7 @@ class MockTwilioClient(TwilioClient):
             return [MockTwilioClient.MockShortCode(short_code)]
 
         def update(self, sid, **kwargs):
-            print "Updating short code with sid %s" % sid
+            print("Updating short code with sid %s" % sid)
 
     class MockSMS(object):
         def __init__(self, *args):
@@ -727,8 +748,11 @@ class MockTwilioClient(TwilioClient):
         def list(self, phone_number=None):
             return [MockTwilioClient.MockPhoneNumber(phone_number)]
 
+        def search(self, **kwargs):
+            return []
+
         def update(self, sid, **kwargs):
-            print "Updating phone number with sid %s" % sid
+            print("Updating phone number with sid %s" % sid)
 
     class MockApplications(object):
         def __init__(self, *args):
@@ -739,13 +763,13 @@ class MockTwilioClient(TwilioClient):
 
     class MockCalls(object):
         def __init__(self):
-            pass
+            self.events = []
 
         def create(self, to=None, from_=None, url=None, status_callback=None):
             return MockTwilioClient.MockCall(to=to, from_=from_, url=url, status_callback=status_callback)
 
         def hangup(self, external_id):
-            print "Hanging up %s on Twilio" % external_id
+            print("Hanging up %s on Twilio" % external_id)
 
         def update(self, external_id, url):
-            print "Updating call for %s to url %s" % (external_id, url)
+            print("Updating call for %s to url %s" % (external_id, url))

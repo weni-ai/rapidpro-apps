@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import datetime
 import json
@@ -37,7 +37,7 @@ from .flow_migrations import migrate_to_version_5, migrate_to_version_6, migrate
 from .flow_migrations import migrate_to_version_8, migrate_to_version_9, migrate_export_to_version_9
 from .models import Flow, FlowStep, FlowRun, FlowLabel, FlowStart, FlowRevision, FlowException, ExportFlowResultsTask
 from .models import ActionSet, RuleSet, Action, Rule, FlowRunCount, FlowPathCount, InterruptTest, get_flow_user
-from .models import Test, TrueTest, FalseTest, AndTest, OrTest, PhoneTest, NumberTest
+from .models import FlowPathRecentStep, Test, TrueTest, FalseTest, AndTest, OrTest, PhoneTest, NumberTest
 from .models import EqTest, LtTest, LteTest, GtTest, GteTest, BetweenTest
 from .models import DateEqualTest, DateAfterTest, DateBeforeTest, HasDateTest
 from .models import StartsWithTest, ContainsTest, ContainsAnyTest, RegexTest, NotEmptyTest
@@ -47,7 +47,7 @@ from .models import EmailAction, StartFlowAction, TriggerFlowAction, DeleteFromG
 from .models import VariableContactAction, UssdAction
 from .views import FlowCRUDL
 from .flow_migrations import map_actions
-from .tasks import update_run_expirations_task
+from .tasks import update_run_expirations_task, prune_flowpathrecentsteps, squash_flowruncounts, squash_flowpathcounts
 
 
 class FlowTest(TembaTest):
@@ -88,8 +88,8 @@ class FlowTest(TembaTest):
         return load_workbook(filename=os.path.join(settings.MEDIA_ROOT, filename))
 
     def test_get_flow_user(self):
-        user = get_flow_user()
-        self.assertEqual(user.pk, get_flow_user().pk)
+        user = get_flow_user(self.org)
+        self.assertEqual(user.pk, get_flow_user(self.org).pk)
 
     def test_get_unique_name(self):
         flow1 = Flow.create(self.org, self.admin, Flow.get_unique_name(self.org, "Sheep Poll"), base_language='base')
@@ -151,6 +151,30 @@ class FlowTest(TembaTest):
             for run_elt in runs:
                 flow2.get_results(contact=run_elt.contact, run=run_elt)
 
+    @patch('temba.flows.views.uuid4')
+    def test_upload_media_action(self, mock_uuid):
+        upload_media_action_url = reverse('flows.flow_upload_media_action', args=[self.flow.pk])
+
+        def assert_media_upload(filename, action_uuid, expected_path):
+            with open(filename, 'rb') as data:
+                post_data = dict(file=data, action=None, actionset='some-uuid',
+                                 HTTP_X_FORWARDED_HTTPS='https')
+                response = self.client.post(upload_media_action_url, post_data)
+
+                self.assertEqual(response.status_code, 200)
+                path = response.json().get('path', None)
+                self.assertEquals(path, expected_path)
+
+        self.login(self.admin)
+
+        mock_uuid.side_effect = ['11111-111-11', '22222-222-22']
+
+        assert_media_upload('%s/test_media/steve.marten.jpg' % settings.MEDIA_ROOT, 'action-uuid-1',
+                            "attachments/%d/%d/steps/%s%s" % (self.flow.org.pk, self.flow.pk, '11111-111-11', '.jpg'))
+
+        assert_media_upload('%s/test_media/snow.mp4' % settings.MEDIA_ROOT, 'action-uuid-2',
+                            "attachments/%d/%d/steps/%s%s" % (self.flow.org.pk, self.flow.pk, '22222-222-22', '.mp4'))
+
     def test_revision_history(self):
 
         # every save should result in a new flow version
@@ -187,15 +211,15 @@ class FlowTest(TembaTest):
         # should be back to one valid flow
         self.login(self.admin)
         response = self.client.get(reverse('flows.flow_revisions', args=[self.flow.pk]))
-        self.assertEqual(1, len(json.loads(response.content)))
+        self.assertEqual(1, len(response.json()))
 
         # fetch that revision
-        revision_id = json.loads(response.content)[0]['id']
+        revision_id = response.json()[0]['id']
         response = self.client.get('%s?definition=%s' % (reverse('flows.flow_revisions', args=[self.flow.pk]),
                                                          revision_id))
 
         # make sure we can read the definition
-        definition = json.loads(response.content)
+        definition = response.json()
         self.assertEqual('base', definition['base_language'])
 
         # make the last revision even more invalid (missing ruleset)
@@ -207,7 +231,7 @@ class FlowTest(TembaTest):
 
         # no valid revisions (but we didn't throw!)
         response = self.client.get(reverse('flows.flow_revisions', args=[self.flow.pk]))
-        self.assertEquals(0, len(json.loads(response.content)))
+        self.assertEquals(0, len(response.json()))
 
     def test_get_localized_text(self):
 
@@ -390,15 +414,15 @@ class FlowTest(TembaTest):
         entry = ActionSet.objects.filter(uuid=self.flow.entry_uuid)[0]
 
         # how many people in the flow?
-        self.assertEquals(0, self.flow.get_total_runs())
-        self.assertEquals(0, self.flow.get_completed_percentage())
+        self.assertEqual(self.flow.get_run_stats(),
+                         {'total': 0, 'active': 0, 'completed': 0, 'expired': 0, 'interrupted': 0, 'completion': 0})
 
         # start the flow
         self.flow.start([], [self.contact, self.contact2])
 
         # test our stats again
-        self.assertEquals(2, self.flow.get_total_runs())
-        self.assertEquals(0, self.flow.get_completed_percentage())
+        self.assertEqual(self.flow.get_run_stats(),
+                         {'total': 2, 'active': 2, 'completed': 0, 'expired': 0, 'interrupted': 0, 'completion': 0})
 
         # should have created a single broadcast
         broadcast = Broadcast.objects.get()
@@ -464,7 +488,7 @@ class FlowTest(TembaTest):
         self.assertEquals(activity['messages'], [])
 
         # check activity with IVR test call
-        IVRCall.create_incoming(self.channel, test_contact, test_contact.get_urn(), self.flow, self.admin)
+        IVRCall.create_incoming(self.channel, test_contact, test_contact.get_urn(), self.admin, 'CallSid')
         activity = json.loads(self.client.get(reverse('flows.flow_activity', args=[self.flow.pk])).content)
         self.assertEquals(2, activity['visited']["%s:%s" % (uuid(1), uuid(5))])
         self.assertEquals(2, activity['activity'][uuid(5)])
@@ -473,7 +497,7 @@ class FlowTest(TembaTest):
         # if we try to get contacts at this step for our compose we should have two contacts
         self.login(self.admin)
         response = self.client.get(reverse('contacts.contact_omnibox') + "?s=%s" % contact1_steps[1].step_uuid)
-        contact_json = json.loads(response.content)
+        contact_json = response.json()
         self.assertEquals(2, len(contact_json['results']))
         self.client.logout()
 
@@ -535,8 +559,8 @@ class FlowTest(TembaTest):
         context = self.flow.build_message_context(self.contact, incoming)
         self.assertTrue(context['flow'])
         self.assertEqual("color: orange", context['flow']['__default__'])
-        self.assertEqual("orange", unicode(context['flow']['color']['__default__']))
-        self.assertEqual("orange", unicode(context['flow']['color']['value']))
+        self.assertEqual("orange", six.text_type(context['flow']['color']['__default__']))
+        self.assertEqual("orange", six.text_type(context['flow']['color']['value']))
         self.assertEqual("Orange", context['flow']['color']['category'])
         self.assertEqual("orange", context['flow']['color']['text'])
 
@@ -582,8 +606,8 @@ class FlowTest(TembaTest):
         self.assertFalse(step.next_uuid)
 
         # check our completion percentages
-        self.assertEquals(2, self.flow.get_total_runs())
-        self.assertEquals(50, self.flow.get_completed_percentage())
+        self.assertEqual(self.flow.get_run_stats(),
+                         {'total': 2, 'active': 1, 'completed': 1, 'expired': 0, 'interrupted': 0, 'completion': 50})
 
         # at this point there are no more steps to take in the flow, so we shouldn't match anymore
         extra = self.create_msg(direction=INCOMING, contact=self.contact, text="Hello ther")
@@ -610,6 +634,186 @@ class FlowTest(TembaTest):
         self.assertEquals('orange', color['value'])
         self.assertEquals(uuid(5), color['node'])
         self.assertEquals(incoming.text, color['text'])
+
+    def test_anon_export_results(self):
+        self.org.is_anon = True
+        self.org.save()
+
+        self.flow.update(self.definition)
+        (run1,) = self.flow.start([], [self.contact])
+
+        msg = self.create_msg(direction=INCOMING, contact=self.contact, text="orange")
+        Flow.find_and_handle(msg)
+
+        workbook = self.export_flow_results(self.flow)
+        sheet_runs, sheet_contacts, sheet_msgs = workbook.worksheets
+        self.assertExcelRow(sheet_runs, 0, ["Contact UUID", "ID", "Name", "Groups", "First Seen", "Last Seen",
+                                            "color (Category) - Color Flow",
+                                            "color (Value) - Color Flow",
+                                            "color (Text) - Color Flow"])
+
+        steps = FlowStep.objects.filter(run=run1, step_type='R')
+        c1_run1_first = steps.order_by('pk').first().arrived_on
+        c1_run1_last = steps.order_by('-pk').first().arrived_on
+
+        self.assertExcelRow(sheet_runs, 1, [self.contact.uuid, six.text_type(self.contact.id), "Eric", "", c1_run1_first,
+                                            c1_run1_last, "Orange", "orange", "orange"], self.org.timezone)
+
+        self.assertExcelRow(sheet_contacts, 0, ["Contact UUID", "ID", "Name", "Groups", "First Seen", "Last Seen",
+                                                "color (Category) - Color Flow",
+                                                "color (Value) - Color Flow",
+                                                "color (Text) - Color Flow"])
+
+        self.assertExcelRow(sheet_contacts, 1, [self.contact.uuid, six.text_type(self.contact.id), "Eric", "",
+                                                c1_run1_first, c1_run1_last, "Orange", "orange", "orange"], self.org.timezone)
+
+        self.assertExcelRow(sheet_msgs, 0, ["Contact UUID", "ID", "Name", "Date", "Direction", "Message", "Channel"])
+        self.assertExcelRow(sheet_msgs, 2, [self.contact.uuid, six.text_type(self.contact.id), "Eric",
+                                            msg.created_on, "IN",
+                                            "orange", "Test Channel"], self.org.timezone)
+
+    def test_export_results_broadcast_only_flow(self):
+        self.login(self.admin)
+        flow = self.get_flow('two_in_row')
+        contact1_run1, contact2_run1, contact3_run1 = flow.start([], [self.contact, self.contact2, self.contact3])
+
+        time.sleep(1)
+        contact1_run2, contact2_run2 = flow.start([], [self.contact, self.contact2], restart_participants=True)
+
+        time.sleep(1)
+
+        with self.assertNumQueries(50):
+            workbook = self.export_flow_results(flow)
+
+        tz = self.org.timezone
+
+        sheet_runs, sheet_contacts, sheet_msgs = workbook.worksheets
+
+        # check runs sheet...
+        self.assertEqual(len(list(sheet_runs.rows)), 6)  # header + 5 runs
+        self.assertEqual(len(list(sheet_runs.columns)), 6)
+
+        self.assertExcelRow(sheet_runs, 0, ["Contact UUID", "URN", "Name", "Groups", "First Seen", "Last Seen"])
+
+        contact1_run1_rs = FlowStep.objects.filter(run=contact1_run1)
+        c1_run1_first = contact1_run1_rs.order_by('pk').first().arrived_on
+        c1_run1_last = contact1_run1_rs.order_by('-pk').first().arrived_on
+
+        contact1_run2_rs = FlowStep.objects.filter(run=contact1_run2)
+        c1_run2_first = contact1_run2_rs.order_by('pk').first().arrived_on
+        c1_run2_last = contact1_run2_rs.order_by('-pk').first().arrived_on
+
+        self.assertExcelRow(sheet_runs, 1, [contact1_run1.contact.uuid, "+250788382382", "Eric", "bootstrap 3", c1_run1_first,
+                                            c1_run1_last], tz)
+
+        self.assertExcelRow(sheet_runs, 2, [contact1_run2.contact.uuid, "+250788382382", "Eric", "bootstrap 3", c1_run2_first,
+                                            c1_run2_last], tz)
+
+        contact2_run1_steps = FlowStep.objects.filter(run=contact2_run1)
+        c2_run1_first = contact2_run1_steps.order_by('pk').first().arrived_on
+        c2_run1_last = contact2_run1_steps.order_by('-pk').first().arrived_on
+
+        contact2_run2_steps = FlowStep.objects.filter(run=contact2_run2)
+        c2_run2_first = contact2_run2_steps.order_by('pk').first().arrived_on
+        c2_run2_last = contact2_run2_steps.order_by('-pk').first().arrived_on
+
+        contact3_run1_steps = FlowStep.objects.filter(run=contact3_run1)
+        c3_run1_first = contact3_run1_steps.order_by('pk').first().arrived_on
+        c3_run1_last = contact3_run1_steps.order_by('-pk').first().arrived_on
+
+        self.assertExcelRow(sheet_runs, 3, [contact2_run1.contact.uuid, "+250788383383", "Nic", "bootstrap 3", c2_run1_first,
+                                            c2_run1_last], tz)
+
+        self.assertExcelRow(sheet_runs, 4, [contact2_run2.contact.uuid, "+250788383383", "Nic", "bootstrap 3", c2_run2_first,
+                                            c2_run2_last], tz)
+
+        # check contacts sheet...
+        self.assertEqual(len(list(sheet_contacts.rows)), 4)  # header + 3 contacts
+        self.assertEqual(len(list(sheet_contacts.columns)), 6)
+
+        self.assertExcelRow(sheet_contacts, 0, ["Contact UUID", "URN", "Name", "Groups", "First Seen", "Last Seen"])
+
+        self.assertExcelRow(sheet_contacts, 1, [contact1_run1.contact.uuid, "+250788382382", "Eric", "bootstrap 3",
+                                                c1_run1_first, c1_run2_last], tz)
+
+        self.assertExcelRow(sheet_contacts, 2, [contact2_run1.contact.uuid, "+250788383383", "Nic", "bootstrap 3",
+                                                c2_run1_first, c2_run2_last], tz)
+
+        self.assertExcelRow(sheet_contacts, 3, [contact3_run1.contact.uuid, "+250788123456", "Norbert", "bootstrap 3",
+                                                c3_run1_first, c3_run1_last], tz)
+
+        # check messages sheet...
+        self.assertEqual(len(list(sheet_msgs.rows)), 11)  # header + 10 messages
+        self.assertEqual(len(list(sheet_msgs.columns)), 7)
+
+        self.assertExcelRow(sheet_msgs, 0, ["Contact UUID", "URN", "Name", "Date", "Direction", "Message", "Channel"])
+
+        c1_run1_msg1 = Msg.objects.get(steps__run=contact1_run1, text="This is the first message.")
+        c1_run1_msg2 = Msg.objects.get(steps__run=contact1_run1, text="This is the second message.")
+
+        c2_run1_msg1 = Msg.objects.get(steps__run=contact2_run1, text="This is the first message.")
+        c2_run1_msg2 = Msg.objects.get(steps__run=contact2_run1, text="This is the second message.")
+
+        c3_run1_msg1 = Msg.objects.get(steps__run=contact3_run1, text="This is the first message.")
+        c3_run1_msg2 = Msg.objects.get(steps__run=contact3_run1, text="This is the second message.")
+
+        c1_run2_msg1 = Msg.objects.get(steps__run=contact1_run2, text="This is the first message.")
+        c1_run2_msg2 = Msg.objects.get(steps__run=contact1_run2, text="This is the second message.")
+
+        c2_run2_msg1 = Msg.objects.get(steps__run=contact2_run2, text="This is the first message.")
+        c2_run2_msg2 = Msg.objects.get(steps__run=contact2_run2, text="This is the second message.")
+
+        self.assertExcelRow(sheet_msgs, 1, [c1_run1_msg1.contact.uuid, "+250788382382", "Eric",
+                                            c1_run1_msg1.created_on, "OUT",
+                                            "This is the first message.", "Test Channel"], tz)
+
+        self.assertExcelRow(sheet_msgs, 2, [c1_run1_msg2.contact.uuid, "+250788382382", "Eric",
+                                            c1_run1_msg2.created_on, "OUT",
+                                            "This is the second message.", "Test Channel"], tz)
+
+        self.assertExcelRow(sheet_msgs, 3, [c1_run2_msg1.contact.uuid, "+250788382382", "Eric",
+                                            c1_run2_msg1.created_on, "OUT",
+                                            "This is the first message.", "Test Channel"], tz)
+
+        self.assertExcelRow(sheet_msgs, 4, [c1_run2_msg2.contact.uuid, "+250788382382", "Eric",
+                                            c1_run2_msg2.created_on, "OUT",
+                                            "This is the second message.", "Test Channel"], tz)
+
+        self.assertExcelRow(sheet_msgs, 5, [c2_run1_msg1.contact.uuid, "+250788383383", "Nic",
+                                            c2_run1_msg1.created_on, "OUT",
+                                            "This is the first message.", "Test Channel"], tz)
+
+        self.assertExcelRow(sheet_msgs, 6, [c2_run1_msg2.contact.uuid, "+250788383383", "Nic",
+                                            c2_run1_msg2.created_on, "OUT",
+                                            "This is the second message.", "Test Channel"], tz)
+
+        self.assertExcelRow(sheet_msgs, 7, [c2_run2_msg1.contact.uuid, "+250788383383", "Nic",
+                                            c2_run2_msg1.created_on, "OUT",
+                                            "This is the first message.", "Test Channel"], tz)
+
+        self.assertExcelRow(sheet_msgs, 8, [c2_run2_msg2.contact.uuid, "+250788383383", "Nic",
+                                            c2_run2_msg2.created_on, "OUT",
+                                            "This is the second message.", "Test Channel"], tz)
+
+        self.assertExcelRow(sheet_msgs, 9, [c3_run1_msg1.contact.uuid, "+250788123456", "Norbert",
+                                            c3_run1_msg1.created_on, "OUT",
+                                            "This is the first message.", "Test Channel"], tz)
+
+        self.assertExcelRow(sheet_msgs, 10, [c3_run1_msg2.contact.uuid, "+250788123456", "Norbert",
+                                             c3_run1_msg2.created_on, "OUT",
+                                             "This is the second message.", "Test Channel"], tz)
+
+        # test without msgs or runs or unresponded
+        with self.assertNumQueries(39):
+            workbook = self.export_flow_results(self.flow, include_msgs=False, include_runs=False, responded_only=True)
+
+        tz = self.org.timezone
+        sheet_contacts = workbook.worksheets[0]
+
+        self.assertEqual(len(list(sheet_contacts.rows)), 1)  # header; no resposes to a broadcast only flow
+        self.assertEqual(len(list(sheet_contacts.columns)), 6)
+
+        self.assertExcelRow(sheet_contacts, 0, ["Contact UUID", "URN", "Name", "Groups", "First Seen", "Last Seen"])
 
     def test_export_results(self):
         # setup flow and start both contacts
@@ -656,10 +860,9 @@ class FlowTest(TembaTest):
         self.assertContains(response, "already an export in progress")
 
         # ok, mark that one as finished and try again
-        blocking_export.is_finished = True
-        blocking_export.save()
+        blocking_export.update_status(ExportFlowResultsTask.STATUS_COMPLETE)
 
-        with self.assertNumQueries(49):
+        with self.assertNumQueries(51):
             workbook = self.export_flow_results(self.flow)
 
         tz = self.org.timezone
@@ -752,7 +955,7 @@ class FlowTest(TembaTest):
                                             "Test Channel"], tz)
 
         # test without msgs or runs or unresponded
-        with self.assertNumQueries(48):
+        with self.assertNumQueries(49):
             workbook = self.export_flow_results(self.flow, include_msgs=False, include_runs=False, responded_only=True)
 
         tz = self.org.timezone
@@ -779,7 +982,7 @@ class FlowTest(TembaTest):
         # insert a duplicate age field, this can happen due to races
         Value.objects.create(org=self.org, contact=self.contact, contact_field=age, string_value='36', decimal_value='36')
 
-        with self.assertNumQueries(53):
+        with self.assertNumQueries(54):
             workbook = self.export_flow_results(self.flow, include_msgs=False, include_runs=True, responded_only=True,
                                                 contact_fields=[age])
 
@@ -936,8 +1139,7 @@ class FlowTest(TembaTest):
     def test_export_results_with_no_responses(self):
         self.flow.update(self.definition)
 
-        self.assertEqual(self.flow.get_total_runs(), 0)
-        self.assertEqual(self.flow.get_completed_percentage(), 0)
+        self.assertEqual(self.flow.get_run_stats()['total'], 0)
 
         workbook = self.export_flow_results(self.flow)
 
@@ -1007,7 +1209,7 @@ class FlowTest(TembaTest):
 
             self.flow.start([], [self.contact])
 
-            self.assertTrue(self.flow.steps())
+            self.assertTrue(self.flow.get_steps())
             self.assertTrue(Msg.objects.all())
             msg = Msg.objects.all()[0]
             self.assertFalse("@extra.coupon" in msg.text)
@@ -1862,24 +2064,33 @@ class FlowTest(TembaTest):
         twilio.delete()
 
         # create a new regular flow
-        response = self.client.post(reverse('flows.flow_create'), dict(name='Flow', flow_type='F', expires_after_minutes=5), follow=True)
+        response = self.client.post(reverse('flows.flow_create'), dict(name='Flow', flow_type='F'), follow=True)
         flow1 = Flow.objects.get(org=self.org, name="Flow")
         # add a trigger on this flow
         Trigger.objects.create(org=self.org, keyword='unique', flow=flow1,
                                created_by=self.admin, modified_by=self.admin)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(flow1.flow_type, 'F')
-        self.assertEqual(flow1.expires_after_minutes, 5)
+        self.assertEqual(flow1.expires_after_minutes, 10080)
 
         # create a new surveyor flow
-        self.client.post(reverse('flows.flow_create'), dict(name='Surveyor Flow', expires_after_minutes=5, flow_type='S'), follow=True)
+        self.client.post(reverse('flows.flow_create'), dict(name='Surveyor Flow', flow_type='S'), follow=True)
         flow2 = Flow.objects.get(org=self.org, name="Surveyor Flow")
         self.assertEqual(flow2.flow_type, 'S')
-        self.assertEqual(flow2.expires_after_minutes, 5)
+        self.assertEqual(flow2.expires_after_minutes, 10080)
 
         # make sure we don't get a start flow button for Android Surveys
         response = self.client.get(reverse('flows.flow_editor', args=[flow2.uuid]))
         self.assertNotContains(response, "broadcast-rulesflow btn-primary")
+
+        # create a new voice flow
+        response = self.client.post(reverse('flows.flow_create'), dict(name='Voice Flow', flow_type='V'), follow=True)
+        voice_flow = Flow.objects.get(org=self.org, name="Voice Flow")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(voice_flow.flow_type, 'V')
+
+        # default expiration for voice is shorter
+        self.assertEqual(voice_flow.expires_after_minutes, 5)
 
         # test flows with triggers
         # create a new flow with one unformatted keyword
@@ -1904,7 +2115,6 @@ class FlowTest(TembaTest):
 
         response = self.client.post(reverse('flows.flow_create'), post_data)
         self.assertTrue(response.context['form'].errors)
-        print response.context['form'].errors['keyword_triggers']
         self.assertTrue('The keywords "this, unique" are already used for another flow' in response.context['form'].errors['keyword_triggers'])
         trigger.delete()
 
@@ -1921,6 +2131,34 @@ class FlowTest(TembaTest):
         self.assertEqual(response.request['PATH_INFO'], reverse('flows.flow_editor', args=[flow3.uuid]))
         self.assertEqual(response.context['object'].triggers.count(), 3)
 
+        # update expiration for voice flow
+        post_data = dict()
+        response = self.client.get(reverse('flows.flow_update', args=[voice_flow.pk]), post_data, follow=True)
+
+        choices = response.context['form'].fields['expires_after_minutes'].choices
+        self.assertEqual(7, len(choices))
+        self.assertEqual(1, choices[0][0])
+        self.assertEqual(2, choices[1][0])
+        self.assertEqual(3, choices[2][0])
+        self.assertEqual(4, choices[3][0])
+        self.assertEqual(5, choices[4][0])
+        self.assertEqual(10, choices[5][0])
+        self.assertEqual(15, choices[6][0])
+
+        # try updating with an sms type expiration to make sure it's restricted for voice flows
+        post_data['expires_after_minutes'] = 60 * 12
+        post_data['name'] = 'Voice Flow'
+        response = self.client.post(reverse('flows.flow_update', args=[voice_flow.pk]), post_data, follow=True)
+        voice_flow.refresh_from_db()
+        self.assertEqual(5, voice_flow.expires_after_minutes)
+
+        # now do a valid value for voice
+        post_data['expires_after_minutes'] = 3
+        response = self.client.post(reverse('flows.flow_update', args=[voice_flow.pk]), post_data, follow=True)
+
+        voice_flow.refresh_from_db()
+        self.assertEqual(3, voice_flow.expires_after_minutes)
+
         # update flow triggers
         post_data = dict()
         post_data['name'] = "Flow With Keyword Triggers"
@@ -1936,7 +2174,7 @@ class FlowTest(TembaTest):
         self.assertEquals(flow3.triggers.filter(is_archived=False).count(), 3)
         self.assertEquals(flow3.triggers.filter(is_archived=False).exclude(groups=None).count(), 0)
 
-        # update flow with unformated keyword
+        # update flow with unformatted keyword
         post_data['keyword_triggers'] = "it,changes,every thing"
         response = self.client.post(reverse('flows.flow_update', args=[flow3.pk]), post_data)
         self.assertTrue(response.context['form'].errors)
@@ -1988,7 +2226,7 @@ class FlowTest(TembaTest):
 
         # check flow listing
         response = self.client.get(reverse('flows.flow_list'))
-        self.assertEqual(list(response.context['object_list']), [flow1, flow3, flow2, self.flow])  # by last modified
+        self.assertEqual(list(response.context['object_list']), [flow3, voice_flow, flow2, flow1, self.flow])  # by saved_on
 
         # start a contact on that flow
         flow = flow1
@@ -1996,11 +2234,11 @@ class FlowTest(TembaTest):
 
         # test getting the json
         response = self.client.get(reverse('flows.flow_json', args=[flow.pk]))
-        self.assertTrue('channels' in json.loads(response.content))
-        self.assertTrue('languages' in json.loads(response.content))
-        self.assertTrue('channel_countries' in json.loads(response.content))
+        self.assertTrue('channels' in response.json())
+        self.assertTrue('languages' in response.json())
+        self.assertTrue('channel_countries' in response.json())
 
-        json_dict = json.loads(response.content)['flow']
+        json_dict = response.json()['flow']
 
         # test setting the json
         json_dict['action_sets'] = [dict(uuid=uuid(1), x=1, y=1, destination=None,
@@ -2031,7 +2269,7 @@ class FlowTest(TembaTest):
         # should still have the original one, nothing changed
         response = self.client.get(reverse('flows.flow_json', args=[flow.pk]))
         self.assertEquals(200, response.status_code)
-        json_dict = json.loads(response.content)
+        json_dict = response.json()
 
         # can't save against the other org's flow
         response = self.client.post(reverse('flows.flow_json', args=[other_flow.pk]), json.dumps(json_dict), content_type="application/json")
@@ -2057,7 +2295,7 @@ class FlowTest(TembaTest):
         post_data['has_refresh'] = True
 
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
-        json_dict = json.loads(response.content)
+        json_dict = response.json()
 
         self.assertFalse(group in test_contact.all_groups.all())
         self.assertFalse(test_contact.values.all())
@@ -2077,7 +2315,7 @@ class FlowTest(TembaTest):
 
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
         self.assertEquals(200, response.status_code)
-        json_dict = json.loads(response.content)
+        json_dict = response.json()
 
         self.assertTrue(group in test_contact.all_groups.all())
         self.assertTrue(test_contact.values.all())
@@ -2096,7 +2334,7 @@ class FlowTest(TembaTest):
 
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
         self.assertEquals(200, response.status_code)
-        json_dict = json.loads(response.content)
+        json_dict = response.json()
 
         self.assertEquals(len(json_dict.keys()), 5)
         self.assertTrue('status' in json_dict.keys())
@@ -2320,7 +2558,7 @@ class FlowTest(TembaTest):
                                     content_type="application/json")
 
         self.assertEquals(400, response.status_code)
-        self.assertEquals('Invalid label name: @badlabel', json.loads(response.content)['description'])
+        self.assertEquals('Invalid label name: @badlabel', response.json()['description'])
 
     def test_flow_start_with_start_msg(self):
         # set our flow
@@ -2523,7 +2761,38 @@ class ActionTest(TembaTest):
         self.assertEquals("We love green too!", response.text)
         self.assertEquals(self.contact, response.contact)
 
+    def test_media_action(self):
+        msg = self.create_msg(direction=INCOMING, contact=self.contact, text="Green is my favorite")
+        run = FlowRun.create(self.flow, self.contact.pk)
+
+        action = ReplyAction(dict(base="We love green too!"), 'image/jpeg:path/to/media.jpg')
+        action.execute(run, None, msg)
+        reply_msg = Msg.objects.get(contact=self.contact, direction='O')
+        self.assertEquals("We love green too!", reply_msg.text)
+        self.assertEquals(reply_msg.media, "image/jpeg:https://%s/%s" % (settings.AWS_BUCKET_DOMAIN, 'path/to/media.jpg'))
+
+        Broadcast.objects.all().delete()
+        Msg.objects.all().delete()
+        msg = self.create_msg(direction=INCOMING, contact=self.contact, text="Green is my favorite")
+
+        action_json = action.as_json()
+        action = ReplyAction.from_json(self.org, action_json)
+        self.assertEquals(dict(base="We love green too!"), action.msg)
+        self.assertEquals('image/jpeg:path/to/media.jpg', action.media)
+
+        action.execute(run, None, msg)
+
+        response = msg.responses.get()
+        self.assertEquals("We love green too!", response.text)
+        self.assertEquals(response.media, "image/jpeg:https://%s/%s" % (settings.AWS_BUCKET_DOMAIN, 'path/to/media.jpg'))
+        self.assertEquals(self.contact, response.contact)
+
     def test_ussd_action(self):
+        self.channel.delete()
+        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+                                      role=Channel.ROLE_USSD,
+                                      uuid='00000000-0000-0000-0000-000000001234')
+
         msg = self.create_msg(direction=INCOMING, contact=self.contact, text="Green is my favorite")
         run = FlowRun.create(self.flow, self.contact.pk)
 
@@ -2560,6 +2829,11 @@ class ActionTest(TembaTest):
         Broadcast.objects.all().delete()
 
     def test_multilanguage_ussd_menu_partly_translated(self):
+        self.channel.delete()
+        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+                                      role=Channel.ROLE_USSD,
+                                      uuid='00000000-0000-0000-0000-000000001234')
+
         msg = self.create_msg(direction=INCOMING, contact=self.contact, text="Green is my favorite")
         run = FlowRun.create(self.flow, self.contact.pk)
 
@@ -2686,6 +2960,7 @@ class ActionTest(TembaTest):
         action_json = action.as_json()
         action = SendAction.from_json(self.org, action_json)
         self.assertEqual(action.msg['base'], msg_body)
+        self.assertEqual(action.media, dict())
 
         broadcast = Broadcast.objects.get()
         self.assertEqual(broadcast.get_messages().count(), 1)
@@ -2727,6 +3002,33 @@ class ActionTest(TembaTest):
         updated_action = SendAction.from_json(self.org, action.as_json())
         self.assertTrue(updated_action.groups)
         self.assertFalse(self.other_group.pk in [g.pk for g in updated_action.groups])
+
+        # test send media to someone else
+        run = FlowRun.create(self.flow, self.contact.pk)
+        msg_body = 'I am a media message message'
+
+        action = SendAction(dict(base=msg_body), [], [self.contact2], [], dict(base='image/jpeg:attachments/picture.jpg'))
+        action.execute(run, None, None)
+
+        action_json = action.as_json()
+        action = SendAction.from_json(self.org, action_json)
+        self.assertEqual(action.msg['base'], msg_body)
+        self.assertEqual(action.media['base'], 'image/jpeg:attachments/picture.jpg')
+
+        self.assertEqual(Broadcast.objects.all().count(), 2)  # new broadcast with media
+
+        broadcast = Broadcast.objects.all().order_by('-created_on').first()
+        self.assertEqual(broadcast.media_dict, json.dumps(dict(base='image/jpeg:attachments/picture.jpg')))
+        self.assertEqual(broadcast.get_messages().count(), 1)
+        msg = broadcast.get_messages().first()
+        self.assertEqual(msg.contact, self.contact2)
+        self.assertEqual(msg.text, msg_body)
+        self.assertEqual(msg.media, "image/jpeg:https://%s/%s" % (settings.AWS_BUCKET_DOMAIN, 'attachments/picture.jpg'))
+
+        # also send if we have empty message but have an attachment
+        action = SendAction(dict(base=""), [], [self.contact], [], dict(base='image/jpeg:attachments/picture.jpg'))
+        action.execute(run, None, None)
+        self.assertEqual(Broadcast.objects.all().count(), 3)
 
     def test_variable_contact_parsing(self):
         groups = dict(groups=[dict(id=-1)])
@@ -2792,6 +3094,17 @@ class ActionTest(TembaTest):
         self.assertEquals(mail.outbox[2].subject, 'Allo allo message')
         self.assertEquals(mail.outbox[2].body, 'Email notification for allo allo')
         self.assertEquals(mail.outbox[2].recipients(), ["steve@apple.com"])
+
+        self.org.add_smtp_config('support@example.com', 'smtp.example.com', 'support@example.com', 'secret', '465', 'T', self.admin)
+
+        action = EmailAction(["steve@apple.com"], "Subject", "Body")
+        action.execute(run, None, msg)
+
+        self.assertEquals(len(mail.outbox), 4)
+        self.assertEquals(mail.outbox[3].from_email, 'support@example.com')
+        self.assertEquals(mail.outbox[3].subject, 'Subject')
+        self.assertEquals(mail.outbox[3].body, 'Body')
+        self.assertEquals(mail.outbox[3].recipients(), ["steve@apple.com"])
 
     def test_save_to_contact_action(self):
         sms = self.create_msg(direction=INCOMING, contact=self.contact, text="batman")
@@ -3068,6 +3381,7 @@ class ActionTest(TembaTest):
         self.assertFalse(group.pk in [g.pk for g in updated_action.groups])
 
         # try adding a contact to a dynamic group
+        self.create_field('isalive', "Is Alive")
         dynamic_group = self.create_group("Dynamic", query="isalive=YES")
         action = AddToGroupAction([dynamic_group])
 
@@ -3226,7 +3540,7 @@ class ActionTest(TembaTest):
     def test_webhook_action(self, mock_requests_post, mock_timezone_now):
         tz = pytz.timezone("Africa/Kigali")
         mock_requests_post.return_value = MockResponse(200, '{ "coupon": "NEXUS4" }')
-        mock_timezone_now.return_value = tz.localize(datetime.datetime(2015, 10, 27, 16, 07, 30, 6))
+        mock_timezone_now.return_value = tz.localize(datetime.datetime(2015, 10, 27, 16, 7, 30, 6))
 
         action = WebhookAction('http://example.com/callback.php')
 
@@ -3243,7 +3557,7 @@ class ActionTest(TembaTest):
 
         # check webhook was called with correct payload
         mock_requests_post.assert_called_once_with('http://example.com/callback.php',
-                                                   headers={'User-agent': "RapidPro"},
+                                                   headers={'User-agent': 'RapidPro'},
                                                    data={'run': run.pk,
                                                          'phone': u'+250788382382',
                                                          'contact': self.contact.uuid,
@@ -3251,6 +3565,7 @@ class ActionTest(TembaTest):
                                                          'urn': u'tel:+250788382382',
                                                          'text': None,
                                                          'flow': self.flow.pk,
+                                                         'flow_uuid': self.flow.uuid,
                                                          'flow_name': self.flow.name,
                                                          'flow_base_language': self.flow.base_language,
                                                          'relayer': -1,
@@ -3258,7 +3573,8 @@ class ActionTest(TembaTest):
                                                          'values': '[]',
                                                          'time': '2015-10-27T14:07:30.000006Z',
                                                          'steps': '[]',
-                                                         'channel': -1},
+                                                         'channel': -1,
+                                                         'channel_uuid': None},
                                                    timeout=10)
         mock_requests_post.reset_mock()
 
@@ -3279,6 +3595,7 @@ class ActionTest(TembaTest):
                                                          'urn': u'tel:+250788382382',
                                                          'text': "Green is my favorite",
                                                          'flow': self.flow.pk,
+                                                         'flow_uuid': self.flow.uuid,
                                                          'flow_name': self.flow.name,
                                                          'flow_base_language': self.flow.base_language,
                                                          'relayer': msg.channel.pk,
@@ -3286,7 +3603,8 @@ class ActionTest(TembaTest):
                                                          'values': '[]',
                                                          'time': '2015-10-27T14:07:30.000006Z',
                                                          'steps': '[]',
-                                                         'channel': msg.channel.pk},
+                                                         'channel': msg.channel.pk,
+                                                         'channel_uuid': msg.channel.uuid},
                                                    timeout=10)
 
         # check simulator warns of webhook URL errors
@@ -3334,16 +3652,16 @@ class FlowRunTest(TembaTest):
         self.assertTrue('field' + ("_" * 250) in normalized)
 
         # too many fields
-        for i in range(129):
+        for i in range(259):
             fields['field%d' % i] = 'value %d' % i
         (normalized, count) = FlowRun.normalize_fields(fields)
-        self.assertEqual(count, 128)
-        self.assertEqual(len(normalized), 128)
+        self.assertEqual(count, 256)
+        self.assertEqual(len(normalized), 256)
 
         # can manually keep more values
-        (normalized, count) = FlowRun.normalize_fields(fields, 200)
-        self.assertEqual(count, 132)
-        self.assertEqual(len(normalized), 132)
+        (normalized, count) = FlowRun.normalize_fields(fields, 500)
+        self.assertEqual(count, 262)
+        self.assertEqual(len(normalized), 262)
 
         fields = dict(numbers=["zero", "one", "two", "three"])
         (normalized, count) = FlowRun.normalize_fields(fields)
@@ -3394,6 +3712,12 @@ class FlowRunTest(TembaTest):
         self.assertTrue(FlowRun.objects.get(contact=self.contact).is_completed())
 
     def test_is_interrupted(self):
+        self.channel.delete()
+        # Create a USSD channel type to test USSDSession.INTERRUPTED status
+        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+                                      role=Channel.ROLE_USSD,
+                                      uuid='00000000-0000-0000-0000-000000001234')
+
         flow = self.get_flow('ussd_example')
         flow.start([], [self.contact])
 
@@ -3640,7 +3964,7 @@ class WebhookTest(TembaTest):
         with patch('requests.post') as mock:
             mock.return_value = MockResponse(200, '{ "text": "Valid", "order_number": "PX1002" }')
 
-            (match, value) = webhook.find_matching_rule(webhook_step, run, incoming)
+            webhook.find_matching_rule(webhook_step, run, incoming)
             (match, value) = rules.find_matching_rule(rule_step, run, incoming)
             self.assertEquals(uuid(12), match.uuid)
             self.assertEquals("Valid", value)
@@ -3664,11 +3988,29 @@ class WebhookTest(TembaTest):
             self.assertEqual(message_context['extra'], {'0': 'zero', '1': 'one', '2': 'two'})
 
         with patch('requests.post') as mock:
+            mock.return_value = MockResponse(200, json.dumps(range(300)))
+            rule_step.run.fields = None
+            rule_step.run.save()
+
+            webhook.find_matching_rule(webhook_step, run, incoming)
+            (match, value) = rules.find_matching_rule(rule_step, run, incoming)
+            self.assertIsNone(match)
+            self.assertIsNone(value)
+            self.assertEquals("1001", incoming.text)
+
+            message_context = self.flow.build_message_context(self.contact, incoming)
+            extra = message_context['extra']
+
+            # should only keep first 256 values
+            self.assertEqual(256, len(extra))
+            self.assertFalse('256' in extra)
+
+        with patch('requests.post') as mock:
             mock.return_value = MockResponse(200, "asdfasdfasdf")
             rule_step.run.fields = None
             rule_step.run.save()
 
-            (match, value) = webhook.find_matching_rule(webhook_step, run, incoming)
+            webhook.find_matching_rule(webhook_step, run, incoming)
             (match, value) = rules.find_matching_rule(rule_step, run, incoming)
             self.assertIsNone(match)
             self.assertIsNone(value)
@@ -3682,7 +4024,7 @@ class WebhookTest(TembaTest):
             rule_step.run.fields = None
             rule_step.run.save()
 
-            (match, value) = webhook.find_matching_rule(webhook_step, run, incoming)
+            webhook.find_matching_rule(webhook_step, run, incoming)
             (match, value) = rules.find_matching_rule(rule_step, run, incoming)
             self.assertIsNone(match)
             self.assertIsNone(value)
@@ -3696,7 +4038,7 @@ class WebhookTest(TembaTest):
             rule_step.run.fields = None
             rule_step.run.save()
 
-            (match, value) = webhook.find_matching_rule(webhook_step, run, incoming)
+            webhook.find_matching_rule(webhook_step, run, incoming)
             (match, value) = rules.find_matching_rule(rule_step, run, incoming)
             self.assertIsNone(match)
             self.assertIsNone(value)
@@ -3768,7 +4110,7 @@ class SimulationTest(FlowFileTest):
 
         self.login(self.admin)
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
-        json_dict = json.loads(response.content)
+        json_dict = response.json()
 
         self.assertEquals(len(json_dict.keys()), 6)
         self.assertEquals(len(json_dict['messages']), 2)
@@ -3780,7 +4122,7 @@ class SimulationTest(FlowFileTest):
 
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
         self.assertEquals(200, response.status_code)
-        json_dict = json.loads(response.content)
+        json_dict = response.json()
 
         self.assertEquals(len(json_dict['messages']), 6)
         self.assertEquals("3", json_dict['messages'][2]['text'])
@@ -3790,6 +4132,10 @@ class SimulationTest(FlowFileTest):
 
     @patch('temba.ussd.models.USSDSession.handle_incoming')
     def test_ussd_simulation(self, handle_incoming):
+        self.channel.delete()
+        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+                                      role=Channel.ROLE_USSD + Channel.DEFAULT_ROLE,
+                                      uuid='00000000-0000-0000-0000-000000001234')
         flow = self.get_flow('ussd_example')
 
         simulate_url = reverse('flows.flow_simulate', args=[flow.pk])
@@ -3809,6 +4155,10 @@ class SimulationTest(FlowFileTest):
 
     @patch('temba.ussd.models.USSDSession.handle_incoming')
     def test_ussd_simulation_interrupt(self, handle_incoming):
+        self.channel.delete()
+        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+                                      role=Channel.ROLE_USSD + Channel.DEFAULT_ROLE,
+                                      uuid='00000000-0000-0000-0000-000000001234')
         flow = self.get_flow('ussd_example')
 
         simulate_url = reverse('flows.flow_simulate', args=[flow.pk])
@@ -3912,6 +4262,10 @@ class FlowsTest(FlowFileTest):
         pete = self.create_contact('Pete', '+12065553027')
         self.send_message(favorites, 'blue', contact=pete)
 
+        kobe = Contact.get_test_contact(self.admin)
+        self.send_message(favorites, 'green', contact=kobe)
+        self.send_message(favorites, 'skol', contact=kobe)
+
         self.login(self.admin)
         response = self.client.get(reverse('flows.flow_results', args=[favorites.pk]))
 
@@ -3922,12 +4276,14 @@ class FlowsTest(FlowFileTest):
 
         # fetch our intercooler rows for the run table
         response = self.client.get(reverse('flows.flow_run_table', args=[favorites.pk]))
+        self.assertEqual(len(response.context['runs']), 2)
         self.assertEqual(200, response.status_code)
         self.assertContains(response, 'Jimmy')
         self.assertContains(response, 'red')
         self.assertContains(response, 'Red')
         self.assertContains(response, 'turbo')
         self.assertContains(response, 'Turbo King')
+        self.assertNotContains(response, 'skol')
 
         next_link = re.search('ic-append-from=\"(.*)\" ic-trigger-on', response.content).group(1)
         response = self.client.get(next_link)
@@ -3995,8 +4351,6 @@ class FlowsTest(FlowFileTest):
 
         self.login(self.admin)
         recent_messages_url = reverse('flows.flow_recent_messages', args=[flow.pk])
-        response = self.client.get(recent_messages_url)
-        self.assertEquals([], json.loads(response.content))
 
         actionset = ActionSet.objects.filter(flow=flow, y=0).first()
         first_action_set_uuid = actionset.uuid
@@ -4009,83 +4363,68 @@ class FlowsTest(FlowFileTest):
         other_rule_destination = other_rule.destination
         other_rule_uuid = other_rule.uuid
 
-        blue_rule = ruleset.get_rules()[-3]
+        blue_rule = ruleset.get_rules()[-4]
         blue_rule_uuid = blue_rule.uuid
         blue_rule_destination = blue_rule.destination
 
-        # use the right get params
+        navy_rule = ruleset.get_rules()[-3]
+        navy_rule_uuid = navy_rule.uuid
+
+        # URL params for different flow path segments
+        entry_params = "?step=%s&destination=%s&rule=" % (first_action_set_uuid, first_action_set_destination)
+        other_params = "?step=%s&destination=%s&rule=%s" % (first_ruleset_uuid, other_rule_destination, other_rule_uuid)
+        blue_params = "?step=%s&destination=%s&rule=%s,%s" % (first_ruleset_uuid, blue_rule_destination, blue_rule_uuid, navy_rule_uuid)
+        invalid_params = "?step=%s&destination=%s&rule=" % (first_ruleset_uuid, first_action_set_destination)
+
+        def assert_recent(resp, msgs):
+            self.assertEqual([r['text'] for r in resp.json()], msgs)
+
+        # no params returns no results
+        assert_recent(self.client.get(recent_messages_url), [])
+
         self.send_message(flow, 'chartreuse')
-        get_params_entry = "?step=%s&destination=%s&rule=%s" % (first_action_set_uuid, first_action_set_destination, '')
-        response = self.client.get(recent_messages_url + get_params_entry)
-        response_json = json.loads(response.content)
-        self.assertTrue(response_json)
-        self.assertEquals(1, len(response_json))
-        self.assertEquals("What is your favorite color?", response_json[0].get('text'))
 
-        get_params_other_rule = "?step=%s&destination=%s&rule=%s" % (first_ruleset_uuid, other_rule_destination, other_rule_uuid)
-        response = self.client.get(recent_messages_url + get_params_other_rule)
-        response_json = json.loads(response.content)
-        self.assertTrue(response_json)
-        self.assertEquals(1, len(response_json))
-        self.assertEquals("chartreuse", response_json[0].get('text'))
+        response = self.client.get(recent_messages_url + entry_params)
+        assert_recent(response, ["What is your favorite color?"])
 
-        # nothing yet for blue
-        get_params_blue_rule = "?step=%s&destination=%s&rule=%s" % (first_ruleset_uuid, blue_rule_destination, blue_rule_uuid)
-        response = self.client.get(recent_messages_url + get_params_blue_rule)
-        self.assertEquals([], json.loads(response.content))
+        # one incoming message on the other segment
+        response = self.client.get(recent_messages_url + other_params)
+        assert_recent(response, ["chartreuse"])
 
-        # mixed wrong params
-        get_params_mixed = "?step=%s&destination=%s&rule=%s" % (first_ruleset_uuid, first_action_set_destination, '')
-        response = self.client.get(recent_messages_url + get_params_mixed)
-        self.assertEquals([], json.loads(response.content))
+        # nothing yet on the blue segment
+        response = self.client.get(recent_messages_url + blue_params)
+        assert_recent(response, [])
+
+        # invalid segment
+        response = self.client.get(recent_messages_url + invalid_params)
+        assert_recent(response, [])
 
         self.send_message(flow, 'mauve')
-        msg = Msg.objects.filter(text='mauve').first()
-        tz = self.org.timezone
+        msg1 = Msg.objects.filter(text='chartreuse').first()
+        msg2 = Msg.objects.filter(text='mauve').first()
 
-        response = self.client.get(recent_messages_url + get_params_entry)
-        response_json = json.loads(response.content)
-        self.assertTrue(response_json)
-        self.assertEquals(1, len(response_json))
-        self.assertEquals("What is your favorite color?", response_json[0].get('text'))
+        response = self.client.get(recent_messages_url + entry_params)
+        assert_recent(response, ["What is your favorite color?"])
 
-        response = self.client.get(recent_messages_url + get_params_other_rule)
-        response_json = json.loads(response.content)
-        self.assertTrue(response_json)
-        self.assertEquals(2, len(response_json))
-        self.assertEquals("mauve", response_json[0].get('text'))
-        self.assertEquals(datetime_to_str(msg.created_on, tz=tz), response_json[0].get('sent'))
-        self.assertEquals("chartreuse", response_json[1].get('text'))
+        response = self.client.get(recent_messages_url + other_params)
+        self.assertEqual(response.json(), [
+            {'text': "mauve", 'sent': datetime_to_str(msg2.created_on, tz=self.org.timezone)},
+            {'text': "chartreuse", 'sent': datetime_to_str(msg1.created_on, tz=self.org.timezone)}
+        ])
 
-        response = self.client.get(recent_messages_url + get_params_blue_rule)
-        self.assertEquals([], json.loads(response.content))
-
-        response = self.client.get(recent_messages_url + get_params_mixed)
-        self.assertEquals([], json.loads(response.content))
+        response = self.client.get(recent_messages_url + blue_params)
+        assert_recent(response, [])
 
         self.send_message(flow, 'blue')
 
-        response = self.client.get(recent_messages_url + get_params_entry)
-        response_json = json.loads(response.content)
-        self.assertTrue(response_json)
-        self.assertEquals(1, len(response_json))
-        self.assertEquals("What is your favorite color?", response_json[0].get('text'))
+        response = self.client.get(recent_messages_url + entry_params)
+        assert_recent(response, ["What is your favorite color?"])
 
-        response = self.client.get(recent_messages_url + get_params_other_rule)
-        response_json = json.loads(response.content)
-        self.assertTrue(response_json)
-        self.assertEquals(2, len(response_json))
-        self.assertEquals("mauve", response_json[0].get('text'))
-        self.assertEquals("chartreuse", response_json[1].get('text'))
+        response = self.client.get(recent_messages_url + other_params)
+        assert_recent(response, ["mauve", "chartreuse"])
 
-        response = self.client.get(recent_messages_url + get_params_blue_rule)
-        response_json = json.loads(response.content)
-        self.assertTrue(response_json)
-        self.assertEquals(1, len(response_json))
-        self.assertEquals("blue", response_json[0].get('text'))
-
-        response = self.client.get(recent_messages_url + get_params_mixed)
-        self.assertEquals([], json.loads(response.content))
+        response = self.client.get(recent_messages_url + blue_params)
+        assert_recent(response, ["blue"])
 
     def test_completion(self):
 
@@ -4093,7 +4432,7 @@ class FlowsTest(FlowFileTest):
         self.login(self.admin)
 
         response = self.client.get('%s?flow=%d' % (reverse('flows.flow_completion'), flow.pk))
-        response = json.loads(response.content)
+        response = response.json()
 
         def assert_in_response(response, data_key, key):
             found = False
@@ -4115,6 +4454,14 @@ class FlowsTest(FlowFileTest):
         assert_in_response(response, 'function_completions', 'ABS')
         assert_in_response(response, 'function_completions', 'YEAR')
 
+        # a Twitter channel
+        Channel.create(self.org, self.user, None, 'TT')
+
+        response = self.client.get('%s?flow=%d' % (reverse('flows.flow_completion'), flow.pk))
+        response = response.json()
+
+        assert_in_response(response, 'message_completions', 'contact.twitter')
+
     def test_bulk_exit(self):
         flow = self.get_flow('favorites')
         color = RuleSet.objects.get(label='Color', flow=flow)
@@ -4128,64 +4475,42 @@ class FlowsTest(FlowFileTest):
 
         # should have six active flowruns
         (active, visited) = flow.get_activity()
-        self.assertEquals(6, FlowRun.objects.filter(is_active=True).count())
-        self.assertEquals(0, FlowRun.objects.filter(is_active=False).count())
-        self.assertEquals(6, flow.get_total_runs())
-        self.assertEquals(6, active[color.uuid])
+        self.assertEqual(FlowRun.objects.filter(is_active=True).count(), 6)
+        self.assertEqual(FlowRun.objects.filter(is_active=False).count(), 0)
+        self.assertEqual(active[color.uuid], 6)
 
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, None), 6)
-
-        # rebuild our flow run counts
-        FlowRunCount.populate_for_flow(flow)
-
-        # same result
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, None), 6)
+        self.assertEqual(FlowRunCount.get_totals(flow), {'A': 6, 'C': 0, 'E': 0, 'I': 0})
 
         # expire them all
         FlowRun.bulk_exit(FlowRun.objects.filter(is_active=True), FlowRun.EXIT_TYPE_EXPIRED)
 
         # should all be expired
         (active, visited) = flow.get_activity()
-        self.assertEquals(0, FlowRun.objects.filter(is_active=True).count())
-        self.assertEquals(6, FlowRun.objects.filter(is_active=False, exit_type='E').exclude(exited_on=None).count())
-        self.assertEquals(6, flow.get_total_runs())
-        self.assertEquals(0, len(active))
+        self.assertEquals(FlowRun.objects.filter(is_active=True).count(), 0)
+        self.assertEquals(FlowRun.objects.filter(is_active=False, exit_type='E').exclude(exited_on=None).count(), 6)
+        self.assertEquals(len(active), 0)
 
         # assert our flowrun counts
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, 'E'), 6)
-        self.assertEqual(FlowRunCount.run_count(flow), 6)
+        self.assertEqual(FlowRunCount.get_totals(flow), {'A': 0, 'C': 0, 'E': 6, 'I': 0})
 
         # start all contacts in the flow again
         for contact in contacts:
             self.send_message(flow, 'chartreuse', contact=contact, restart_participants=True)
 
         self.assertEqual(6, FlowRun.objects.filter(is_active=True).count())
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, None), 6)
-        self.assertEqual(FlowRunCount.run_count(flow), 12)
+        self.assertEqual(FlowRunCount.get_totals(flow), {'A': 6, 'C': 0, 'E': 6, 'I': 0})
 
         # stop them all
         FlowRun.bulk_exit(FlowRun.objects.filter(is_active=True), FlowRun.EXIT_TYPE_INTERRUPTED)
 
-        self.assertEqual(6, FlowRun.objects.filter(is_active=False, exit_type='I').exclude(exited_on=None).count())
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, 'I'), 6)
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, 'E'), 6)
-        self.assertEqual(FlowRunCount.run_count(flow), 12)
+        self.assertEqual(FlowRun.objects.filter(is_active=False, exit_type='I').exclude(exited_on=None).count(), 6)
+        self.assertEqual(FlowRunCount.get_totals(flow), {'A': 0, 'C': 0, 'E': 6, 'I': 6})
 
         # squash our counts
-        FlowRunCount.squash_counts()
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, 'I'), 6)
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, 'E'), 6)
-        self.assertEqual(FlowRunCount.run_count(flow), 12)
-
-        # recalculate from scratch, same
-        FlowRunCount.populate_for_flow(flow)
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, 'I'), 6)
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, 'E'), 6)
-        self.assertEqual(FlowRunCount.run_count(flow), 12)
+        squash_flowruncounts()
+        self.assertEqual(FlowRunCount.get_totals(flow), {'A': 0, 'C': 0, 'E': 6, 'I': 6})
 
     def test_squash_run_counts(self):
-        from temba.flows.tasks import squash_flowruncounts
-
         flow = self.get_flow('favorites')
         flow2 = self.get_flow('pick_a_number')
 
@@ -4197,12 +4522,8 @@ class FlowsTest(FlowFileTest):
 
         squash_flowruncounts()
         self.assertEqual(FlowRunCount.objects.all().count(), 3)
-        self.assertEqual(FlowRunCount.run_count_for_type(flow2, 'I'), 9)
-        self.assertEqual(FlowRunCount.run_count(flow2), 9)
-
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, None), 3)
-        self.assertEqual(FlowRunCount.run_count_for_type(flow, 'E'), 3)
-        self.assertEqual(FlowRunCount.run_count(flow), 6)
+        self.assertEqual(FlowRunCount.get_totals(flow2), {'A': 0, 'C': 0, 'E': 0, 'I': 9})
+        self.assertEqual(FlowRunCount.get_totals(flow), {'A': 3, 'C': 0, 'E': 3, 'I': 0})
 
         max_id = FlowRunCount.objects.all().order_by('-id').first().id
 
@@ -4217,6 +4538,7 @@ class FlowsTest(FlowFileTest):
         # clear our previous redis activity
         self.clear_activity(flow)
 
+        color_question = ActionSet.objects.get(y=0, flow=flow)
         other_action = ActionSet.objects.get(y=8, flow=flow)
         beer_question = ActionSet.objects.get(y=237, flow=flow)
         beer = RuleSet.objects.get(label='Beer', flow=flow)
@@ -4225,7 +4547,7 @@ class FlowsTest(FlowFileTest):
         rules = color.get_rules()
         color_other_uuid = rules[-1].uuid
         color_cyan_uuid = rules[-2].uuid
-        color_blue_uuid = rules[-3].uuid
+        color_blue_uuid = rules[-4].uuid
 
         other_rule_to_msg = '%s:%s' % (color_other_uuid, other_action.uuid)
         msg_to_color_step = '%s:%s' % (other_action.uuid, color.uuid)
@@ -4240,9 +4562,8 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, active[color.uuid])
         self.assertEquals(1, visited[other_rule_to_msg])
         self.assertEquals(1, visited[msg_to_color_step])
-        self.assertEquals(1, flow.get_total_runs())
-        self.assertEquals(0, flow.get_completed_runs())
-        self.assertEquals(0, flow.get_completed_percentage())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 1, 'active': 1, 'completed': 0, 'expired': 0, 'interrupted': 0, 'completion': 0})
 
         # another unknown color, that'll route us right back again
         # the active stats will look the same, but there should be one more journey on the path
@@ -4260,6 +4581,19 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, len(active))
         self.assertEquals(1, active[beer.uuid])
 
+        # check recent steps
+        recent = FlowPathRecentStep.get_recent_messages([color_question.uuid], [color.uuid])
+        self.assertEqual([m.text for m in recent], ["What is your favorite color?"])
+
+        recent = FlowPathRecentStep.get_recent_messages([color_other_uuid], [other_action.uuid])
+        self.assertEqual([m.text for m in recent], ["mauve", "chartreuse"])
+
+        recent = FlowPathRecentStep.get_recent_messages([other_action.uuid], [color.uuid])
+        self.assertEqual([m.text for m in recent], ["I don't know that color. Try again.", "I don't know that color. Try again."])
+
+        recent = FlowPathRecentStep.get_recent_messages([color_blue_uuid], [beer_question.uuid])
+        self.assertEqual([m.text for m in recent], ["blue"])
+
         # a new participant, showing distinct active counts and incremented path
         ryan = self.create_contact('Ryan Lewis', '+12065550725')
         self.send_message(flow, 'burnt sienna', contact=ryan)
@@ -4269,7 +4603,8 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, active[beer.uuid])
         self.assertEquals(3, visited[other_rule_to_msg])
         self.assertEquals(3, visited[msg_to_color_step])
-        self.assertEquals(2, flow.get_total_runs())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 2, 'active': 2, 'completed': 0, 'expired': 0, 'interrupted': 0, 'completion': 0})
 
         # now let's have them land in the same place
         self.send_message(flow, 'blue', contact=ryan)
@@ -4284,16 +4619,16 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, len(active))
 
         # half of our flows are now complete
-        self.assertEquals(1, flow.get_completed_runs())
-        self.assertEquals(50, flow.get_completed_percentage())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 2, 'active': 1, 'completed': 1, 'expired': 0, 'interrupted': 0, 'completion': 50})
 
         # rebuild our flow stats and make sure they are the same
         flow.do_calculate_flow_stats()
         (active, visited) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(3, visited[other_rule_to_msg])
-        self.assertEquals(1, flow.get_completed_runs())
-        self.assertEquals(50, flow.get_completed_percentage())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 2, 'active': 1, 'completed': 1, 'expired': 0, 'interrupted': 0, 'completion': 50})
 
         # we are going to expire, but we want runs across two different flows
         # to make sure that our optimization for expiration is working properly
@@ -4317,10 +4652,8 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(3, visited[other_rule_to_msg])
 
         # no completed runs but one expired run
-        self.assertEquals(2, flow.get_total_runs())
-        self.assertEquals(0, flow.get_completed_runs())
-        self.assertEquals(0, flow.get_completed_percentage())
-        self.assertEquals(1, flow.get_expired_runs())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 2, 'active': 1, 'completed': 0, 'expired': 1, 'interrupted': 0, 'completion': 0})
 
         # check that we have the right number of steps and runs
         self.assertEquals(17, FlowStep.objects.filter(run__flow=flow).count())
@@ -4333,19 +4666,22 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, len(active))
         self.assertEquals(1, visited[msg_to_color_step])
         self.assertEquals(1, visited[other_rule_to_msg])
-        self.assertEquals(1, flow.get_total_runs())
 
         # he was also accounting for our completion rate, back to nothing
-        self.assertEquals(0, flow.get_completed_runs())
-        self.assertEquals(0, flow.get_completed_percentage())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 1, 'active': 1, 'completed': 0, 'expired': 0, 'interrupted': 0, 'completion': 0})
 
         # advance ryan to the end to make sure our percentage accounts for one less contact
         self.send_message(flow, 'Turbo King', contact=ryan)
         self.send_message(flow, 'Ryan Lewis', contact=ryan)
         (active, visited) = flow.get_activity()
         self.assertEquals(0, len(active))
-        self.assertEquals(1, flow.get_completed_runs())
-        self.assertEquals(100, flow.get_completed_percentage())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 1, 'active': 0, 'completed': 1, 'expired': 0, 'interrupted': 0, 'completion': 100})
+
+        # messages to/from deleted contacts shouldn't appear in the recent messages
+        recent = FlowPathRecentStep.get_recent_messages([color_other_uuid], [other_action.uuid])
+        self.assertEqual([m.text for m in recent], ["burnt sienna"])
 
         # test contacts should not affect the counts
         hammer = Contact.get_test_contact(self.admin)
@@ -4362,12 +4698,15 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(0, len(active))
         self.assertEquals(1, visited[msg_to_color_step])
         self.assertEquals(1, visited[other_rule_to_msg])
-        self.assertEquals(1, flow.get_total_runs())
-        self.assertEquals(1, flow.get_completed_runs())
-        self.assertEquals(100, flow.get_completed_percentage())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 1, 'active': 0, 'completed': 1, 'expired': 0, 'interrupted': 0, 'completion': 100})
+
+        # and no recent message entries for this test contact
+        recent = FlowPathRecentStep.get_recent_messages([color_other_uuid], [other_action.uuid])
+        self.assertEqual([m.text for m in recent], ["burnt sienna"])
 
         # try the same thing after squashing
-        FlowPathCount.squash_counts()
+        squash_flowpathcounts()
         visited = flow.get_activity()[1]
         self.assertEquals(1, visited[msg_to_color_step])
         self.assertEquals(1, visited[other_rule_to_msg])
@@ -4384,9 +4723,9 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(0, len(active))
         self.assertEquals(0, visited[msg_to_color_step])
         self.assertEquals(0, visited[other_rule_to_msg])
-        self.assertEquals(0, flow.get_total_runs())
-        self.assertEquals(0, flow.get_completed_runs())
-        self.assertEquals(0, flow.get_completed_percentage())
+
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 0, 'active': 0, 'completed': 0, 'expired': 0, 'interrupted': 0, 'completion': 0})
 
         # runs and steps all gone too
         self.assertEquals(0, FlowStep.objects.filter(run__flow=flow, contact__is_test=False).count())
@@ -4400,7 +4739,8 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, active[color.uuid])
         self.assertEquals(1, visited[other_rule_to_msg])
         self.assertEquals(1, visited[msg_to_color_step])
-        self.assertEquals(1, flow.get_total_runs())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 1, 'active': 1, 'completed': 0, 'expired': 0, 'interrupted': 0, 'completion': 0})
 
         # set the run to be ready for expiration
         run = tupac.runs.first()
@@ -4412,7 +4752,8 @@ class FlowsTest(FlowFileTest):
         check_flows_task()
         (active, visited) = flow.get_activity()
         self.assertEquals(0, len(active))
-        self.assertEquals(1, flow.get_total_runs())
+        self.assertEqual(flow.get_run_stats(),
+                         {'total': 1, 'active': 0, 'completed': 0, 'expired': 1, 'interrupted': 0, 'completion': 0})
 
         # choose a rule that is not wired up (end of flow)
         jimmy = self.create_contact('Jimmy Graham', '+12065558888')
@@ -4426,7 +4767,7 @@ class FlowsTest(FlowFileTest):
         self.assertEqual(2, FlowPathCount.objects.filter(from_uuid=color_cyan_uuid).count())
 
         # squash our counts and make sure they are still the same
-        FlowPathCount.squash_counts()
+        squash_flowpathcounts()
         self.assertEqual(2, flow.get_visit_counts()[cyan_to_nothing])
 
         # but now we have a single count
@@ -4456,8 +4797,49 @@ class FlowsTest(FlowFileTest):
         self.assertEqual(counts, len(flow.get_visit_counts()))
 
         # ensure no negative counts
-        for k, v in flow.get_visit_counts().iteritems():
+        for k, v in flow.get_visit_counts().items():
             self.assertTrue(v >= 0)
+
+    def test_prune_recentsteps(self):
+        flow = self.get_flow('favorites')
+
+        other_action = ActionSet.objects.get(y=8, flow=flow)
+        color_ruleset = RuleSet.objects.get(label='Color', flow=flow)
+        other_rule = color_ruleset.get_rules()[-1]
+
+        # send 12 invalid color responses (must be from different contacts to avoid loop detection at 10 messages)
+        bob = self.create_contact("Bob", number="+260964151234")
+        for m in range(12):
+            contact = self.contact if m % 2 == 0 else bob
+            self.send_message(flow, '%d' % (m + 1), contact=contact)
+
+        # all 12 steps are stored for the other segment
+        other_recent = FlowPathRecentStep.objects.filter(from_uuid=other_rule.uuid, to_uuid=other_action.uuid)
+        self.assertEqual(len(other_recent), 12)
+
+        # and these are returned with most-recent first
+        other_recent = FlowPathRecentStep.get_recent_messages([other_rule.uuid], [other_action.uuid])
+        self.assertEqual([m.text for m in other_recent], ["12", "11", "10", "9", "8", "7", "6", "5", "4", "3", "2", "1"])
+
+        # even when limit is applied
+        other_recent = FlowPathRecentStep.get_recent_messages([other_rule.uuid], [other_action.uuid], limit=5)
+        self.assertEqual([m.text for m in other_recent], ["12", "11", "10", "9", "8"])
+
+        prune_flowpathrecentsteps()
+
+        # now only 10 newest are stored
+        other_recent = FlowPathRecentStep.objects.filter(from_uuid=other_rule.uuid, to_uuid=other_action.uuid)
+        self.assertEqual(len(other_recent), 10)
+
+        other_recent = FlowPathRecentStep.get_recent_messages([other_rule.uuid], [other_action.uuid])
+        self.assertEqual([m.text for m in other_recent], ["12", "11", "10", "9", "8", "7", "6", "5", "4", "3"])
+
+        # send another message and prune again
+        self.send_message(flow, "13", contact=bob)
+        prune_flowpathrecentsteps()
+
+        other_recent = FlowPathRecentStep.get_recent_messages([other_rule.uuid], [other_action.uuid])
+        self.assertEqual([m.text for m in other_recent], ["13", "12", "11", "10", "9", "8", "7", "6", "5", "4"])
 
     def test_destination_type(self):
         flow = self.get_flow('pick_a_number')
@@ -4584,6 +4966,7 @@ class FlowsTest(FlowFileTest):
         with self.assertRaises(FlowException):
             self.send_message(flow, "1", assert_reply=False)
 
+        flow.runs.all().delete()
         flow.delete()
 
         # non-blocking rule to non-blocking rule and back
@@ -4605,6 +4988,7 @@ class FlowsTest(FlowFileTest):
         with self.assertRaises(FlowException):
             self.send_message(flow, "2", assert_reply=False)
 
+        flow.runs.all().delete()
         flow.delete()
 
     def test_decimal_substitution(self):
@@ -4677,6 +5061,17 @@ class FlowsTest(FlowFileTest):
         self.send("add group b")
         self.send('split')
         self.assertEqual('You are in Group B', Msg.objects.filter(direction='O').order_by('-created_on')[1].text)
+
+    def test_media_first_action(self):
+        flow = self.get_flow('media_first_action')
+
+        runs = flow.start_msg_flow([self.contact.id])
+        self.assertEquals(1, len(runs))
+        self.assertEquals(1, self.contact.msgs.all().count())
+        self.assertEquals('Hey', self.contact.msgs.all()[0].text)
+        self.assertEquals("image/jpeg:https://%s/%s" % (settings.AWS_BUCKET_DOMAIN,
+                          "attachments/2/53/steps/87d34837-491c-4541-98a1-fa75b52ebccc.jpg"),
+                          self.contact.msgs.all()[0].media)
 
     def test_substitution(self):
         flow = self.get_flow('substitution')
@@ -4789,6 +5184,9 @@ class FlowsTest(FlowFileTest):
 
         # should still have a run though
         self.assertEqual(flow.runs.count(), 1)
+
+        # but they should all be inactive
+        self.assertEqual(flow.runs.filter(is_active=True).count(), 0)
 
         # just no steps or values
         self.assertEqual(Value.objects.all().count(), 0)
@@ -5073,7 +5471,7 @@ class FlowsTest(FlowFileTest):
 
         # now interrupt the child flow
         run = FlowRun.objects.filter(contact=self.contact, is_active=True).order_by('-created_on').first()
-        FlowRun.bulk_exit([run], FlowRun.EXIT_TYPE_INTERRUPTED)
+        FlowRun.bulk_exit(FlowRun.objects.filter(id=run.id), FlowRun.EXIT_TYPE_INTERRUPTED)
 
         # all flows should have finished
         self.assertEqual(0, FlowRun.objects.filter(contact=self.contact, is_active=True).count())
@@ -5100,7 +5498,7 @@ class FlowsTest(FlowFileTest):
 
         # now expire out of the child flow
         run = FlowRun.objects.filter(contact=self.contact, is_active=True).order_by('-created_on').first()
-        FlowRun.bulk_exit([run], FlowRun.EXIT_TYPE_EXPIRED)
+        FlowRun.bulk_exit(FlowRun.objects.filter(id=run.id), FlowRun.EXIT_TYPE_EXPIRED)
 
         # all flows should have finished
         self.assertEqual(0, FlowRun.objects.filter(contact=self.contact, is_active=True).count())
@@ -5246,7 +5644,7 @@ class FlowsTest(FlowFileTest):
 
         # we should be a normal unicode response
         self.assertTrue(isinstance(reply['msg'], dict))
-        self.assertTrue(isinstance(reply['msg']['base'], unicode))
+        self.assertTrue(isinstance(reply['msg']['base'], six.text_type))
 
         # now our replies are language dicts
         json_dict = favorites.as_json()
@@ -5344,6 +5742,12 @@ class FlowsTest(FlowFileTest):
         self.assertEquals('Bleck', response['messages'][1]['text'])
 
     def test_interrupted_state(self):
+        self.channel.delete()
+        # Create a USSD channel type to test USSDSession.INTERRUPTED status
+        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+                                      role=Channel.ROLE_USSD,
+                                      uuid='00000000-0000-0000-0000-000000001234')
+
         flow = self.get_flow('ussd_interrupt_example')
 
         # start the flow, check if we are interrupted yet
@@ -5363,6 +5767,12 @@ class FlowsTest(FlowFileTest):
         self.assertTrue(interrupted_group.contacts.filter(id=contact.id).exists())
 
     def test_empty_interrupt_state(self):
+        self.channel.delete()
+        # Create a USSD channel type to test USSDSession.INTERRUPTED status
+        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+                                      role=Channel.ROLE_USSD,
+                                      uuid='00000000-0000-0000-0000-000000001234')
+
         flow = self.get_flow('ussd_interrupt_example')
 
         # disconnect action from interrupt state
@@ -5418,12 +5828,14 @@ class FlowsTest(FlowFileTest):
 
     @patch('temba.airtime.models.AirtimeTransfer.post_transferto_api_response')
     def test_airtime_trigger_event(self, mock_post_transferto):
-        mock_post_transferto.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
+        mock_post_transferto.side_effect = [MockResponse(200, "error_code=0\r\ncurrency=USD\r\n"),
+                                            MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
                                                               "product_list=5,10,20,30\r\n"),
                                             MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
                                             MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
 
         self.org.connect_transferto('mylogin', 'api_token', self.admin)
+        self.org.refresh_transferto_account_currency()
 
         flow = self.get_flow('airtime')
         runs = flow.start_msg_flow([self.contact.id])
@@ -5436,7 +5848,7 @@ class FlowsTest(FlowFileTest):
         self.assertEqual(airtime.status, AirtimeTransfer.SUCCESS)
         self.assertEqual(airtime.contact, self.contact)
         self.assertEqual(airtime.message, "Airtime Transferred Successfully")
-        self.assertEqual(mock_post_transferto.call_count, 3)
+        self.assertEqual(mock_post_transferto.call_count, 4)
         mock_post_transferto.reset_mock()
 
         mock_post_transferto.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=Rwanda\r\n"
@@ -5533,6 +5945,46 @@ class FlowMigrationTest(FlowFileTest):
         flow.update(flow_json)
         return Flow.objects.get(pk=flow.pk)
 
+    def test_migrate_with_flow_user(self):
+        flow = Flow.create_instance(dict(name='Favorites', org=self.org,
+                                         created_by=self.admin, modified_by=self.admin,
+                                         saved_by=self.admin, version_number=7))
+
+        flow_json = self.get_flow_json('favorites')
+        FlowRevision.create_instance(dict(flow=flow, definition=json.dumps(flow_json),
+                                          spec_version=7, revision=1,
+                                          created_by=self.admin, modified_by=self.admin))
+
+        old_json = flow.as_json()
+
+        saved_on = flow.saved_on
+        modified_on = flow.modified_on
+        flow.ensure_current_version()
+        flow.refresh_from_db()
+
+        # system migration should not affect our saved_on even tho we are modified
+        self.assertNotEqual(modified_on, flow.modified_on)
+        self.assertEqual(saved_on, flow.saved_on)
+
+        # but should still create a revision using the flow user
+        self.assertEqual(1, flow.revisions.filter(created_by=get_flow_user(self.org)).count())
+
+        # should see the system user on our revision json
+        self.login(self.admin)
+        response = self.client.get(reverse('flows.flow_revisions', args=[flow.pk]))
+        self.assertContains(response, 'System Update')
+        self.assertEqual(2, len(response.json()))
+
+        # attempt to save with old json, no bueno
+        failed = flow.update(old_json, user=self.admin)
+        self.assertEqual('unsaved', failed.get('status'))
+        self.assertEqual('System Update', failed.get('saved_by'))
+
+        # now refresh and save a new version
+        flow.update(flow.as_json(), user=self.admin)
+        self.assertEqual(3, flow.revisions.all().count())
+        self.assertEqual(1, flow.revisions.filter(created_by=get_flow_user(self.org)).count())
+
     def test_migrate_malformed_single_message_flow(self):
 
         flow = Flow.create_instance(dict(name='Single Message Flow', org=self.org,
@@ -5598,6 +6050,8 @@ class FlowMigrationTest(FlowFileTest):
     def test_migrate_to_10(self):
         # this is really just testing our rewriting of webhook rulesets
         webhook_flow = self.get_flow('dual_webhook')
+
+        self.assertNotEqual(webhook_flow.modified_on, webhook_flow.saved_on)
 
         # get our definition out
         flow_def = webhook_flow.as_json()
@@ -6416,7 +6870,7 @@ class TimeoutTest(FlowFileTest):
         last_msg.sent_on = timezone.now() - timedelta(minutes=5)
         last_msg.save()
 
-        time.sleep(.5)
+        time.sleep(1)
 
         # ok, change our timeout to the past
         timeout = timezone.now()
@@ -6435,6 +6889,51 @@ class TimeoutTest(FlowFileTest):
         self.assertIsNone(run.timeout_on)
         current_step = run.steps.order_by('-id').first()
         self.assertEqual(current_step.step_uuid, start_step.step_uuid)
+
+        # check that we can't be double queued by manually moving our timeout back
+        with patch('temba.utils.queues.push_task') as mock_push:
+            FlowRun.objects.all().update(timeout_on=timeout)
+            check_flow_timeouts_task()
+
+            self.assertEqual(0, mock_push.call_count)
+
+    def test_timeout_race(self):
+        # start one flow
+        flow1 = self.get_flow('timeout')
+        flow1.start([], [self.contact])
+        run1 = FlowRun.objects.get(flow=flow1, contact=self.contact)
+
+        # start another flow
+        flow2 = self.get_flow('multi_timeout')
+        flow2.start([], [self.contact])
+
+        # reactivate our first run (not usually possible to have both active)
+        run1.is_active = True
+        run1.save()
+
+        # remove our timeout rule on our second flow
+        flow_json = flow2.as_json()
+        del flow_json['rule_sets'][0]['rules'][-1]
+        flow2.update(flow_json)
+
+        # mark our last message as sent
+        last_msg = run1.get_last_msg(OUTGOING)
+        last_msg.sent_on = timezone.now() - timedelta(minutes=5)
+        last_msg.save()
+
+        time.sleep(.5)
+
+        # ok, change our timeout to the past
+        timeout = timezone.now()
+        run1.timeout_on = timezone.now()
+        run1.save(update_fields=['timeout_on'])
+
+        # process our timeout
+        run1.resume_after_timeout(timeout)
+
+        # should have cleared the timeout, run2 is the active one now
+        run1.refresh_from_db()
+        self.assertIsNone(run1.timeout_on)
 
     def test_timeout_loop(self):
         from temba.flows.tasks import check_flow_timeouts_task
@@ -6500,6 +6999,7 @@ class TimeoutTest(FlowFileTest):
 
         # nothing should have changed as we haven't yet sent our msg
         self.assertTrue(run.is_active)
+        time.sleep(1)
 
         # ok, mark our message as sent, but only two minutes ago
         last_msg = run.get_last_msg(OUTGOING)
@@ -6516,6 +7016,8 @@ class TimeoutTest(FlowFileTest):
         # ok, finally mark our message sent a while ago
         last_msg.sent_on = timezone.now() - timedelta(minutes=10)
         last_msg.save()
+
+        time.sleep(1)
         FlowRun.objects.all().update(timeout_on=timezone.now())
         check_flow_timeouts_task()
         run.refresh_from_db()
@@ -6575,7 +7077,7 @@ class TimeoutTest(FlowFileTest):
         self.assertTrue(run.is_active)
         self.assertTrue(timezone.now() - timedelta(minutes=1) < run.timeout_on > timezone.now() + timedelta(minutes=4))
 
-        time.sleep(.5)
+        time.sleep(1)
 
         # ok, change our timeout to the past
         FlowRun.objects.all().update(timeout_on=timezone.now())
@@ -6707,3 +7209,28 @@ class AndroidChildStatus(FlowFileTest):
         msgs = Msg.objects.filter(contact=self.contact, status=PENDING, direction=OUTGOING).order_by('created_on')
         self.assertEquals(msgs[0].text, "Child Msg 1")
         self.assertEquals(msgs[1].text, "Child Msg 2")
+
+
+class FlowChannelSelectionTest(FlowFileTest):
+
+    def setUp(self):
+        super(FlowChannelSelectionTest, self).setUp()
+        self.channel.delete()
+        self.sms_channel = Channel.create(
+            self.org, self.user, 'RW', Channel.TYPE_JUNEBUG, None, '+250788123123',
+            scheme='tel', uuid='00000000-0000-0000-0000-000000001111',
+            role=Channel.DEFAULT_ROLE)
+        self.ussd_channel = Channel.create(
+            self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '*123#',
+            scheme='tel', uuid='00000000-0000-0000-0000-000000002222',
+            role=Channel.ROLE_USSD)
+
+    def test_sms_channel_selection(self):
+        contact_urn = self.contact.get_urn(TEL_SCHEME)
+        channel = self.contact.org.get_send_channel(contact_urn=contact_urn)
+        self.assertEqual(channel, self.sms_channel)
+
+    def test_ussd_channel_selection(self):
+        contact_urn = self.contact.get_urn(TEL_SCHEME)
+        channel = self.contact.org.get_ussd_channel(contact_urn=contact_urn)
+        self.assertEqual(channel, self.ussd_channel)

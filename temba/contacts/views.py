@@ -13,9 +13,12 @@ from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
+from django.db.models import Q
+from django.db.models.functions import Upper
 from django.http import HttpResponseRedirect, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django.utils.http import urlquote_plus
 from django.utils.translation import ugettext_lazy as _
 from smartmin.csv_imports.models import ImportTask
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartCSVImportView, SmartDeleteView, SmartFormView
@@ -24,10 +27,12 @@ from temba.msgs.views import SendMessageForm
 from temba.orgs.views import OrgPermsMixin, OrgObjPermsMixin, ModalMixin
 from temba.values.models import Value
 from temba.utils import analytics, slugify_with, languages, datetime_to_ms, ms_to_datetime, on_transaction_commit
+from temba.utils.fields import Select2Field
 from temba.utils.views import BaseActionForm
-from .models import Contact, ContactGroup, ContactField, ContactURN, URN, URN_SCHEME_CONFIG, TEL_SCHEME
-from .models import ExportContactsTask
+from .models import Contact, ContactGroup, ContactGroupCount, ContactField, ContactURN, URN, URN_SCHEME_CONFIG
+from .models import ExportContactsTask, TEL_SCHEME
 from .omnibox import omnibox_query, omnibox_results_to_dict
+from .search import SearchException
 from .tasks import export_contacts_task
 
 
@@ -91,31 +96,35 @@ class ContactListView(OrgPermsMixin, SmartListView):
     """
     Base class for contact list views with contact folders and groups listed by the side
     """
+    system_group = None
     add_button = True
     paginate_by = 50
 
-    def pre_process(self, request, *args, **kwargs):
-        if hasattr(self, 'system_group'):
-            org = request.user.get_org()
-            self.queryset = ContactGroup.get_system_group_queryset(org, self.system_group)
+    def derive_group(self):
+        return ContactGroup.all_groups.get(org=self.request.user.get_org(), group_type=self.system_group)
+
+    def derive_export_url(self):
+        search = urlquote_plus(self.request.GET.get('search', ''))
+        redirect = urlquote_plus(self.request.get_full_path())
+        return '%s?g=%s&s=%s&redirect=%s' % (reverse('contacts.contact_export'), self.derive_group().uuid, search, redirect)
 
     def get_queryset(self, **kwargs):
-        qs = super(ContactListView, self).get_queryset(**kwargs)
-        qs = qs.filter(is_test=False)
         org = self.request.user.get_org()
+        group = self.derive_group()
+        self.search_error = None
 
         # contact list views don't use regular field searching but use more complex contact searching
-        query = self.request.GET.get('search', None)
-        if query:
-            qs, self.request.compiled_query = Contact.search(org, query, qs)
+        search_query = self.request.GET.get('search', None)
+        if search_query:
+            try:
+                qs = Contact.search(org, search_query, group)
+            except SearchException as e:
+                self.search_error = six.text_type(e)
+                qs = Contact.objects.none()
+        else:
+            qs = group.contacts.all()
 
-        return qs.order_by('-pk').prefetch_related('all_groups')
-
-    def order_queryset(self, queryset):
-        """
-        Order contacts by name, case insensitive
-        """
-        return queryset
+        return qs.filter(is_test=False).order_by('-id').prefetch_related('org', 'all_groups')
 
     def get_context_data(self, **kwargs):
         org = self.request.user.get_org()
@@ -123,30 +132,40 @@ class ContactListView(OrgPermsMixin, SmartListView):
 
         # if there isn't a search filtering the queryset, we can replace the count function with a quick cache lookup to
         # speed up paging
-        if hasattr(self, 'system_group') and 'search' not in self.request.GET:
+        if self.system_group and 'search' not in self.request.GET:
             self.object_list.count = lambda: counts[self.system_group]
 
         context = super(ContactListView, self).get_context_data(**kwargs)
 
-        folders = [dict(count=counts[ContactGroup.TYPE_ALL], label=_("All Contacts"), url=reverse('contacts.contact_list')),
-                   dict(count=counts[ContactGroup.TYPE_BLOCKED], label=_("Blocked"), url=reverse('contacts.contact_blocked')),
-                   dict(count=counts[ContactGroup.TYPE_STOPPED], label=_("Stopped"), url=reverse('contacts.contact_stopped')),
-                   ]
-
-        groups_qs = ContactGroup.user_groups.filter(org=org).select_related('org')
-        groups_qs = groups_qs.extra(select={'lower_group_name': 'lower(contacts_contactgroup.name)'}).order_by('lower_group_name')
-        groups = [dict(pk=g.pk, uuid=g.uuid, label=g.name, count=g.get_member_count(), is_dynamic=g.is_dynamic) for g in groups_qs]
+        folders = [
+            dict(count=counts[ContactGroup.TYPE_ALL], label=_("All Contacts"), url=reverse('contacts.contact_list')),
+            dict(count=counts[ContactGroup.TYPE_BLOCKED], label=_("Blocked"), url=reverse('contacts.contact_blocked')),
+            dict(count=counts[ContactGroup.TYPE_STOPPED], label=_("Stopped"), url=reverse('contacts.contact_stopped')),
+        ]
 
         # resolve the paginated object list so we can initialize a cache of URNs and fields
         contacts = list(context['object_list'])
         Contact.bulk_cache_initialize(org, contacts, for_show_only=True)
 
         context['contacts'] = contacts
-        context['groups'] = groups
+        context['groups'] = self.get_user_groups(org)
         context['folders'] = folders
         context['has_contacts'] = contacts or org.has_contacts()
+        context['search_error'] = self.search_error
         context['send_form'] = SendMessageForm(self.request.user)
         return context
+
+    def get_user_groups(self, org):
+        groups = list(ContactGroup.user_groups.filter(org=org).select_related('org').order_by(Upper('name')))
+        group_counts = ContactGroupCount.get_totals(groups)
+
+        rendered = []
+        for g in groups:
+            rendered.append({
+                'pk': g.id, 'uuid': g.uuid, 'label': g.name, 'count': group_counts[g], 'is_dynamic': g.is_dynamic
+            })
+
+        return rendered
 
 
 class ContactActionForm(BaseActionForm):
@@ -186,21 +205,11 @@ class ContactActionMixin(SmartListView):
 
 class ContactFieldForm(forms.ModelForm):
 
+    contact_field = Select2Field()
+    field_value = forms.CharField(required=False)
+
     def __init__(self, *args, **kwargs):
-        self.user = kwargs['user']
-        self.org = self.user.get_org()
-        del kwargs['user']
         super(ContactFieldForm, self).__init__(*args, **kwargs)
-
-        extra_fields = []
-        for field in ContactField.objects.filter(org=self.org, is_active=True).order_by('label'):
-            initial = self.instance.get_field_display(field.key) if self.instance else None
-            help_text = 'Custom field (@contact.%s)' % field.key
-
-            ctrl = forms.CharField(required=False, label=field.label, initial=initial, help_text=help_text)
-            extra_fields.append(('__field__' + field.key, ctrl))
-
-        self.fields = OrderedDict(extra_fields)
 
     class Meta:
         model = Contact
@@ -279,7 +288,7 @@ class ContactForm(forms.ModelForm):
                 return False
 
         # validate URN fields
-        for field_key, value in self.data.iteritems():
+        for field_key, value in six.iteritems(self.data):
             if field_key.startswith('urn__') and value:
                 scheme = field_key.split('__')[1]
                 validate_urn(field_key, scheme, value)
@@ -326,7 +335,7 @@ class UpdateContactForm(ContactForm):
 class ContactCRUDL(SmartCRUDL):
     model = Contact
     actions = ('create', 'update', 'stopped', 'list', 'import', 'read', 'filter', 'blocked', 'omnibox',
-               'customize', 'update_fields', 'export', 'block', 'unblock', 'unstop', 'delete', 'history')
+               'customize', 'update_fields', 'update_fields_input', 'export', 'block', 'unblock', 'unstop', 'delete', 'history')
 
     class Export(OrgPermsMixin, SmartXlsView):
 
@@ -334,20 +343,14 @@ class ContactCRUDL(SmartCRUDL):
             user = self.request.user
             org = user.get_org()
 
-            group = None
-            group_uuid = self.request.GET.get('g', None)
-            if group_uuid:
-                groups = ContactGroup.user_groups.filter(uuid=group_uuid, org=org)
+            group_uuid = self.request.GET.get('g')
+            search = self.request.GET.get('s')
+            redirect = self.request.GET.get('redirect')
 
-                if groups:
-                    group = groups[0]
+            group = ContactGroup.all_groups.filter(org=org, uuid=group_uuid).first() if group_uuid else None
 
             # is there already an export taking place?
-            existing = ExportContactsTask.objects.filter(org=org, is_finished=False,
-                                                         created_on__gt=timezone.now() - timedelta(hours=24))\
-                                                 .order_by('-created_on').first()
-
-            # if there is an existing export, don't allow it
+            existing = ExportContactsTask.get_recent_unfinished(org)
             if existing:
                 messages.info(self.request,
                               _("There is already an export in progress, started by %s. You must wait "
@@ -359,7 +362,7 @@ class ContactCRUDL(SmartCRUDL):
                 if previous_export and previous_export.created_on < timezone.now() - timedelta(hours=24):  # pragma: needs cover
                     analytics.track(self.request.user.username, 'temba.contact_exported')
 
-                export = ExportContactsTask.objects.create(created_by=user, modified_by=user, org=org, group=group)
+                export = ExportContactsTask.create(org, user, group, search)
 
                 on_transaction_commit(lambda: export_contacts_task.delay(export.pk))
 
@@ -374,7 +377,7 @@ class ContactCRUDL(SmartCRUDL):
                                   _("Export complete, you can find it here: %s (production users will get an email)")
                                   % dl_url)
 
-            return HttpResponseRedirect(reverse('contacts.contact_list'))
+            return HttpResponseRedirect(redirect or reverse('contacts.contact_list'))
 
     class Customize(OrgPermsMixin, SmartUpdateView):
 
@@ -506,8 +509,8 @@ class ContactCRUDL(SmartCRUDL):
             kwargs['org'] = self.derive_org()
             return kwargs
 
-        def get_form(self, form_class):
-            form = super(ContactCRUDL.Customize, self).get_form(form_class)
+        def get_form(self):
+            form = super(ContactCRUDL.Customize, self).get_form()
             form.fields.clear()
 
             self.column_controls = self.create_column_controls(self.headers)
@@ -566,6 +569,11 @@ class ContactCRUDL(SmartCRUDL):
                 super(ContactCRUDL.Import.ImportForm, self).__init__(*args, **kwargs)
 
             def clean_csv_file(self):
+                if not regex.match(r'^[A-Za-z0-9_.\-*() ]+$', self.cleaned_data['csv_file'].name, regex.V0):
+                    raise forms.ValidationError('Please make sure the file name only contains '
+                                                'alphanumeric characters [0-9a-zA-Z] and '
+                                                'special characters in -, _, ., (, )')
+
                 try:
                     Contact.get_org_import_file_headers(ContentFile(self.cleaned_data['csv_file'].read()), self.org)
                 except Exception as e:
@@ -648,19 +656,13 @@ class ContactCRUDL(SmartCRUDL):
             return reverse("contacts.contact_customize", args=[self.object.pk])
 
     class Omnibox(OrgPermsMixin, SmartListView):
-
+        paginate_by = 75
         fields = ('id', 'text')
 
         def get_queryset(self, **kwargs):
             org = self.derive_org()
 
             return omnibox_query(org, **{k: v for k, v in self.request.GET.items()})
-
-        def get_paginate_by(self, queryset):
-            if not self.request.GET.get('search', None):
-                return 200
-
-            return super(ContactCRUDL.Omnibox, self).get_paginate_by(queryset)
 
         def render_to_response(self, context, **response_kwargs):
             org = self.derive_org()
@@ -734,7 +736,7 @@ class ContactCRUDL(SmartCRUDL):
                 value = getattr(contact, '__field__%s' % field.key)
                 if value:
                     display = Contact.get_field_display_for_value(field, value)
-                    contact_fields.append(dict(label=field.label, value=display, featured=field.show_in_table))
+                    contact_fields.append(dict(id=field.id, label=field.label, value=display, featured=field.show_in_table))
 
             # stuff in the contact's language in the fields as well
             if contact.language:
@@ -763,7 +765,7 @@ class ContactCRUDL(SmartCRUDL):
         def get_gear_links(self):
             links = []
 
-            if self.has_org_perm("msgs.broadcast_send"):
+            if self.has_org_perm("msgs.broadcast_send") and not self.object.is_blocked and not self.object.is_stopped:
                 links.append(dict(title=_('Send Message'),
                                   style='btn-primary',
                                   href='#',
@@ -807,64 +809,55 @@ class ContactCRUDL(SmartCRUDL):
             # message has a timestamp slightly earlier than the contact itself.
             contact_creation = contact.created_on - timedelta(hours=1)
 
-            refresh_recent = self.request.GET.get('r', False)
-            recent_start = ms_to_datetime(int(self.request.GET.get('rs', 0)))
+            before = int(self.request.GET.get('before', 0))
+            after = int(self.request.GET.get('after', 0))
 
-            if 'before' in self.request.GET:
-                older_before = ms_to_datetime(int(self.request.GET['before']))
+            # if we want an expanding window, or just all the recent activity
+            recent_only = False
+            if not before:
+                recent_only = True
+                before = timezone.now()
             else:
-                older_before = timezone.now()  # this is the initial request for the timeline
+                before = ms_to_datetime(before)
 
-            if refresh_recent:
-                # if we are just grabbing recent history use that window
-                start_time = recent_start
-                end_time = timezone.now()
-
-                activity = contact.get_activity(start_time, end_time)
+            if not after:
+                after = before - timedelta(days=90)
             else:
-                start_time = max(older_before - timedelta(days=90), contact_creation)
-                end_time = older_before
+                after = ms_to_datetime(after)
 
-                while True:
-                    activity = contact.get_activity(start_time, end_time)
+            # keep looking further back until we get at least 20 items
+            while True:
+                activity = contact.get_activity(after, before)
+                if recent_only or len(activity) >= 20 or after == contact_creation:
+                    break
+                else:
+                    after = max(after - timedelta(days=90), contact_creation)
 
-                    # keep looking further back until we get at least 20 items
-                    if len(activity) >= 20 or start_time == contact_creation:
-                        break
-                    else:
-                        start_time = max(start_time - timedelta(days=90), contact_creation)
+            # check if there are more pages to fetch
+            if not recent_only:
+                if before > contact.created_on:
+                    context['has_older'] = bool(contact.get_activity(contact_creation, after))
+                context['before'] = datetime_to_ms(after)
+                context['after'] = datetime_to_ms(max(after - timedelta(days=90), contact_creation))
 
-            if start_time > contact.created_on:
-                has_older = bool(contact.get_activity(contact_creation, start_time))
-            else:
-                has_older = False
-
-            # make it easier to tell which items fall in the recent time window
-            for item in activity:
-                item.is_recent = refresh_recent or item.created_on > recent_start
-
-            context['recent'] = refresh_recent
             context['activity'] = activity
-            context['start_time'] = datetime_to_ms(start_time)
-            context['has_older'] = has_older
             return context
 
     class List(ContactActionMixin, ContactListView):
         title = _("Contacts")
-        refresh = 30000
         system_group = ContactGroup.TYPE_ALL
 
         def get_gear_links(self):
             links = []
 
-            if self.has_org_perm('contacts.contactgroup_create') and self.request.GET.get('search', None):
+            if self.has_org_perm('contacts.contactgroup_create') and self.request.GET.get('search') and not self.search_error:
                 links.append(dict(title=_('Save as Group'), js_class='add-dynamic-group', href="#"))
 
             if self.has_org_perm('contacts.contactfield_managefields'):
                 links.append(dict(title=_('Manage Fields'), js_class='manage-fields', href="#"))
 
             if self.has_org_perm('contacts.contact_export'):
-                links.append(dict(title=_('Export'), href=reverse('contacts.contact_export')))
+                links.append(dict(title=_('Export'), href=self.derive_export_url()))
             return links
 
         def get_context_data(self, *args, **kwargs):
@@ -873,10 +866,6 @@ class ContactCRUDL(SmartCRUDL):
 
             context['actions'] = ('label', 'block')
             context['contact_fields'] = ContactField.objects.filter(org=org, is_active=True).order_by('pk')
-
-            if 'compiled_query' in self.request.__dict__:
-                context['compiled_query'] = self.request.compiled_query
-
             return context
 
     class Blocked(ContactActionMixin, ContactListView):
@@ -887,6 +876,7 @@ class ContactCRUDL(SmartCRUDL):
         def get_context_data(self, *args, **kwargs):
             context = super(ContactCRUDL.Blocked, self).get_context_data(*args, **kwargs)
             context['actions'] = ('unblock', 'delete') if self.has_org_perm("contacts.contact_delete") else ('unblock',)
+            context['reply_disabled'] = True
             return context
 
     class Stopped(ContactActionMixin, ContactListView):
@@ -897,6 +887,7 @@ class ContactCRUDL(SmartCRUDL):
         def get_context_data(self, *args, **kwargs):
             context = super(ContactCRUDL.Stopped, self).get_context_data(*args, **kwargs)
             context['actions'] = ['block', 'unstop']
+            context['reply_disabled'] = True
             return context
 
     class Filter(ContactActionMixin, ContactListView):
@@ -916,18 +907,13 @@ class ContactCRUDL(SmartCRUDL):
                                   href="#"))
 
             if self.has_org_perm('contacts.contact_export'):
-                links.append(dict(title=_('Export'),
-                                  href='%s?g=%s' % (reverse('contacts.contact_export'), self.kwargs['group'])))
+                links.append(dict(title=_('Export'), href=self.derive_export_url()))
 
             if self.has_org_perm('contacts.contactgroup_delete'):
                 links.append(dict(title=_('Delete Group'),
                                   js_class='delete-contactgroup',
                                   href="#"))
             return links
-
-        def derive_queryset(self, **kwargs):
-            group = self.derive_group()
-            return Contact.objects.filter(all_groups=group, is_active=True, org=self.request.user.get_org())
 
         def get_context_data(self, *args, **kwargs):
             context = super(ContactCRUDL.Filter, self).get_context_data(*args, **kwargs)
@@ -964,8 +950,8 @@ class ContactCRUDL(SmartCRUDL):
             form_kwargs['user'] = self.request.user
             return form_kwargs
 
-        def get_form(self, form_class):
-            return super(ContactCRUDL.Create, self).get_form(form_class)
+        def get_form(self):
+            return super(ContactCRUDL.Create, self).get_form()
 
         def pre_save(self, obj):
             obj = super(ContactCRUDL.Create, self).pre_save(obj)
@@ -974,7 +960,7 @@ class ContactCRUDL(SmartCRUDL):
 
         def save(self, obj):
             urns = []
-            for field_key, value in self.form.cleaned_data.iteritems():
+            for field_key, value in six.iteritems(self.form.cleaned_data):
                 if field_key.startswith('urn__') and value:
                     scheme = field_key.split('__')[1]
                     urns.append(URN.from_parts(scheme, value))
@@ -1011,8 +997,8 @@ class ContactCRUDL(SmartCRUDL):
             form_kwargs['user'] = self.request.user
             return form_kwargs
 
-        def get_form(self, form_class):
-            return super(ContactCRUDL.Update, self).get_form(form_class)
+        def get_form(self):
+            return super(ContactCRUDL.Update, self).get_form()
 
         def save(self, obj):
             super(ContactCRUDL.Update, self).save(obj)
@@ -1032,7 +1018,7 @@ class ContactCRUDL(SmartCRUDL):
             if not self.org.is_anon:
                 urns = []
 
-                for field_key, value in self.form.data.iteritems():
+                for field_key, value in six.iteritems(self.form.data):
                     if field_key.startswith('urn__') and value:
                         parts = field_key.split('__')
                         scheme = parts[1]
@@ -1055,37 +1041,43 @@ class ContactCRUDL(SmartCRUDL):
     class UpdateFields(ModalMixin, OrgObjPermsMixin, SmartUpdateView):
         form_class = ContactFieldForm
         exclude = ('is_active', 'uuid', 'org', 'fields', 'is_blocked', 'is_stopped',
-                   'created_by', 'modified_by', 'is_test', 'channel')
+                   'created_by', 'modified_by', 'is_test', 'channel', 'name', 'language')
         success_url = 'uuid@contacts.contact_read'
         success_message = ''
         submit_button_name = _("Save Changes")
 
         def get_form_kwargs(self, *args, **kwargs):
-            form_kwargs = super(ContactCRUDL.UpdateFields, self).get_form_kwargs(*args, **kwargs)
-            form_kwargs['user'] = self.request.user
-            return form_kwargs
+            return super(ContactCRUDL.UpdateFields, self).get_form_kwargs(*args, **kwargs)
+
+        def get_context_data(self, **kwargs):
+            context = super(ContactCRUDL.UpdateFields, self).get_context_data(**kwargs)
+            org = self.request.user.get_org()
+            field_id = self.request.GET.get('field', 0)
+            if field_id:
+                context['contact_field'] = org.contactfields.get(id=field_id)
+            return context
 
         def post_save(self, obj):
             obj = super(ContactCRUDL.UpdateFields, self).post_save(obj)
-
-            fields_to_save_later = dict()
-            for field_key, value in self.form.cleaned_data.iteritems():
-                if field_key.startswith('__field__'):
-                    key = field_key[9:]
-                    contact_field = ContactField.objects.filter(org=self.org, key=key).first()
-                    contact_field_type = contact_field.value_type
-
-                    # district values are saved last to validate the states
-                    if contact_field_type == Value.TYPE_DISTRICT:
-                        fields_to_save_later[key] = value
-                    else:
-                        obj.set_field(self.request.user, key, value)
-
-            # now save our district fields
-            for key, value in fields_to_save_later.iteritems():
-                obj.set_field(self.request.user, key, value)
-
+            contact_field = obj.org.contactfields.get(id=self.form.cleaned_data.get('contact_field'))
+            if contact_field:
+                obj.set_field(self.request.user, contact_field.key, self.form.cleaned_data.get('field_value', ''))
             return obj
+
+    class UpdateFieldsInput(OrgObjPermsMixin, SmartReadView):
+        """
+        Simple view for displaying a form rendered input of a contact field value. This is a helper
+        view for UpdateFields to show different inputs based on the selected field.
+        """
+        def get_context_data(self, **kwargs):
+            context = super(ContactCRUDL.UpdateFieldsInput, self).get_context_data(**kwargs)
+            field_id = self.request.GET.get('field', 0)
+            if field_id:
+                contact_field = ContactField.objects.filter(id=field_id).first()
+                context['contact_field'] = contact_field
+                if contact_field:
+                    context['value'] = self.get_object().get_field_display(contact_field.key)
+            return context
 
     class Block(OrgPermsMixin, SmartUpdateView):
         """
@@ -1199,7 +1191,7 @@ class ContactGroupCRUDL(SmartCRUDL):
             group = self.get_object()
             triggers = group.trigger_set.filter(is_archived=False)
             if triggers.count() > 0:
-                trigger_list = ', '.join([trigger.__unicode__() for trigger in triggers])
+                trigger_list = ', '.join([six.text_type(trigger) for trigger in triggers])
                 messages.error(self.request, _("You cannot remove this group while it has active triggers (%s)" % trigger_list))
                 return HttpResponseRedirect(smart_url(self.cancel_url, group))
             return super(ContactGroupCRUDL.Delete, self).pre_process(request, *args, **kwargs)
@@ -1238,7 +1230,19 @@ class ManageFieldsForm(forms.Form):
 
 class ContactFieldCRUDL(SmartCRUDL):
     model = ContactField
-    actions = ('managefields', 'json')
+    actions = ('list', 'managefields', 'json')
+
+    class List(OrgPermsMixin, SmartListView):
+        def get_queryset(self, **kwargs):
+            qs = super(ContactFieldCRUDL.List, self).get_queryset(**kwargs)
+            qs = qs.filter(org=self.request.user.get_org(), is_active=True)
+
+            query = self.request.GET.get('search', None)
+            if query:
+                qs = qs.filter(Q(key__icontains=query) | Q(label__icontains=query))
+
+            qs = qs.order_by('label')
+            return qs
 
     class Json(OrgPermsMixin, SmartListView):
         paginate_by = None
@@ -1259,11 +1263,11 @@ class ContactFieldCRUDL(SmartCRUDL):
             sorted_results.insert(0, dict(key='groups', label='Groups'))
 
             for config in reversed(URN_SCHEME_CONFIG):
-                sorted_results.insert(0, dict(key=config[3], label=unicode(config[1])))
+                sorted_results.insert(0, dict(key=config[3], label=six.text_type(config[1])))
 
             sorted_results.insert(0, dict(key='name', label='Full name'))
 
-            return HttpResponse(json.dumps(sorted_results), content_type='application/javascript')
+            return HttpResponse(json.dumps(sorted_results), content_type='application/json')
 
     class Managefields(ModalMixin, OrgPermsMixin, SmartFormView):
         title = _("Manage Contact Fields")
@@ -1286,8 +1290,8 @@ class ContactFieldCRUDL(SmartCRUDL):
             context['contact_fields'] = contact_fields
             return context
 
-        def get_form(self, form_class):
-            form = super(ContactFieldCRUDL.Managefields, self).get_form(form_class)
+        def get_form(self):
+            form = super(ContactFieldCRUDL.Managefields, self).get_form()
             form.fields.clear()
 
             org = self.request.user.get_org()

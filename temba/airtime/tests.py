@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from django.core.urlresolvers import reverse
 from mock import patch
 from temba.airtime.models import AirtimeTransfer
@@ -93,8 +95,9 @@ class AirtimeEventTest(TembaTest):
             mock_post_transferto.assert_called_once_with('mylogin', 'api_token', airtime_obj=self.airtime,
                                                          action='command')
 
+    @patch('temba.airtime.models.AirtimeTransfer.post_transferto_api_response')
     @patch('temba.airtime.models.AirtimeTransfer.get_transferto_response')
-    def test_airtime_trigger_event(self, mock_response):
+    def test_airtime_trigger_event(self, mock_response, mock_post_api_response):
         flow = self.get_flow('airtime')
         ruleset = RuleSet.objects.get(flow=flow)
         org = flow.org
@@ -105,6 +108,8 @@ class AirtimeEventTest(TembaTest):
                                                        "product_list=5,10,20,30\r\n"),
                                      MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
                                      MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+
+        mock_post_api_response.return_value = MockResponse(200, "error_code=0\r\ncurrency=USD\r\n")
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
@@ -129,7 +134,7 @@ class AirtimeEventTest(TembaTest):
         self.assertEqual(airtime.contact, self.contact)
         self.assertEqual(airtime.message, "Airtime Transferred Successfully")
         self.assertEqual(mock_response.call_count, 3)
-        self.assertTrue(({'action': 'msisdn_info',
+        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD',
                           'destination_msisdn': '+12065552020'},) in mock_response.call_args_list)
         self.assertTrue(({'action': 'reserve_id'},) in mock_response.call_args_list)
         self.assertTrue(({'action': 'topup', 'reserved_id': '234', 'msisdn': '',
@@ -146,7 +151,7 @@ class AirtimeEventTest(TembaTest):
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
         self.assertEqual(airtime.message, "Error transferring airtime: Failed by invalid amount "
                                           "configuration or missing amount configuration for Rwanda")
-        self.assertTrue(({'action': 'msisdn_info',
+        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD',
                           'destination_msisdn': '+12065552020'},) in mock_response.call_args_list)
         self.assertEqual(mock_response.call_count, 1)
         mock_response.reset_mock()
@@ -159,7 +164,7 @@ class AirtimeEventTest(TembaTest):
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
-        self.assertTrue(({'action': 'msisdn_info',
+        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD',
                           'destination_msisdn': '+12065552020'},) in mock_response.call_args_list)
         self.assertEqual(mock_response.call_count, 1)
         mock_response.reset_mock()
@@ -173,7 +178,7 @@ class AirtimeEventTest(TembaTest):
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
 
-        self.assertTrue(({'action': 'msisdn_info',
+        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD',
                           'destination_msisdn': '+12065552020'},) in mock_response.call_args_list)
         self.assertTrue(({'action': 'reserve_id'},) in mock_response.call_args_list)
         self.assertEqual(mock_response.call_count, 2)
@@ -187,7 +192,7 @@ class AirtimeEventTest(TembaTest):
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
-        self.assertTrue(({'action': 'msisdn_info',
+        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD',
                           'destination_msisdn': '+12065552020'},) in mock_response.call_args_list)
         self.assertTrue(({'action': 'reserve_id'},) in mock_response.call_args_list)
         self.assertTrue(({'action': 'topup', 'reserved_id': '234', 'msisdn': '',
