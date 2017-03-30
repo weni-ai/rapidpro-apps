@@ -1,3 +1,4 @@
+setuptools==33.1.1
 amqp==1.4.9
 amqplib==1.0.2
 analytics-python==0.4.4
