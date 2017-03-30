@@ -1,11 +1,11 @@
 FROM ubuntu:trusty
-RUN apt-get update
-RUN apt-get install -qyy \
+
+RUN apt-get update && apt-get install -qyy \
     -o APT::Install-Recommends=false -o APT::Install-Suggests=false \
     build-essential python-imaging git python-setuptools  ncurses-dev python-virtualenv  python-pip postgresql-client-9.3 libpq-dev \
     libpython-dev lib32ncurses5-dev pypy libffi6 openssl libgeos-dev \
     coffeescript node-less yui-compressor gcc libreadline6 libreadline6-dev patch libffi-dev libssl-dev libxml2-dev libxslt1-dev  python-dev \
-    python-zmq libzmq-dev nginx libpcre3 libpcre3-dev supervisor wget libjpeg-dev libjpeg-turbo8-dev libmagic-dev
+    python-zmq libzmq-dev nginx libpcre3 libpcre3-dev supervisor wget libjpeg-dev libjpeg-turbo8-dev ccze libmagic-dev
 
 WORKDIR /tmp
 RUN wget http://download.osgeo.org/gdal/1.11.0/gdal-1.11.0.tar.gz
