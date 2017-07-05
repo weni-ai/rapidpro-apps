@@ -2,8 +2,6 @@ from __future__ import print_function, unicode_literals
 
 import json
 import logging
-from uuid import uuid4
-
 import regex
 import six
 import traceback
@@ -44,7 +42,8 @@ from temba.utils import analytics, percentage, datetime_to_str, on_transaction_c
 from temba.utils.expressions import get_function_listing
 from temba.utils.views import BaseActionForm
 from temba.values.models import Value
-from .models import FlowStep, RuleSet, ActionLog, ExportFlowResultsTask, FlowLabel, FlowStart, FlowPathRecentStep
+from uuid import uuid4
+from .models import FlowStep, RuleSet, ActionLog, ExportFlowResultsTask, FlowLabel, FlowStart, FlowPathRecentMessage
 
 logger = logging.getLogger(__name__)
 
@@ -81,35 +80,42 @@ IVR_EXPIRES_CHOICES = (
 class BaseFlowForm(forms.ModelForm):
     def clean_keyword_triggers(self):
         org = self.user.get_org()
-        wrong_format = []
-        existing_keywords = []
-        keyword_triggers = self.cleaned_data.get('keyword_triggers', '').strip()
+        value = self.cleaned_data.get('keyword_triggers', '')
 
-        for keyword in keyword_triggers.split(','):
-            if keyword and not regex.match('^\w+$', keyword, flags=regex.UNICODE | regex.V0):
+        duplicates = []
+        wrong_format = []
+        cleaned_keywords = []
+
+        for keyword in value.split(','):
+            keyword = keyword.lower().strip()
+            if not keyword:
+                continue
+
+            if not regex.match('^\w+$', keyword, flags=regex.UNICODE | regex.V0) or len(keyword) > Trigger.KEYWORD_MAX_LEN:
                 wrong_format.append(keyword)
 
             # make sure it is unique on this org
-            if keyword and org:
-                existing = Trigger.objects.filter(org=org, keyword__iexact=keyword, is_archived=False, is_active=True)
+            existing = Trigger.objects.filter(org=org, keyword__iexact=keyword, is_archived=False, is_active=True)
+            if self.instance:
+                existing = existing.exclude(flow=self.instance.pk)
 
-                if self.instance:
-                    existing = existing.exclude(flow=self.instance.pk)
-
-                if existing:
-                    existing_keywords.append(keyword)
+            if existing:
+                duplicates.append(keyword)
+            else:
+                cleaned_keywords.append(keyword)
 
         if wrong_format:
-            raise forms.ValidationError(_('"%s" must be a single word containing only letter and numbers') % ', '.join(wrong_format))
+            raise forms.ValidationError(_('"%s" must be a single word, less than %d characters, containing only letter '
+                                          'and numbers') % (', '.join(wrong_format), Trigger.KEYWORD_MAX_LEN))
 
-        if existing_keywords:
-            if len(existing_keywords) > 1:
-                error_message = _('The keywords "%s" are already used for another flow') % ', '.join(existing_keywords)
+        if duplicates:
+            if len(duplicates) > 1:
+                error_message = _('The keywords "%s" are already used for another flow') % ', '.join(duplicates)
             else:
-                error_message = _('The keyword "%s" is already used for another flow') % ', '.join(existing_keywords)
+                error_message = _('The keyword "%s" is already used for another flow') % ', '.join(duplicates)
             raise forms.ValidationError(error_message)
 
-        return keyword_triggers.lower()
+        return ','.join(cleaned_keywords)
 
     class Meta:
         model = Flow
@@ -385,7 +391,8 @@ class FlowCRUDL(SmartCRUDL):
             if (step_uuid or rule_uuids) and next_uuid:
                 from_uuids = rule_uuids.split(',') if rule_uuids else [step_uuid]
                 to_uuids = [next_uuid]
-                recent = FlowPathRecentStep.get_recent_messages(from_uuids, to_uuids, limit=5)
+
+                recent = FlowPathRecentMessage.get_recent(from_uuids, to_uuids)
 
                 for msg in recent:
                     recent_messages.append(dict(sent=datetime_to_str(msg.created_on, tz=org.timezone), text=msg.text))
@@ -1414,7 +1421,7 @@ class FlowCRUDL(SmartCRUDL):
                         Msg.create_incoming(None,
                                             test_contact.get_urn(TEL_SCHEME).urn,
                                             new_message,
-                                            media=media,
+                                            attachments=[media] if media else None,
                                             org=user.get_org(),
                                             status=PENDING)
                 except Exception as e:  # pragma: needs cover

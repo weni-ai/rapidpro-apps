@@ -20,16 +20,16 @@ from rest_framework.test import APIClient
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel, ChannelEvent
 from temba.contacts.models import Contact, ContactGroup, ContactField
-from temba.flows.models import Flow, FlowRun, FlowLabel, ReplyAction
+from temba.flows.models import Flow, FlowRun, FlowLabel, FlowStart, ReplyAction
 from temba.locations.models import BoundaryAlias
 from temba.msgs.models import Broadcast, Label, Msg
 from temba.orgs.models import Language
 from temba.tests import TembaTest, AnonymousOrg
 from temba.values.models import Value
 from urllib import quote_plus
-from ..models import APIToken, Resthook, WebHookEvent
-from ..v2 import fields
-from ..v2.serializers import format_datetime
+from temba.api.models import APIToken, Resthook, WebHookEvent
+from . import fields
+from .serializers import format_datetime
 
 
 NUM_BASE_REQUEST_QUERIES = 7  # number of db queries required for any API request
@@ -175,6 +175,7 @@ class APITest(TembaTest):
         field.context = {'org': self.org}
 
         self.assertEqual(field.to_internal_value(campaign.uuid), campaign)
+        self.assertRaises(serializers.ValidationError, field.to_internal_value, {'id': 3})  # not a string or int
 
         field = fields.CampaignEventField(source='test')
         field.context = {'org': self.org}
@@ -1536,6 +1537,10 @@ class APITest(TembaTest):
         self.assertEqual(len(resp_json['campaigns']), 1)
         self.assertEqual(len(resp_json['triggers']), 0)
 
+        # test an invalid value for dependencies
+        response = self.fetchJSON(url, 'flow_uuid=%s&campaign_uuid=%s&dependencies=xx' % (flow.uuid, campaign.uuid))
+        self.assertResponseError(response, None, 'dependencies must be one of none, flows, all')
+
     def test_fields(self):
         url = reverse('api.v2.fields')
 
@@ -1849,7 +1854,7 @@ class APITest(TembaTest):
             'visibility': msg_visibility,
             'text': msg.text,
             'labels': [dict(name=l.name, uuid=l.uuid) for l in msg.labels.all()],
-            'media': msg.media,
+            'media': msg.attachments[0] if msg.attachments else None,
             'created_on': format_datetime(msg.created_on),
             'sent_on': format_datetime(msg.sent_on),
             'modified_on': format_datetime(msg.modified_on)
@@ -1979,6 +1984,10 @@ class APITest(TembaTest):
         results = {m['id'] for m in response.json()['results']}
         self.assertEqual(expected, results)
 
+        # can't filter with invalid id
+        response = self.fetchJSON(url, 'id=xyz')
+        self.assertResponseError(response, None, "Value for id must be an integer")
+
         # can't filter by more than one of contact, folder, label or broadcast together
         for query in ('contact=%s&label=Spam' % self.joe.uuid, 'label=Spam&folder=inbox',
                       'broadcast=12345&folder=inbox', 'broadcast=12345&label=Spam'):
@@ -2006,6 +2015,7 @@ class APITest(TembaTest):
             'primary_language': None,
             'timezone': "Africa/Kigali",
             'date_style': "day_first",
+            'credits': {'used': 0, 'remaining': 1000},
             'anon': False
         })
 
@@ -2019,6 +2029,7 @@ class APITest(TembaTest):
             'primary_language': "eng",
             'timezone': "Africa/Kigali",
             'date_style': "day_first",
+            'credits': {'used': 0, 'remaining': 1000},
             'anon': False
         })
 
@@ -2062,7 +2073,9 @@ class APITest(TembaTest):
         flow1 = self.create_flow(uuid_start=0)
         flow2 = Flow.copy(flow1, self.user)
 
-        joe_run1, = flow1.start([], [self.joe])
+        start1 = FlowStart.create(flow1, self.admin, contacts=[self.joe], restart_participants=True)
+
+        joe_run1, = start1.start()
         frank_run1, = flow1.start([], [self.frank])
         self.create_msg(direction='I', contact=self.joe, text="it is blue").handle()
         self.create_msg(direction='I', contact=self.frank, text="Indigo").handle()
@@ -2087,7 +2100,7 @@ class APITest(TembaTest):
         frank_run2.refresh_from_db()
 
         # no filtering
-        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 7):
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 8):
             response = self.fetchJSON(url)
 
         self.assertEqual(response.status_code, 200)
@@ -2102,6 +2115,7 @@ class APITest(TembaTest):
             'id': frank_run2.pk,
             'flow': {'uuid': flow1.uuid, 'name': "Color Flow"},
             'contact': {'uuid': self.frank.uuid, 'name': self.frank.name},
+            'start': None,
             'responded': False,
             'path': [
                 {'node': "00000000-0000-0000-0000-000000000001", 'time': format_datetime(frank_run2_steps[0].arrived_on)},
@@ -2117,6 +2131,7 @@ class APITest(TembaTest):
             'id': joe_run1.pk,
             'flow': {'uuid': flow1.uuid, 'name': "Color Flow"},
             'contact': {'uuid': self.joe.uuid, 'name': self.joe.name},
+            'start': {'uuid': str(joe_run1.start.uuid)},
             'responded': True,
             'path': [
                 {'node': "00000000-0000-0000-0000-000000000001", 'time': format_datetime(joe_run1_steps[0].arrived_on)},
@@ -2547,6 +2562,7 @@ class APITest(TembaTest):
         self.assertResultsById(response, [start2, start1])
         self.assertEqual(response.json()['results'][0], {
             'id': start2.id,
+            'uuid': six.text_type(start2.uuid),
             'flow': {'uuid': flow.uuid, 'name': 'Favorites'},
             'contacts': [
                 {'uuid': self.joe.uuid, 'name': 'Joe Blow'},
@@ -2562,6 +2578,14 @@ class APITest(TembaTest):
             'modified_on': format_datetime(start2.modified_on),
         })
 
-        # check filtering by id
+        # check filtering by UUID
+        response = self.fetchJSON(url, "uuid=%s" % str(start2.uuid))
+        self.assertResultsById(response, [start2])
+
+        # check filtering by in invalid UUID
+        response = self.fetchJSON(url, "uuid=xyz")
+        self.assertResponseError(response, None, "Value for uuid must be a valid UUID")
+
+        # check filtering by id (deprecated)
         response = self.fetchJSON(url, "id=%d" % start2.id)
         self.assertResultsById(response, [start2])

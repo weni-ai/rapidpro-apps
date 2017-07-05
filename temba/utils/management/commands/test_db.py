@@ -24,7 +24,7 @@ from temba.channels.models import Channel
 from temba.channels.tasks import squash_channelcounts
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactURN, ContactGroupCount, URN, TEL_SCHEME, TWITTER_SCHEME
 from temba.flows.models import FlowStart, FlowRun
-from temba.flows.tasks import squash_flowpathcounts, squash_flowruncounts, prune_flowpathrecentsteps
+from temba.flows.tasks import squash_flowpathcounts, squash_flowruncounts, prune_recentmessages
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Label, Msg
 from temba.msgs.tasks import squash_labelcounts
@@ -59,7 +59,7 @@ USERS = (
 CHANNELS = (
     {'name': "Android", 'channel_type': Channel.TYPE_ANDROID, 'scheme': 'tel', 'address': "1234"},
     {'name': "Nexmo", 'channel_type': Channel.TYPE_NEXMO, 'scheme': 'tel', 'address': "2345"},
-    {'name': "Twitter", 'channel_type': Channel.TYPE_TWITTER, 'scheme': 'twitter', 'address': "my_handle"},
+    {'name': "Twitter", 'channel_type': 'TT', 'scheme': 'twitter', 'address': "my_handle"},
 )
 FIELDS = (
     {'key': 'gender', 'label': "Gender", 'value_type': Value.TYPE_TEXT},
@@ -550,7 +550,7 @@ class Command(BaseCommand):
         squash_channelcounts()
         squash_flowpathcounts()
         squash_flowruncounts()
-        prune_flowpathrecentsteps()
+        prune_recentmessages()
         squash_topupcredits()
         squash_labelcounts()
 
