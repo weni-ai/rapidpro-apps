@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals
 
 import json
 import pytz
+import six
 
 from datetime import datetime, timedelta
 from django.contrib.auth.models import Group
@@ -25,6 +26,7 @@ from temba.tests import TembaTest, AnonymousOrg
 from temba.utils import datetime_to_json_date
 from temba.values.models import Value
 from temba.api.models import APIToken
+from uuid import uuid4
 from .serializers import StringDictField, StringArrayField, PhoneArrayField, ChannelField, DateTimeField
 from .serializers import MsgCreateSerializer
 
@@ -338,7 +340,7 @@ class APITest(TembaTest):
         self.assertEqual(response.status_code, 200)
 
         # create our test flow
-        flow = self.create_flow()
+        flow = self.create_flow(definition=self.COLOR_FLOW_DEFINITION)
         flow_ruleset1 = RuleSet.objects.get(flow=flow)
 
         # this time, a 200
@@ -428,7 +430,7 @@ class APITest(TembaTest):
         url = reverse('api.v1.steps')
         self.login(self.surveyor)
 
-        flow = self.create_flow()
+        flow = self.create_flow(definition=self.COLOR_FLOW_DEFINITION)
 
         # remove our entry node
         ActionSet.objects.get(uuid=flow.entry_uuid).delete()
@@ -569,13 +571,11 @@ class APITest(TembaTest):
         msg = step.messages.all().first()
         self.assertTrue(msg.attachments[0].startswith('image/jpeg:http'))
         self.assertTrue(msg.attachments[0].endswith('.jpg'))
-        self.assertTrue(msg.is_media_type_image())
 
         step = FlowStep.objects.filter(step_uuid=ruleset_video.uuid).first()
         msg = step.messages.all().first()
         self.assertTrue(msg.attachments[0].startswith('video/mp4:http'))
         self.assertTrue(msg.attachments[0].endswith('.mp4'))
-        self.assertTrue(msg.is_media_type_video())
 
     def test_api_steps(self):
         url = reverse('api.v1.steps')
@@ -590,13 +590,11 @@ class APITest(TembaTest):
         # login as surveyor
         self.login(self.surveyor)
 
-        uuid_start = 0
-        flow = self.create_flow(uuid_start)
+        flow = self.create_flow(definition=self.COLOR_FLOW_DEFINITION)
 
         # add an update action
         definition = flow.as_json()
-        from temba.tests import uuid
-        new_node_uuid = uuid(uuid_start + 20)
+        new_node_uuid = str(uuid4())
 
         # add a new action set
         definition['action_sets'].append(dict(uuid=new_node_uuid, x=100, y=4, destination=None,
@@ -612,16 +610,22 @@ class APITest(TembaTest):
         data = dict(flow=flow.uuid,
                     revision=2,
                     contact=self.joe.uuid,
-                    submitted_by=self.admin.username,
+                    submitted_by=self.surveyor.username,
                     started='2015-08-25T11:09:29.088Z',
                     steps=[
-                        dict(node='00000000-0000-0000-0000-000000000001',
+                        dict(node='d51ec25f-04e6-4349-a448-e7c4d93d4597',
                              arrived_on='2015-08-25T11:09:30.088Z',
                              actions=[
                                  dict(type="reply", msg="What is your favorite color?")
                              ])
                     ],
                     completed=False)
+
+        # make our org brand different from the default brand
+        # this is to make sure surveyor submissions work when
+        # they deviate from DEFAULT_BRAND
+        self.org.brand = 'other_brand'
+        self.org.save()
 
         with patch.object(timezone, 'now', return_value=datetime(2015, 9, 15, 0, 0, 0, 0, pytz.UTC)):
             self.postJSON(url, data)
@@ -636,7 +640,7 @@ class APITest(TembaTest):
 
         steps = list(run.steps.order_by('pk'))
         self.assertEqual(len(steps), 1)
-        self.assertEqual(steps[0].step_uuid, '00000000-0000-0000-0000-000000000001')
+        self.assertEqual(steps[0].step_uuid, "d51ec25f-04e6-4349-a448-e7c4d93d4597")
         self.assertEqual(steps[0].step_type, 'A')
         self.assertEqual(steps[0].rule_uuid, None)
         self.assertEqual(steps[0].rule_category, None)
@@ -659,21 +663,21 @@ class APITest(TembaTest):
                          {'total': 1, 'active': 1, 'completed': 0, 'expired': 0, 'interrupted': 0, 'completion': 0})
 
         # check flow activity
-        self.assertEqual(flow.get_activity(), ({u'00000000-0000-0000-0000-000000000001': 1}, {}))
+        self.assertEqual(flow.get_activity(), ({'d51ec25f-04e6-4349-a448-e7c4d93d4597': 1}, {}))
 
         data = dict(flow=flow.uuid,
                     revision=2,
                     contact=self.joe.uuid,
                     started='2015-08-25T11:09:29.088Z',
-                    submitted_by=self.admin.username,
+                    submitted_by=self.surveyor.username,
                     steps=[
-                        dict(node='00000000-0000-0000-0000-000000000005',
+                        dict(node='bd531ace-911e-4722-8e53-6730d6122fe1',
                              arrived_on='2015-08-25T11:11:30.088Z',
-                             rule=dict(uuid='00000000-0000-0000-0000-000000000012',
+                             rule=dict(uuid='1c75fd71-027b-40e8-a819-151a0f8140e6',
                                        value="orange",
                                        category="Orange",
                                        text="I like orange")),
-                        dict(node='00000000-0000-0000-0000-000000000002',
+                        dict(node='7d40faea-723b-473d-8999-59fb7d3c3ca2',
                              arrived_on='2015-08-25T11:13:30.088Z',
                              actions=[
                                  dict(type="reply", msg="I love orange too!")
@@ -693,7 +697,7 @@ class APITest(TembaTest):
         # run should be complete now
         run = FlowRun.objects.get()
 
-        self.assertEqual(run.submitted_by, self.admin)
+        self.assertEqual(run.submitted_by, self.surveyor)
         self.assertEqual(run.modified_on, datetime(2015, 9, 16, 0, 0, 0, 0, pytz.UTC))
         self.assertEqual(run.is_active, False)
         self.assertEqual(run.is_completed(), True)
@@ -704,15 +708,15 @@ class APITest(TembaTest):
 
         steps = list(run.steps.order_by('pk'))
         self.assertEqual(steps[0].left_on, datetime(2015, 8, 25, 11, 11, 30, 88000, pytz.UTC))
-        self.assertEqual(steps[0].next_uuid, '00000000-0000-0000-0000-000000000005')
+        self.assertEqual(steps[0].next_uuid, 'bd531ace-911e-4722-8e53-6730d6122fe1')
 
-        self.assertEqual(steps[1].step_uuid, '00000000-0000-0000-0000-000000000005')
+        self.assertEqual(steps[1].step_uuid, 'bd531ace-911e-4722-8e53-6730d6122fe1')
         self.assertEqual(steps[1].step_type, 'R')
-        self.assertEqual(steps[1].rule_uuid, '00000000-0000-0000-0000-000000000012')
+        self.assertEqual(steps[1].rule_uuid, '1c75fd71-027b-40e8-a819-151a0f8140e6')
         self.assertEqual(steps[1].rule_category, 'Orange')
         self.assertEqual(steps[1].rule_value, "orange")
         self.assertEqual(steps[1].rule_decimal_value, None)
-        self.assertEqual(steps[1].next_uuid, '00000000-0000-0000-0000-000000000002')
+        self.assertEqual(steps[1].next_uuid, '7d40faea-723b-473d-8999-59fb7d3c3ca2')
         self.assertEqual(steps[1].arrived_on, datetime(2015, 8, 25, 11, 11, 30, 88000, pytz.UTC))
         self.assertEqual(steps[1].left_on, datetime(2015, 8, 25, 11, 13, 30, 88000, pytz.UTC))
         self.assertEqual(steps[1].messages.count(), 1)
@@ -721,8 +725,8 @@ class APITest(TembaTest):
         value = Value.objects.get(org=self.org)
         self.assertEqual(value.contact, self.joe)
         self.assertEqual(value.run, run)
-        self.assertEqual(value.ruleset, RuleSet.objects.get(uuid='00000000-0000-0000-0000-000000000005'))
-        self.assertEqual(value.rule_uuid, '00000000-0000-0000-0000-000000000012')
+        self.assertEqual(value.ruleset, RuleSet.objects.get(uuid='bd531ace-911e-4722-8e53-6730d6122fe1'))
+        self.assertEqual(value.rule_uuid, '1c75fd71-027b-40e8-a819-151a0f8140e6')
         self.assertEqual(value.string_value, 'orange')
         self.assertEqual(value.decimal_value, None)
         self.assertEqual(value.datetime_value, None)
@@ -735,7 +739,7 @@ class APITest(TembaTest):
         self.assertEqual(step1_msgs[0].contact_urn, None)
         self.assertEqual(step1_msgs[0].text, "I like orange")
 
-        self.assertEqual(steps[2].step_uuid, '00000000-0000-0000-0000-000000000002')
+        self.assertEqual(steps[2].step_uuid, '7d40faea-723b-473d-8999-59fb7d3c3ca2')
         self.assertEqual(steps[2].step_type, 'A')
         self.assertEqual(steps[2].rule_uuid, None)
         self.assertEqual(steps[2].rule_category, None)
@@ -760,9 +764,9 @@ class APITest(TembaTest):
 
         # check flow activity
         self.assertEqual(flow.get_activity(), ({},
-                                               {'00000000-0000-0000-0000-000000000002:00000000-0000-0000-0000-000000000020': 1,
-                                                '00000000-0000-0000-0000-000000000012:00000000-0000-0000-0000-000000000002': 1,
-                                                '00000000-0000-0000-0000-000000000001:00000000-0000-0000-0000-000000000005': 1}))
+                                               {'7d40faea-723b-473d-8999-59fb7d3c3ca2:' + new_node_uuid: 1,
+                                                '1c75fd71-027b-40e8-a819-151a0f8140e6:7d40faea-723b-473d-8999-59fb7d3c3ca2': 1,
+                                                'd51ec25f-04e6-4349-a448-e7c4d93d4597:bd531ace-911e-4722-8e53-6730d6122fe1': 1}))
 
         # now lets remove our last action set
         definition['action_sets'].pop()
@@ -789,7 +793,7 @@ class APITest(TembaTest):
             data['revision'] = 3
             response = self.postJSON(url, data)
             self.assertEquals(400, response.status_code)
-            self.assertResponseError(response, 'non_field_errors', "No such node with UUID 00000000-0000-0000-0000-000000000020 in flow 'Color Flow'")
+            self.assertResponseError(response, 'non_field_errors', "No such node with UUID %s in flow 'Color Flow'" % new_node_uuid)
 
             # this version doesn't exist
             data['revision'] = 12
@@ -812,6 +816,42 @@ class APITest(TembaTest):
             response = self.postJSON(url, data)
             self.assertEquals(201, response.status_code)
             self.assertIsNotNone(self.joe.urns.filter(path='+13605551212').first())
+
+            # rule uuid not existing we should find the actual matching rule
+            data = dict(flow=flow.uuid,
+                        revision=2,
+                        contact=self.joe.uuid,
+                        started='2015-08-25T11:09:29.088Z',
+                        submitted_by=self.admin.username,
+                        steps=[
+                            dict(node='bd531ace-911e-4722-8e53-6730d6122fe1',
+                                 arrived_on='2015-08-25T11:11:30.088Z',
+                                 rule=dict(uuid='abc5fd71-027b-40e8-a819-151a0f8140e6',
+                                           value="orange",
+                                           category="Orange",
+                                           text="I like orange")),
+                            dict(node='7d40faea-723b-473d-8999-59fb7d3c3ca2',
+                                 arrived_on='2015-08-25T11:13:30.088Z',
+                                 actions=[
+                                     dict(type="reply", msg="I love orange too!")
+                                 ]),
+                            dict(node=new_node_uuid,
+                                 arrived_on='2015-08-25T11:15:30.088Z',
+                                 actions=[
+                                     dict(type="save", field="tel_e164", value="+12065551212"),
+                                     dict(type="del_group", group=dict(name="Remove Me"))
+                                 ]),
+                        ],
+                        completed=True)
+
+            response = self.postJSON(url, data)
+            self.assertEquals(201, response.status_code)
+
+            with patch('temba.flows.models.RuleSet.find_matching_rule') as mock_find_matching_rule:
+                mock_find_matching_rule.return_value = None, None
+
+                with self.assertRaises(ValueError):
+                    self.postJSON(url, data)
 
     def test_api_contacts(self):
         url = reverse('api.v1.contacts')
@@ -912,6 +952,12 @@ class APITest(TembaTest):
         response = self.postJSON(url, dict(name='Eminem', phone='+250788123456', urns=['tel:+250788123456']))
         self.assertResponseError(response, 'non_field_errors', "Cannot provide both urns and phone parameters together")
 
+        # clearing the contact name is allowed
+        response = self.postJSON(url, dict(name="", uuid=contact.uuid))
+        self.assertEquals(201, response.status_code)
+        contact = Contact.objects.get()
+        self.assertIsNone(contact.name)
+
         # update the contact using uuid, URNs will remain the same
         response = self.postJSON(url, dict(name="Mathers", uuid=contact.uuid))
         self.assertEquals(201, response.status_code)
@@ -970,7 +1016,7 @@ class APITest(TembaTest):
         self.assertEquals(201, response.status_code)
 
         contact = Contact.objects.get()
-        contact_urns = [urn.urn for urn in contact.urns.all().order_by('scheme', 'path')]
+        contact_urns = [six.text_type(urn) for urn in contact.urns.all().order_by('scheme', 'path')]
         self.assertEquals(["tel:+250788123456", "twitter:drdre"], contact_urns)
         self.assertEquals("Dr Dre", contact.name)
         self.assertEquals(self.org, contact.org)
@@ -1083,7 +1129,7 @@ class APITest(TembaTest):
         self.assertEqual(response.status_code, 201)
 
         jay_z = Contact.objects.get(pk=jay_z.pk)
-        self.assertEqual([u.urn for u in jay_z.urns.all()], ['tel:+250785555555'])
+        self.assertEqual([six.text_type(u) for u in jay_z.urns.all()], ['tel:+250785555555'])
 
         # fetch all with blank query
         self.clear_cache()

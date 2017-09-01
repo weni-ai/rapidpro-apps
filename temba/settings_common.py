@@ -373,6 +373,7 @@ PERMISSIONS = {
                  'smtp_server',
                  'api',
                  'country',
+                 'chatbase',
                  'clear_cache',
                  'create_login',
                  'create_sub_org',
@@ -589,6 +590,7 @@ GROUP_PERMISSIONS = {
         'orgs.org_smtp_server',
         'orgs.org_api',
         'orgs.org_country',
+        'orgs.org_chatbase',
         'orgs.org_create_sub_org',
         'orgs.org_download',
         'orgs.org_edit',
@@ -850,9 +852,9 @@ AUTHENTICATION_BACKENDS = (
 ANONYMOUS_USER_NAME = 'AnonymousUser'
 
 # -----------------------------------------------------------------------------------
-# Our test runner is standard but with ability to exclude apps
+# Our test runner includes a mocked HTTP server and the ability to exclude apps
 # -----------------------------------------------------------------------------------
-TEST_RUNNER = 'temba.tests.ExcludeTestRunner'
+TEST_RUNNER = 'temba.tests.TembaTestRunner'
 TEST_EXCLUDE = ('smartmin',)
 
 # -----------------------------------------------------------------------------------
@@ -1091,6 +1093,11 @@ SEND_AIRTIME = False
 
 ######
 # DANGER: only turn this on if you know what you are doing!
+#         could cause data to be sent to Chatbase in test environment
+SEND_CHATBASE = False
+
+######
+# DANGER: only turn this on if you know what you are doing!
 #         could cause calls in test environments
 SEND_CALLS = False
 
@@ -1101,9 +1108,16 @@ MESSAGE_HANDLERS = [
 ]
 
 CHANNEL_TYPES = [
+    'temba.channels.types.external.ExternalType',
     'temba.channels.types.facebook.FacebookType',
+    'temba.channels.types.firebase.FirebaseCloudMessagingType',
+    'temba.channels.types.infobip.InfobipType',
+    'temba.channels.types.jiochat.JioChatType',
+    'temba.channels.types.line.LineType',
+    'temba.channels.types.telegram.TelegramType',
     'temba.channels.types.twitter.TwitterType',
-    'temba.channels.types.twitter_activity.TwitterActivityType'
+    'temba.channels.types.twitter_activity.TwitterActivityType',
+    'temba.channels.types.viber_public.ViberPublicType',
 ]
 
 # -----------------------------------------------------------------------------------
@@ -1145,3 +1159,13 @@ VALUE_FIELD_SIZE = 640
 # -----------------------------------------------------------------------------------
 SUCCESS_LOGS_TRIM_TIME = 48
 ALL_LOGS_TRIM_TIME = 24 * 30
+
+# -----------------------------------------------------------------------------------
+# Which channel types will be sent using Courier instead of RapidPro
+# -----------------------------------------------------------------------------------
+COURIER_CHANNELS = set()
+
+# -----------------------------------------------------------------------------------
+# Chatbase integration
+# -----------------------------------------------------------------------------------
+CHATBASE_API_URL = 'https://chatbase.com/api/message'

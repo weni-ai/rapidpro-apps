@@ -15,7 +15,7 @@ class FacebookTypeTest(TembaTest):
         super(FacebookTypeTest, self).setUp()
 
         self.channel = Channel.create(self.org, self.user, None, 'FB', name="Facebook", address="12345",
-                                      role="SR", scheme='facebook', config={'auth_token': '09876543'})
+                                      role="SR", schemes=['facebook'], config={'auth_token': '09876543'})
 
     @override_settings(IS_PROD=True)
     @patch('requests.get')
@@ -28,6 +28,10 @@ class FacebookTypeTest(TembaTest):
         # check that claim page URL appears on claim list page
         response = self.client.get(reverse('channels.channel_claim'))
         self.assertContains(response, url)
+
+        # can fetch the claim page
+        response = self.client.get(url)
+        self.assertContains(response, "Connect Facebook")
 
         token = 'x' * 200
         mock_get.return_value = MockResponse(400, json.dumps({'error': {'message': "Failed validation"}}))

@@ -101,7 +101,7 @@ class BroadcastReadSerializer(ReadSerializer):
         if self.context['org'].is_anon:
             return None
         else:
-            return [urn.urn for urn in obj.urns.all()]
+            return [six.text_type(urn) for urn in obj.urns.all()]
 
     class Meta:
         model = Broadcast
@@ -343,7 +343,7 @@ class ContactReadSerializer(ReadSerializer):
         if self.context['org'].is_anon or not obj.is_active:
             return []
 
-        return [urn.urn for urn in obj.get_urns()]
+        return [six.text_type(urn) for urn in obj.get_urns()]
 
     def get_groups(self, obj):
         if not obj.is_active:
@@ -404,7 +404,7 @@ class ContactWriteSerializer(WriteSerializer):
         org = self.context['org']
 
         # this field isn't allowed if we are looking up by URN in the URL
-        if 'urns__urn' in self.context['lookup_values']:
+        if 'urns__identity' in self.context['lookup_values']:
             raise serializers.ValidationError("Field not allowed when using URN in URL")
 
         # or for updates by anonymous organizations (we do allow creation of contacts with URNs)
@@ -421,8 +421,8 @@ class ContactWriteSerializer(WriteSerializer):
 
     def validate(self, data):
         # we allow creation of contacts by URN used for lookup
-        if not data.get('urns') and 'urns__urn' in self.context['lookup_values']:
-            url_urn = self.context['lookup_values']['urns__urn']
+        if not data.get('urns') and 'urns__identity' in self.context['lookup_values']:
+            url_urn = self.context['lookup_values']['urns__identity']
 
             data['urns'] = [fields.validate_urn(url_urn)]
 
@@ -791,11 +791,12 @@ class MsgReadSerializer(ReadSerializer):
     channel = fields.ChannelField()
     direction = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
-    media = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     archived = serializers.SerializerMethodField()
     visibility = serializers.SerializerMethodField()
     labels = fields.LabelField(many=True)
+    media = serializers.SerializerMethodField()  # deprecated
 
     def get_broadcast(self, obj):
         return obj.broadcast_id
@@ -810,6 +811,9 @@ class MsgReadSerializer(ReadSerializer):
         # PENDING and QUEUED are same as far as users are concerned
         return self.STATUSES.get(QUEUED if obj.status == PENDING else obj.status)
 
+    def get_attachments(self, obj):
+        return [a.as_json() for a in obj.get_attachments()]
+
     def get_media(self, obj):
         return obj.attachments[0] if obj.attachments else None
 
@@ -823,7 +827,7 @@ class MsgReadSerializer(ReadSerializer):
         model = Msg
         fields = ('id', 'broadcast', 'contact', 'urn', 'channel',
                   'direction', 'type', 'status', 'archived', 'visibility', 'text', 'labels',
-                  'media', 'created_on', 'sent_on', 'modified_on')
+                  'attachments', 'created_on', 'sent_on', 'modified_on', 'media')
 
 
 class MsgBulkActionSerializer(WriteSerializer):
