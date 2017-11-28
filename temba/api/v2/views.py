@@ -667,12 +667,12 @@ class BroadcastsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
             queryset = queryset.filter(id=broadcast_id)
 
         queryset = queryset.prefetch_related(
-            Prefetch('contacts', queryset=Contact.objects.only('uuid', 'name')),
-            Prefetch('groups', queryset=ContactGroup.user_groups.only('uuid', 'name')),
+            Prefetch('contacts', queryset=Contact.objects.only('uuid', 'name').order_by('pk')),
+            Prefetch('groups', queryset=ContactGroup.user_groups.only('uuid', 'name').order_by('pk')),
         )
 
         if not org.is_anon:
-            queryset = queryset.prefetch_related(Prefetch('urns', queryset=ContactURN.objects.only('scheme', 'path', 'display')))
+            queryset = queryset.prefetch_related(Prefetch('urns', queryset=ContactURN.objects.only('scheme', 'path', 'display').order_by('pk')))
 
         return self.filter_before_after(queryset, 'created_on')
 
@@ -717,6 +717,7 @@ class CampaignsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
 
      * **uuid** - the UUID of the campaign (string), filterable as `uuid`.
      * **name** - the name of the campaign (string).
+     * **archived** - whether this campaign is archived (boolean)
      * **group** - the group this campaign operates on (object).
      * **created_on** - when the campaign was created (datetime), filterable as `before` and `after`.
 
@@ -733,6 +734,7 @@ class CampaignsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
             {
                 "uuid": "f14e4ff0-724d-43fe-a953-1d16aefd1c00",
                 "name": "Reminders",
+                "archived": false,
                 "group": {"uuid": "7ae473e8-f1b5-4998-bd9c-eb8e28c92fa9", "name": "Reporters"},
                 "created_on": "2013-08-19T19:11:21.088Z"
             },
@@ -760,6 +762,7 @@ class CampaignsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
         {
             "uuid": "f14e4ff0-724d-43fe-a953-1d16aefd1c00",
             "name": "Reminders",
+            "archived": false,
             "group": {"uuid": "7ae473e8-f1b5-4998-bd9c-eb8e28c92fa9", "name": "Reporters"},
             "created_on": "2013-08-19T19:11:21.088Z"
         }
@@ -1115,8 +1118,8 @@ class ChannelEventsEndpoint(ListAPIMixin, BaseAPIView):
      * **channel** - the UUID and name of the channel that handled this call (object).
      * **type** - the type of event (one of "call-in", "call-in-missed", "call-out", "call-out-missed").
      * **contact** - the UUID and name of the contact (object), filterable as `contact` with UUID.
-     * **time** - when this event happened on the channel (datetime).
-     * **duration** - the duration in seconds if event is a call (int, 0 for missed calls).
+     * **extra** - any extra attributes collected for this event
+     * **occurred_on** - when this event happened on the channel (datetime).
      * **created_on** - when this event was created (datetime), filterable as `before` and `after`.
 
     Example:
@@ -1134,8 +1137,8 @@ class ChannelEventsEndpoint(ListAPIMixin, BaseAPIView):
                 "channel": {"uuid": "9a8b001e-a913-486c-80f4-1356e23f582e", "name": "Nexmo"},
                 "type": "call-in"
                 "contact": {"uuid": "d33e9ad5-5c35-414c-abd4-e7451c69ff1d", "name": "Bob McFlow"},
-                "time": "2013-02-27T09:06:12.123"
-                "duration": 606,
+                "extra": { "duration": 606 },
+                "occurred_on": "2013-02-27T09:06:12.123"
                 "created_on": "2013-02-27T09:06:15.456"
             },
             ...
@@ -1148,7 +1151,6 @@ class ChannelEventsEndpoint(ListAPIMixin, BaseAPIView):
 
     def filter_queryset(self, queryset):
         params = self.request.query_params
-        queryset = queryset.filter(is_active=True)
         org = self.request.user.get_org()
 
         # filter by id (optional)
@@ -1350,7 +1352,8 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView)
 
         # use prefetch rather than select_related for foreign keys to avoid joins
         queryset = queryset.prefetch_related(
-            Prefetch('all_groups', queryset=ContactGroup.user_groups.only('uuid', 'name'), to_attr='prefetched_user_groups')
+            Prefetch('all_groups', queryset=ContactGroup.user_groups.only('uuid', 'name').order_by('pk'),
+                     to_attr='prefetched_user_groups')
         )
 
         return self.filter_before_after(queryset, 'modified_on')
@@ -1805,6 +1808,8 @@ class FlowsEndpoint(ListAPIMixin, BaseAPIView):
     def filter_queryset(self, queryset):
         params = self.request.query_params
 
+        queryset = queryset.exclude(flow_type=Flow.MESSAGE)
+
         # filter by UUID (optional)
         uuid = params.get('uuid')
         if uuid:
@@ -2208,10 +2213,10 @@ class MessagesEndpoint(ListAPIMixin, BaseAPIView):
                 "status": "wired",
                 "visibility": "visible",
                 "text": "How are you?",
-                "media": "wav:http://domain.com/recording.wav"
+                "media": "wav:http://domain.com/recording.wav",
                 "labels": [{"name": "Important", "uuid": "5a4eb79e-1b1f-4ae3-8700-09384cca385f"}],
                 "created_on": "2016-01-06T15:33:00.813162Z",
-                "sent_on": "2016-01-06T15:35:03.675716Z",
+                "sent_on": "2016-01-06T15:35:03.675716Z"
             },
             ...
         }
@@ -2297,7 +2302,7 @@ class MessagesEndpoint(ListAPIMixin, BaseAPIView):
             Prefetch('contact', queryset=Contact.objects.only('uuid', 'name')),
             Prefetch('contact_urn', queryset=ContactURN.objects.only('scheme', 'path', 'display')),
             Prefetch('channel', queryset=Channel.objects.only('uuid', 'name')),
-            Prefetch('labels', queryset=Label.label_objects.only('uuid', 'name')),
+            Prefetch('labels', queryset=Label.label_objects.only('uuid', 'name').order_by('pk')),
         )
 
         # incoming folder gets sorted by 'modified_on'
@@ -2971,8 +2976,8 @@ class FlowStartsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
 
         # use prefetch rather than select_related for foreign keys to avoid joins
         queryset = queryset.prefetch_related(
-            Prefetch('contacts', queryset=Contact.objects.only('uuid', 'name')),
-            Prefetch('groups', queryset=ContactGroup.user_groups.only('uuid', 'name')),
+            Prefetch('contacts', queryset=Contact.objects.only('uuid', 'name').order_by('pk')),
+            Prefetch('groups', queryset=ContactGroup.user_groups.only('uuid', 'name').order_by('pk')),
         )
 
         return self.filter_before_after(queryset, 'modified_on')

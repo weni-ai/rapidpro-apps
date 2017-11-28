@@ -69,7 +69,8 @@ app.controller 'RevisionController', [ '$scope', '$rootScope', '$log', '$timeout
   $scope.applyDefinition = (definition) ->
 
     for actionset in definition.action_sets
-        for action in actionset.actions
+      for action in actionset.actions
+        if not action.uuid
           action.uuid = uuid()
 
     # remove all revision selection
@@ -230,6 +231,8 @@ app.controller 'FlowController', [ '$scope', '$rootScope', '$timeout', '$log', '
       modal.result.then (value) ->
         if value == 'ok'
           action._media = null
+          action._attachURL = null
+          action._attachType = null
           scope.onFileSelect($files, actionset, action)
       return
 
@@ -277,7 +280,6 @@ app.controller 'FlowController', [ '$scope', '$rootScope', '$timeout', '$log', '
             mime: parts[0]
             url:  window.mediaURL + parts[1]
             type: parts[0].split('/')[0]
-
       if save
         Flow.saveAction(actionset, action)
       return
@@ -391,6 +393,7 @@ app.controller 'FlowController', [ '$scope', '$rootScope', '$timeout', '$log', '
             x: ghost[0].offsetLeft
             y: ghost[0].offsetTop
             uuid: targetId
+            exit_uuid: uuid()
             actions: [
               type: defaultActionSetType()
               msg: msg
@@ -460,7 +463,8 @@ app.controller 'FlowController', [ '$scope', '$rootScope', '$timeout', '$log', '
     actionset =
       x: 100
       y: 0
-      uuid: uuid()
+      uuid: uuid(),
+      exit_uuid: uuid(),
       actions: [
         uuid: uuid()
         type: defaultActionSetType()
@@ -666,6 +670,7 @@ app.controller 'FlowController', [ '$scope', '$rootScope', '$timeout', '$log', '
         action:
           type: defaultActionSetType()
           uuid: uuid()
+
       flowController: -> $scope
 
     $scope.dialog = utils.openModal("/partials/node_editor", NodeEditorController, resolveObj)
@@ -724,27 +729,63 @@ app.controller 'FlowController', [ '$scope', '$rootScope', '$timeout', '$log', '
 
       if action.type in ["send", "reply", "say", "end_ussd"]
 
-        fromText = action.msg[Flow.flow.base_language]
+        translations = [
+          {
+            name: 'Message Text',
+            from: action.msg[Flow.flow.base_language],
+            to: action.msg[Flow.language.iso_code],
+            fromQuickReplies: action.quick_replies || []
+          }
+        ]
+
+        # add in our media for localization if we have some
+        if action.media and action.media[Flow.flow.base_language]
+
+          fromMedia = action.media[Flow.flow.base_language]
+          toMedia = action.media[Flow.language.iso_code]
+
+          # this is a bit of a hack, our localizable strings take the form of audio:...
+          # but uploads are in the form of audio/wav:http...
+          fromMediaSplit = fromMedia?.split(':')
+          toMediaSplit = toMedia?.split(':')
+          mimeType = fromMediaSplit?[0].split('/')
+
+          # we only care about types that aren't full mime types
+          if mimeType?.length == 1
+            translations.push({ name:'Attachment', type: mimeType, from:fromMediaSplit[1], to:toMediaSplit?[1], input:true})
 
         resolveObj =
-          languages: ->
+          language: ->
             from: Flow.flow.base_language
             to: Flow.language.iso_code
-          translation: ->
-            from: fromText
-            to: action.msg[Flow.language.iso_code]
+            name: Flow.language.name
+          translations: -> translations
 
         $scope.dialog = utils.openModal("/partials/translation_modal", TranslationController, resolveObj)
 
         $scope.dialog.opened.then ->
           $('textarea').focus()
 
-        $scope.dialog.result.then (translation) ->
+        $scope.dialog.result.then (translations) ->
           action = utils.clone(action)
-          if translation and translation.strip().length > 0
-             action.msg[Flow.language.iso_code] = translation
-          else
-            delete action.msg[Flow.language.iso_code]
+
+          for translation in translations
+            results = action.msg
+            translated = if translation.to?.strip().length > 0 then translation.to else null
+
+            if translation.fromQuickReplies? && translation.fromQuickReplies != []
+              action.quick_replies = translation.fromQuickReplies
+            
+            if translation.name == "Attachment"
+              results = action.media
+              if translated
+                translated = translation.type + ':' + translated
+
+            if translated
+              results[Flow.language.iso_code] = translated
+            else
+              delete results[Flow.language.iso_code]
+
           Flow.saveAction(actionset, action)
         , (-> $log.info "Modal dismissed at: " + new Date())
 
@@ -862,6 +903,7 @@ TranslateRulesController = ($scope, $modalInstance, Flow, utils, languages, rule
 
   $scope.ok = ->
 
+    inputs = []
     for rule in ruleset.rules
       if rule.category
         if rule._translation.category.to and rule._translation.category.to.strip().length > 0
@@ -873,8 +915,12 @@ TranslateRulesController = ($scope, $modalInstance, Flow, utils, languages, rule
 
           if rule._translation.test.to and rule._translation.test.to.strip().length > 0
             rule.test.test[Flow.language.iso_code] = rule._translation.test.to
+            inputs.push(rule._translation.test.to)
           else
             delete rule.test.test[Flow.language.iso_code]
+
+    if $scope.hasInvalidFields(inputs)
+      return true
 
     # USSD message translation save
     if Flow.flow.flow_type == 'U'
@@ -895,18 +941,20 @@ TranslateRulesController = ($scope, $modalInstance, Flow, utils, languages, rule
     $modalInstance.dismiss "cancel"
 
 # The controller for our translation modal
-TranslationController = ($scope, $modalInstance, languages, translation) ->
-  $scope.translation = translation
-  $scope.languages = languages
+TranslationController = ($rootScope, $scope, $modalInstance, language, translations, Flow) ->
+  $scope.translations = translations
+  $scope.language = language
 
-  $scope.ok = (translationText) ->
-    $modalInstance.close translationText
+  $scope.ok = (translations) ->
+    if $scope.hasInvalidFields((translation.to for translation in translations))
+      return
+    $modalInstance.close translations
 
   $scope.cancel = ->
     $modalInstance.dismiss "cancel"
 
 NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow, flowController, Plumb, utils, options) ->
-
+ 
   # let our template know our editor type
   $scope.flow = Flow.flow
   $scope.nodeType = options.nodeType
@@ -960,7 +1008,8 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
       _switchedFromRule: true
       x: ruleset.x
       y: ruleset.y
-      uuid: uuid()
+      uuid: uuid(),
+      exit_uuid: uuid(),
       actions: [ action ]
 
   else if options.nodeType == 'actions'
@@ -1089,6 +1138,9 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
 
   $scope.updateActionForm = (config) ->
 
+    # when our action form changes, clear our invalid fields
+    $scope.invalidFields = null
+
     # emails are not localized, if our msg is localized, grab the base text
     if config.type == 'email'
       if typeof $scope.action.msg == 'object'
@@ -1159,6 +1211,9 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     formData.flow = {}
 
   $scope.rulesetTypeChanged = () ->
+    # when our ruleset form changes clear our invalid fields
+    $scope.invalidFields = null
+
     if $scope.formData.rulesetConfig.type == "random"
       if not formData.buckets
         formData.buckets = 2
@@ -1622,6 +1677,22 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
 
   $scope.okRules = (splitEditor) ->
 
+    # track if any of our inputs are using invalid fields
+    fieldChecks = []
+
+    if formData.rulesetConfig.type == 'expression'
+      fieldChecks.push($scope.ruleset.operand)
+
+    if formData.rulesetConfig.type == 'webhook'
+      fieldChecks.push(formData.webhook)
+    
+    for rule in $scope.ruleset.rules
+      if rule.test._base
+        fieldChecks.push(rule.test._base)
+    
+    if $scope.hasInvalidFields(fieldChecks)
+      return
+
     # close our dialog
     stopWatching()
     $modalInstance.close ""
@@ -1673,7 +1744,6 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
 
       else if rulesetConfig.type == 'webhook'
         webhook_headers = []
-
         item_counter = 0
         if formData.webhook_headers
           for item in formData.webhook_headers
@@ -1768,6 +1838,23 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.action_webhook_headers_name = []
   $scope.action_webhook_headers_value = []
 
+  $scope.showAttachOptions = false
+  $scope.showAttachVariable = false
+  
+  if $scope.action._attachURL
+    $scope.showAttachOptions = true
+    $scope.showAttachVariable = true
+  else
+    $scope.action._attachType = "image"
+
+  if $scope.options.dragSource? or !($scope.action.quick_replies? and $scope.action.quick_replies != undefined and $scope.action.quick_replies.length > 0)
+    $scope.quickReplies = []
+    $scope.action.quick_replies = []
+    $scope.showQuickReplyButton = true
+  else
+    $scope.quickReplies = $scope.action.quick_replies
+    $scope.showQuickReplyButton = false
+
   if $scope.action.webhook_headers
     item_counter = 0
     for item in $scope.action.webhook_headers
@@ -1801,6 +1888,20 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
 
     if $scope.action.webhook_headers.length == 0
       $scope.addNewActionWebhookHeader()
+
+  $scope.addNewQuickReply = ->
+    $scope.showQuickReplyButton = false
+    if $scope.quickReplies.length < 11
+      addQuickReply = {}
+      addQuickReply[$scope.base_language] = ''
+      $scope.quickReplies.push(addQuickReply)
+
+  $scope.removeQuickReply = (index) ->
+    $scope.quickReplies.splice(index, 1)
+
+    if $scope.quickReplies.length == 0
+      $scope.showQuickReplyButton = true
+      $scope.action.quick_replies = []
 
   $scope.actionset = actionset
   $scope.flowId = window.flowId
@@ -1841,6 +1942,9 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     return valid
 
   $scope.savePlay = ->
+    if $scope.hasInvalidFields([$scope.action.url])
+      return
+
     $scope.action.type = 'play'
     Flow.saveAction(actionset, $scope.action)
     $modalInstance.close()
@@ -1848,20 +1952,51 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.removeAttachment = ->
     $scope.action.media = null
     $scope.action._media = null
+    $scope.action._attachURL = null
 
   # Saving a reply message in the flow
-  $scope.saveMessage = (message, type='reply') ->
+  $scope.saveMessage = (message, type='reply', hasAttachURL=false) ->
+
+    inputs = [message]
+    if hasAttachURL
+      inputs.push($scope.action._attachURL)
+    if $scope.hasInvalidFields(inputs)
+      return
 
     if typeof($scope.action.msg) != "object"
       $scope.action.msg = {}
-    $scope.action.msg[$scope.base_language] = message
 
+    $scope.action.msg[$scope.base_language] = message
     $scope.action.type = type
+
+    if hasAttachURL and $scope.action._attachURL
+      if not $scope.action.media
+        $scope.action.media = {}
+
+      $scope.action.media[$scope.base_language] = $scope.action._attachType + ':' + $scope.action._attachURL
+
+      # make sure our localizations all have the same type
+      for key in Object.keys($scope.action.media)
+        if key != $scope.base_language
+          translation = $scope.action.media[key]
+          $scope.action.media[key] = $scope.action._attachType + ':' + translation.split(':')[1]
+    
+    else if not $scope.action._media
+      $scope.action.media = null
+
+    if $scope.quickReplies.length > 0
+      $scope.action.quick_replies = $scope.quickReplies
+    else
+      $scope.action.quick_replies = []
+
     Flow.saveAction(actionset, $scope.action)
     $modalInstance.close()
 
   # Saving a message to somebody else
   $scope.saveSend = (omnibox, message) ->
+
+    if $scope.hasInvalidFields([message])
+      return
 
     groups = []
     for group in omnibox.groups
@@ -1906,7 +2041,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
           name: msgLabel.text
 
     $scope.action.labels = labels
-
+    
     $scope.action.type = 'add_label'
     Flow.saveAction(actionset, $scope.action)
     $modalInstance.close()
@@ -1942,6 +2077,9 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   # Save the updating of a contact
   $scope.saveUpdateContact = (field, value) ->
 
+    if $scope.hasInvalidFields([value])
+      return
+
     if field.id.indexOf('[_NEW_]') == 0 and field.text.indexOf("Add new variable:") == 0
       field.text = field.text.slice(18)
       field.id = field.id.slice(7)
@@ -1967,6 +2105,10 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
 
   # save a webhook action
   $scope.saveWebhook = (method, url) ->
+
+    if $scope.hasInvalidFields([url])
+      return
+
     $scope.action.type = 'api'
     $scope.action.action = method
     $scope.action.webhook = url
@@ -1986,6 +2128,9 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     $modalInstance.close()
 
   $scope.saveEmail = (addresses) ->
+
+    if $scope.hasInvalidFields([$scope.action.subject, $scope.action.msg])
+      return
 
     to = []
     for address in addresses

@@ -14,6 +14,7 @@ from django.db.models import Count
 from django.utils import timezone
 from django_redis import get_redis_connection
 from temba.contacts.models import Contact, STOP_CONTACT_EVENT
+from temba.channels.models import ChannelEvent, CHANNEL_EVENT
 from temba.utils import json_date_to_datetime, chunk_list, analytics
 from temba.utils.mage import handle_new_message, handle_new_contact
 from temba.utils.queues import start_task, complete_task, nonoverlapping_task
@@ -129,11 +130,15 @@ def process_message_task(msg_event):
 
 
 @task(track_started=True, name='send_broadcast')
-def send_broadcast_task(broadcast_id):
+def send_broadcast_task(broadcast_id, **kwargs):
     # get our broadcast
     from .models import Broadcast
     broadcast = Broadcast.objects.get(pk=broadcast_id)
-    broadcast.send()
+
+    high_priority = (broadcast.recipient_count == 1)
+    expressions_context = {} if kwargs.get('with_expressions', True) else None
+
+    broadcast.send(high_priority=high_priority, expressions_context=expressions_context)
 
 
 @task(track_started=True, name='send_to_flow_node')
@@ -157,7 +162,7 @@ def send_to_flow_node(org_id, user_id, text, **kwargs):
 
     recipients = list(contacts)
     broadcast = Broadcast.create(org, user, text, recipients)
-    broadcast.send()
+    broadcast.send(expressions_context={})
 
     analytics.track(user.username, 'temba.broadcast_created',
                     dict(contacts=len(contacts), groups=0, urns=0))
@@ -313,6 +318,10 @@ def handle_event_task():
         elif event_task['type'] == STOP_CONTACT_EVENT:
             contact = Contact.objects.get(id=event_task['contact_id'])
             contact.stop(contact.modified_by)
+
+        elif event_task['type'] == CHANNEL_EVENT:
+            event = ChannelEvent.objects.get(id=event_task['event_id'])
+            event.handle()
 
         else:  # pragma: needs cover
             raise Exception("Unexpected event type: %s" % event_task)

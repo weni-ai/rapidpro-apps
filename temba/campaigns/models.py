@@ -61,7 +61,7 @@ class Campaign(TembaModel):
         Import campaigns from our export file
         """
         from temba.orgs.models import EARLIEST_IMPORT_VERSION
-        if exported_json.get('version', 0) < EARLIEST_IMPORT_VERSION:  # pragma: needs cover
+        if Flow.is_before_version(exported_json.get('version', "0"), EARLIEST_IMPORT_VERSION):  # pragma: needs cover
             raise ValueError(_("Unknown version (%s)" % exported_json.get('version', 0)))
 
         if 'campaigns' in exported_json:
@@ -148,6 +148,12 @@ class Campaign(TembaModel):
                 EventFire.update_campaign_events(campaign)
 
     @classmethod
+    def restore_flows(cls, campaign):
+        events = campaign.events.filter(is_active=True, event_type=CampaignEvent.TYPE_FLOW).exclude(flow=None).select_related('flow')
+        for event in events:
+            event.flow.restore()
+
+    @classmethod
     def apply_action_archive(cls, user, campaigns):
         campaigns.update(is_archived=True, modified_by=user, modified_on=timezone.now())
 
@@ -163,6 +169,7 @@ class Campaign(TembaModel):
 
         # update the events for each campaign
         for campaign in campaigns:
+            Campaign.restore_flows(campaign)
             EventFire.update_campaign_events(campaign)
 
         return [each_campaign.pk for each_campaign in campaigns]
@@ -184,7 +191,7 @@ class Campaign(TembaModel):
             if message:
                 try:
                     message = json.loads(message)
-                except:  # pragma: needs cover
+                except Exception:  # pragma: needs cover
                     message = dict(base=message)
 
             event_definition = dict(uuid=event.uuid, offset=event.offset,
@@ -411,6 +418,10 @@ class CampaignEvent(TembaModel):
 
         # delete any pending event fires
         EventFire.update_eventfires_for_event(self)
+
+        # if our flow is a single message flow, release that too
+        if self.flow.flow_type == Flow.MESSAGE:
+            self.flow.release()
 
     def calculate_scheduled_fire(self, contact):
         date_value = EventFire.parse_relative_to_date(contact, self.relative_to.key)
