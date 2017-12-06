@@ -21,8 +21,8 @@ WORKDIR /rapidpro
 RUN virtualenv env
 RUN . env/bin/activate
 ADD pip-freeze.txt /rapidpro/pip-freeze.txt
-RUN pip install -r pip-freeze.txt
-RUN pip install requests[security] --upgrade
+RUN pip install -r pip-freeze.txt --upgrade
+RUN pip install requests[security]
 RUN pip install uwsgi
 ADD . /rapidpro
 COPY settings.py.pre /rapidpro/temba/settings.py
