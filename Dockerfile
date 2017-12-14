@@ -1,8 +1,11 @@
 FROM ubuntu:trusty
 
 RUN echo "Starting build"
+RUN apt-get install software-properties-common python-software-properties
+RUN add-apt-repository ppa:jonathonf/python-2.7
+RUN apt-get update && apt-get upgrade
 
-RUN apt-get update && apt-get install -qyy \
+RUN apt-get install -qyy \
     -o APT::Install-Recommends=false -o APT::Install-Suggests=false \
     build-essential python-imaging git python-setuptools  ncurses-dev python-virtualenv  python-pip postgresql-client-9.3 libpq-dev \
     libpython-dev lib32ncurses5-dev pypy libffi6 openssl libgeos-dev \
