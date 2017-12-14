@@ -3,9 +3,9 @@ FROM ubuntu:trusty
 RUN echo "Starting build"
 
 RUN apt-get update
-RUN apt-get install software-properties-common python-software-properties
+RUN apt-get install -y software-properties-common python-software-properties
 RUN add-apt-repository ppa:jonathonf/python-2.7
-RUN apt-get update && apt-get upgrade
+RUN apt-get update && apt-get upgrade -y
 
 RUN apt-get install -qyy \
     -o APT::Install-Recommends=false -o APT::Install-Suggests=false \
