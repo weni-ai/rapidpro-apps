@@ -7,9 +7,6 @@
       %a.icon-nav-messages{href:"{% url 'msgs.msg_inbox' %}", class:"{% active request 'inbox|outbox|broadcast|call|msg/filter|msg/flow|msg/archived|failed' %}"}
         .title
           -trans "messages"
-      -if msgs_unread_count
-        .notification
-          {{ msgs_unread_count }}
 
   -if org_perms.contacts.contact_list and not request.user.is_superuser
     %li.nav-contacts
@@ -22,15 +19,6 @@
       %a.icon-nav-flows{href:"{% url 'flows.flow_list' %}", class:"{% active request '(?<!msg)/flow' %}"}
         .title
           -trans "flows"
-      -if flows_unread_count
-        .notification
-          {{ flows_unread_count }}
-
-  -if org_perms.flows.ruleset_analytics and not request.user.is_superuser
-    %li.nav-analytics
-      %a.icon-nav-analytics{href:"{% url 'flows.ruleset_analytics' %}", class:"{% active request 'analytics' %}"}
-        .title
-          -trans "analytics"
 
   -if org_perms.campaigns.campaign_list and not request.user.is_superuser
     %li.nav-campaigns
@@ -64,6 +52,12 @@
         %a.icon-nav-orgs{href:"{% url 'orgs.org_manage' %}?search=Nyaruka", class:"{% active request 'org' %}"}
           .title
             -trans "orgs"
+
+  -if request.user.is_superuser or perms.orgs.org_dashboard
+    %li.nav-dashboard
+      %a.icon-nav-dashboard{href:"{% url 'dashboard.dashboard_home' %}", class:"{% active request 'dashboard(?!/flows)' %}"}
+        .title
+          -trans "dashboard"
 
   -if not request.user.is_anonymous
     %li.more

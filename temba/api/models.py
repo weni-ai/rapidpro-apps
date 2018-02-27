@@ -23,7 +23,7 @@ from temba.channels.models import Channel, ChannelEvent
 from temba.contacts.models import TEL_SCHEME
 from temba.flows.models import FlowRun, ActionLog
 from temba.orgs.models import Org
-from temba.utils import datetime_to_str, prepped_request_to_str, on_transaction_commit
+from temba.utils import prepped_request_to_str, on_transaction_commit
 from temba.utils.cache import get_cacheable_attr
 from temba.utils.http import http_headers
 from urllib import urlencode
@@ -112,8 +112,8 @@ class Resthook(SmartModel):
 
     def release(self, user):
         # release any active subscribers
-        for s in self.subscribers.filter(is_active=True):  # pragma: needs cover
-            s.release()
+        for s in self.subscribers.filter(is_active=True):
+            s.release(user)
 
         # then ourselves
         self.is_active = False
@@ -212,67 +212,37 @@ class WebHookEvent(SmartModel):
         on_transaction_commit(lambda: deliver_event_task.delay(self.id))
 
     @classmethod
-    def trigger_flow_event(cls, run, webhook_url, node_uuid, msg, action='POST', resthook=None, headers=None):
+    def trigger_flow_webhook(cls, run, webhook_url, node_uuid, msg, action='POST', resthook=None, headers=None):
+
         flow = run.flow
-        org = flow.org
         contact = run.contact
+        org = flow.org
+        channel = msg.channel if msg else None
+        contact_urn = msg.contact_urn if msg else contact.get_urn()
+
+        contact_dict = dict(uuid=contact.uuid, name=contact.name)
+        if contact_urn:
+            contact_dict['urn'] = contact_urn.urn
+
+        post_data = {
+            'contact': contact_dict,
+            'flow': dict(name=flow.name, uuid=flow.uuid),
+            'path': run.get_path(),
+            'results': run.get_results(),
+            'run': dict(uuid=six.text_type(run.uuid), created_on=run.created_on.isoformat())
+        }
+
+        if msg and msg.id > 0:
+            post_data['input'] = dict(urn=msg.contact_urn.urn if msg.contact_urn else None, text=msg.text, attachments=(msg.attachments or []))
+
+        if channel:
+            post_data['channel'] = dict(name=channel.name, uuid=channel.uuid)
+
         api_user = get_api_user()
-        json_time = datetime_to_str(timezone.now())
-
-        # get the results for this contact
-        results = run.flow.get_results(run.contact)
-        values = []
-
-        if results and results[0]:
-            values = results[0]['values']
-            for value in values:
-                value['time'] = datetime_to_str(value['time'])
-                value['value'] = six.text_type(value['value'])
-
-        if msg:
-            text = msg.text
-            attachments = msg.get_attachments()
-            channel = msg.channel
-            contact_urn = msg.contact_urn
-        else:
-            # if the action is on the first node we might not have an sms (or channel) yet
-            channel = None
-            text = None
-            attachments = []
-            contact_urn = contact.get_urn()
-
-        steps = []
-        for step in run.steps.prefetch_related('messages', 'broadcasts').order_by('arrived_on'):
-            steps.append(dict(type=step.step_type,
-                              node=step.step_uuid,
-                              arrived_on=datetime_to_str(step.arrived_on),
-                              left_on=datetime_to_str(step.left_on),
-                              text=step.get_text(),
-                              value=step.rule_value))
-
-        data = dict(channel=channel.id if channel else -1,
-                    channel_uuid=channel.uuid if channel else None,
-                    relayer=channel.id if channel else -1,
-                    flow=flow.id,
-                    flow_uuid=flow.uuid,
-                    flow_name=flow.name,
-                    flow_base_language=flow.base_language,
-                    run=run.id,
-                    text=text,
-                    attachments=[a.url for a in attachments],
-                    step=six.text_type(node_uuid),
-                    phone=contact.get_urn_display(org=org, scheme=TEL_SCHEME, formatted=False),
-                    contact=contact.uuid,
-                    contact_name=contact.name,
-                    urn=six.text_type(contact_urn),
-                    values=json.dumps(values),
-                    steps=json.dumps(steps),
-                    time=json_time)
-
         if not action:  # pragma: needs cover
             action = 'POST'
 
-        webhook_event = cls.objects.create(org=org, event=cls.TYPE_FLOW, channel=channel, data=json.dumps(data),
+        webhook_event = cls.objects.create(org=org, event=cls.TYPE_FLOW, channel=channel, data=json.dumps(post_data),
                                            run=run, try_count=1, action=action, resthook=resthook,
                                            created_by=api_user, modified_by=api_user)
 
@@ -286,7 +256,7 @@ class WebHookEvent(SmartModel):
         try:
             # no url, bail!
             if not webhook_url:
-                raise Exception("No webhook_url specified, skipping send")
+                raise ValueError("No webhook_url specified, skipping send")
 
             # only send webhooks when we are configured to, otherwise fail
             if settings.SEND_WEBHOOKS:
@@ -296,7 +266,8 @@ class WebHookEvent(SmartModel):
                 if action == 'GET':
                     response = requests.get(webhook_url, headers=requests_headers, timeout=10)
                 else:
-                    response = requests.post(webhook_url, data=data, headers=requests_headers, timeout=10)
+                    requests_headers['Content-type'] = 'application/json'
+                    response = requests.post(webhook_url, data=json.dumps(post_data), headers=requests_headers, timeout=10)
 
                 body = response.text
                 if body:
@@ -335,7 +306,7 @@ class WebHookEvent(SmartModel):
             message = "Error calling webhook: %s" % six.text_type(e)
 
         finally:
-            webhook_event.save()
+            webhook_event.save(update_fields=('status',))
 
             # make sure our message isn't too long
             if message:
@@ -353,7 +324,7 @@ class WebHookEvent(SmartModel):
                                                   status_code=status_code,
                                                   body=body,
                                                   message=message,
-                                                  data=urlencode(data, doseq=True),
+                                                  data=json.dumps(post_data),
                                                   request_time=request_time,
                                                   created_by=api_user,
                                                   modified_by=api_user)

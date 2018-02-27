@@ -8,11 +8,12 @@ import six
 import time
 import urlparse
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
 from django.template import Engine
 from enum import Enum
 from datetime import timedelta
+from django.template import Context
 from django.conf import settings
 from django.conf.urls import url
 from django.contrib.auth.models import User, Group
@@ -33,7 +34,7 @@ from gcm.gcm import GCM, GCMNotRegisteredException
 from phonenumbers import NumberParseException
 from pyfcm import FCMNotification
 from smartmin.models import SmartModel
-from temba.orgs.models import Org, CHATBASE_TYPE_AGENT
+from temba.orgs.models import Org, CHATBASE_TYPE_AGENT, NEXMO_APP_ID, NEXMO_APP_PRIVATE_KEY, NEXMO_KEY, NEXMO_SECRET
 from temba.utils import analytics, dict_to_struct, dict_to_json, on_transaction_commit, get_anonymous_user
 from temba.utils.email import send_template_email
 from temba.utils.gsm7 import is_gsm7, replace_non_gsm7_accents, calculate_num_segments
@@ -88,6 +89,8 @@ class ChannelType(six.with_metaclass(ABCMeta)):
 
     claim_blurb = None
     claim_view = None
+
+    configuration_blurb = None
 
     update_form = None
 
@@ -155,11 +158,11 @@ class ChannelType(six.with_metaclass(ABCMeta)):
         if IS_PROD setting is True.
         """
 
-    @abstractmethod
-    def send(self, channel, msg, text):
+    def send(self, channel, msg, text):  # pragma: no cover
         """
         Sends the given message struct. Note: this will only be called if SEND_MESSAGES setting is True.
         """
+        raise NotImplemented("sending for channel type '%s' should be done via Courier" % self.__class__.code)
 
     def has_attachment_support(self, channel):
         """
@@ -173,6 +176,15 @@ class ChannelType(six.with_metaclass(ABCMeta)):
         ex: sender.add_periodic_task(300, remap_twitter_ids)
         """
 
+    def get_configuration_blurb(self, channel):
+        """
+        Allows ChannelTypes to define the blurb to show on the channel configuration page.
+        """
+        if self.__class__.configuration_blurb is not None:
+            return Engine.get_default().from_string(self.configuration_blurb).render(context=Context(dict(channel=channel)))
+        else:
+            return ""
+
     def __str__(self):
         return self.name
 
@@ -185,6 +197,7 @@ class Channel(TembaModel):
     TYPE_VIBER = 'VI'
 
     # keys for various config options stored in the channel config dict
+    CONFIG_BASE_URL = 'base_url'
     CONFIG_SEND_URL = 'send_url'
     CONFIG_SEND_METHOD = 'method'
     CONFIG_SEND_BODY = 'body'
@@ -193,6 +206,7 @@ class Channel(TembaModel):
     CONFIG_PASSWORD = 'password'
     CONFIG_KEY = 'key'
     CONFIG_API_ID = 'api_id'
+    CONFIG_API_KEY = 'api_key'
     CONFIG_CONTENT_TYPE = 'content_type'
     CONFIG_VERIFY_SSL = 'verify_ssl'
     CONFIG_USE_NATIONAL = 'use_national'
@@ -202,8 +216,8 @@ class Channel(TembaModel):
     CONFIG_PLIVO_AUTH_TOKEN = 'PLIVO_AUTH_TOKEN'
     CONFIG_PLIVO_APP_ID = 'PLIVO_APP_ID'
     CONFIG_AUTH_TOKEN = 'auth_token'
+    CONFIG_SECRET = 'secret'
     CONFIG_CHANNEL_ID = 'channel_id'
-    CONFIG_CHANNEL_SECRET = 'channel_secret'
     CONFIG_CHANNEL_MID = 'channel_mid'
     CONFIG_FCM_ID = 'FCM_ID'
     CONFIG_MAX_LENGTH = 'max_length'
@@ -215,6 +229,11 @@ class Channel(TembaModel):
     CONFIG_APPLICATION_SID = 'application_sid'
     CONFIG_NUMBER_SID = 'number_sid'
     CONFIG_MESSAGING_SERVICE_SID = 'messaging_service_sid'
+
+    CONFIG_NEXMO_API_KEY = 'nexmo_api_key'
+    CONFIG_NEXMO_API_SECRET = 'nexmo_api_secret'
+    CONFIG_NEXMO_APP_ID = 'nexmo_app_id'
+    CONFIG_NEXMO_APP_PRIVATE_KEY = 'nexmo_app_private_key'
 
     CONFIG_SHORTCODE_MATCHING_PREFIXES = 'matching_prefixes'
 
@@ -359,7 +378,7 @@ class Channel(TembaModel):
         if not schemes:
             raise ValueError("Cannot create channel without schemes")
 
-        if country and schemes != ['tel']:
+        if country and schemes[0] not in ['tel', 'whatsapp']:
             raise ValueError("Only channels handling phone numbers can be country specific")
 
         if config is None:
@@ -442,7 +461,16 @@ class Channel(TembaModel):
         parsed = phonenumbers.parse(channel.address, None)
         nexmo_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
 
-        return Channel.create(user.get_org(), user, channel.country, 'NX', name="Nexmo Sender",
+        org = user.get_org()
+        org_config = org.config_json()
+
+        config = {Channel.CONFIG_NEXMO_APP_ID: org_config.get(NEXMO_APP_ID),
+                  Channel.CONFIG_NEXMO_APP_PRIVATE_KEY: org_config[NEXMO_APP_PRIVATE_KEY],
+                  Channel.CONFIG_NEXMO_API_KEY: org_config[NEXMO_KEY],
+                  Channel.CONFIG_NEXMO_API_SECRET: org_config[NEXMO_SECRET],
+                  Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain()}
+
+        return Channel.create(user.get_org(), user, channel.country, 'NX', name="Nexmo Sender", config=config, tps=1,
                               address=channel.address, role=Channel.ROLE_SEND, parent=channel, bod=nexmo_phone_number)
 
     @classmethod
@@ -528,7 +556,10 @@ class Channel(TembaModel):
         """
         Generates a secret value used for command signing
         """
-        return random_string(length)
+        code = random_string(length)
+        while cls.objects.filter(secret=code):  # pragma: no cover
+            code = random_string(length)
+        return code
 
     @classmethod
     def determine_encoding(cls, text, replace=False):
@@ -718,7 +749,7 @@ class Channel(TembaModel):
         cached = cache.get(key, None)
 
         if cached is None:
-            channel = Channel.objects.filter(pk=channel_id).exclude(org=None).first()
+            channel = Channel.objects.filter(pk=channel_id, is_active=True).first()
 
             # channel has been disconnected, ignore
             if not channel:  # pragma: no cover
@@ -899,19 +930,14 @@ class Channel(TembaModel):
 
         # save off our org and gcm id before nullifying
         org = self.org
-        fcm_id = config.pop(Channel.CONFIG_FCM_ID, None)
+        fcm_id = config.get(Channel.CONFIG_FCM_ID)
 
         if fcm_id is not None:
             registration_id = fcm_id
         else:
             registration_id = self.gcm_id
 
-        # remove all identifying bits from the client
-        self.org = None
-        self.gcm_id = None
-        self.config = json.dumps(config)
-        self.secret = None
-        self.claim_code = None
+        # make the channel inactive
         self.is_active = False
         self.save()
 
@@ -1241,7 +1267,7 @@ class Channel(TembaModel):
 
         # update the number of sms it took to send this if it was more than 1
         if len(parts) > 1:
-            Msg.objects.filter(pk=msg.id).update(msg_count=len(parts))
+            Msg.objects.filter(id=msg.id).update(msg_count=len(parts))
 
     @classmethod
     def track_status(cls, channel, status):
@@ -1399,6 +1425,7 @@ class ChannelEvent(models.Model):
     TYPE_NEW_CONVERSATION = 'new_conversation'
     TYPE_REFERRAL = 'referral'
     TYPE_FOLLOW = 'follow'
+    TYPE_STOP_CONTACT = 'stop_contact'
 
     EXTRA_REFERRER_ID = 'referrer_id'
 
@@ -1408,6 +1435,7 @@ class ChannelEvent(models.Model):
                    (TYPE_CALL_OUT_MISSED, _("Missed Outgoing Call"), 'call-out-missed'),
                    (TYPE_CALL_IN, _("Incoming Call"), 'call-in'),
                    (TYPE_CALL_IN_MISSED, _("Missed Incoming Call"), 'call-in-missed'),
+                   (TYPE_STOP_CONTACT, _("Stop Contact"), 'stop-contact'),
                    (TYPE_NEW_CONVERSATION, _("New Conversation"), 'new-conversation'),
                    (TYPE_REFERRAL, _("Referral"), 'referral'),
                    (TYPE_FOLLOW, _("Follow"), 'follow'))
@@ -1440,10 +1468,7 @@ class ChannelEvent(models.Model):
         from temba.triggers.models import Trigger
 
         org = channel.org
-        user = get_anonymous_user()
-
-        contact = Contact.get_or_create(org, user, name=None, urns=[urn], channel=channel)
-        contact_urn = contact.urn_objects[urn]
+        contact, contact_urn = Contact.get_or_create(org, urn, channel, name=None, user=get_anonymous_user())
 
         extra_json = None if not extra else json.dumps(extra)
         event = cls.objects.create(org=org, channel=channel, contact=contact, contact_urn=contact_urn,
@@ -1467,6 +1492,7 @@ class ChannelEvent(models.Model):
         Handles takes care of any processing of this channel event that needs to take place, such as
         trigger any flows based on new conversations or referrals.
         """
+        from temba.contacts.models import Contact
         from temba.triggers.models import Trigger
         handled = False
 
@@ -1479,6 +1505,13 @@ class ChannelEvent(models.Model):
 
         elif self.event_type == ChannelEvent.TYPE_FOLLOW:
             handled = Trigger.catch_triggers(self, Trigger.TYPE_FOLLOW, self.channel)
+
+        elif self.event_type == ChannelEvent.TYPE_STOP_CONTACT:
+            user = get_anonymous_user()
+            contact, urn_obj = Contact.get_or_create(self.org, self.contact_urn.urn, self.channel)
+
+            contact.stop(user)
+            handled = True
 
         return handled
 

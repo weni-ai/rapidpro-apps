@@ -609,7 +609,7 @@ def sync(request, channel_id):
 
                     # catchall for commands that deal with a single message
                     if 'msg_id' in cmd:
-                        msg = Msg.objects.filter(pk=cmd['msg_id'], org=channel.org).first()
+                        msg = Msg.objects.filter(id=cmd['msg_id'], org=channel.org).first()
                         if msg:
                             if msg.direction == OUTGOING:
                                 handled = msg.update(cmd)
@@ -1629,6 +1629,10 @@ class ChannelCRUDL(SmartCRUDL):
             context['domain'] = self.object.callback_domain
             context['ip_addresses'] = settings.IP_ADDRESSES
 
+            # populate with our channel type
+            channel_type = Channel.get_type_from_code(self.object.channel_type)
+            context['configuration_blurb'] = channel_type.get_configuration_blurb(self.object)
+
             return context
 
     class ClaimAndroid(OrgPermsMixin, SmartFormView):
@@ -1706,7 +1710,7 @@ class ChannelCRUDL(SmartCRUDL):
 
             # everybody else goes to a different page depending how many channels there are
             org = self.request.user.get_org()
-            channels = list(Channel.objects.filter(org=org, is_active=True).exclude(org=None))
+            channels = list(Channel.objects.filter(org=org, is_active=True))
 
             if len(channels) == 0:
                 return HttpResponseRedirect(reverse('channels.channel_claim'))

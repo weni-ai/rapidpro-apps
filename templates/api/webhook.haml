@@ -192,42 +192,60 @@
   :markdown
     ### Flow Events
 
-    If you choose to have your webhook called when a user reaches a particular point in a flow, this is the resulting
-    event. You will receive the phone number of the contact, flow name and their state in the flow.
-
-    Say that a user reaches an API node in a flow, we will ```POST``` the following to your webhook.
-
-        POST http://www.yourapp.com/app.php?password=akabanga
-        event=flow&relayer=254&relayer_phone=%2B250788111111&phone=%2B250788123123&flow=1524&step=12341234-1234-1234-1234-1234-12341234&values=[]
+    If you choose to POST to a webhook when a user reaches a particular point in a flow, the following
+    JSON payload will be included as the body
 
     <table class="table table-params">
-        <tr><td>event</td><td><code>flow</code></td></tr>
-        <tr><td>relayer</td><td>The id of the channel that is executing this flow</td></tr>
-        <tr><td>relayer_phone</td><td>The phone number of the channel that is executing this flow</td></tr>
-        <tr><td>phone</td><td>The phone number of the contact that has reached this point in the flow</td></tr>
-        <tr><td>flow</td><td>The id of the flow that received an event (use the URL on your flow page for reference)</td></tr>
-        <tr><td>flow_name</td><td>The name of the flow that received an event</td></tr>
-        <tr><td>flow_base_language</td><td>The base language of the flow that received an event</td></tr>
-        <tr><td>step</td><td>The step that triggered this API call, use the flow step for reference</td></tr>
-        <tr><td>values</td><td>The values collected from the user so far through this flow, in order of collection time</td></tr>
+        <tr><td>flow</td><td>The name and UUID of the flow that triggered the webhook</td></tr>
+        <tr><td>contact</td><td>The name, UUID, and urn of the contact in the flow</td></tr>
+        <tr><td>channel</td><td>The name and UUID of the channel the run is going over</td></tr>
+        <tr><td>path</td><td>A list of node UUIDs along with when the contact arrived there and where they whent next</td></tr>
+        <tr><td>results</td><td>A map of result keys to values collected during the flow</td></tr>
+        <tr><td>run</td><td>The UUID and date the run was started on</td></tr>
     </table>
 
-    The values parameter will be JSON encoded in the following format:
+    For example, the webhook POST body will look something similar to the following:
 
-        "values": [
-          { "label": "Water Source", "category": "Stream", "text": "from stream", "value": "Stream", "time": "2013-01-01T05:35:32.012" },
-          { "label": "Boil", "category": "Yes", "text": "yego", "value": "Yes", "time": "2013-01-01T05:36:54.012" },
-          { "label": "Household Members", "category": "All", "value": "15", "text": "15", "time": "2013-01-01T05:58:32.012" }
-        ]
-
-     <table class="table table-params">
-        <tr><td>label</td><td>The label for the rule set</td></tr>
-        <tr><td>category</td><td>How the user's response was categorized</td></tr>
-        <tr><td>value</td><td>The value that was parsed from the user's response, for example just the number in a numeric response"</td></tr>
-        <tr><td>text</td><td>The full text of the user's response</td></tr>
-        <tr><td>time</td><td>The time that the user responded, in JSON format: 2013-01-01T05:34:34.034</td></tr>
-    </table>
-
+        {
+            "flow": {
+                "name": "Water Survey",
+                "uuid": "13fed2d2-160e-48e5-b52e-6eea3f74f27d"
+            },
+            "contact": {
+                "uuid": "dc2b3709-3261-465f-b39a-fc7312b2ab95",
+                "name": "Ben Haggerty",
+                "urn": "tel:+12065551212"
+            },
+            "channel": {
+                "name": "Twilio +12065552020",
+                "uuid": "f49d3dd6-beef-40ba-b86b-f526c649175c"
+            },
+            "run": {
+                "uuid": "7facea33-9fbc-4bdd-ba63-b2600cd4f69b",
+                "created_on":"2014-06-03T08:20:03.242525+00:00"
+            },
+            "path": [
+                {
+                    "node_uuid": "40019102-e621-4b88-acd2-1288961dc214",
+                    "arrived_on": "2014-06-03T08:21:09.865526+00:00",
+                    "exit_uuid": "207d919d-ac4d-451a-9892-3ceca16430ff"
+                },
+                {
+                    "node_uuid": "207d919d-ac4d-451a-9892-3ceca16430ff",
+                    "arrived_on": "2014-06-03T08:21:09.865526+00:00"
+                }
+            ],
+            "results": {
+                "water_source": {
+                    "node_uuid": "40019102-e621-4b88-acd2-1288961dc214",
+                    "name": "Water Source",
+                    "category": "Stream",
+                    "value": "stream",
+                    "input": "stream",
+                    "created_on": "2017-12-05T16:47:57.875680+00:00"
+                }
+            }
+        }
 
 -block extra-script
   {{ block.super }}
