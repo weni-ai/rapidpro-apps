@@ -125,3 +125,6 @@ ansible/site.retry
 
 # sublime projects
 *.sublime*
+
+# VS Code projects
+.vscode/
