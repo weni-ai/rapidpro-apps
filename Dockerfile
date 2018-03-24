@@ -9,12 +9,13 @@ RUN apt-get update && apt-get upgrade -y
 
 RUN apt-get install -qyy \
     -o APT::Install-Recommends=false -o APT::Install-Suggests=false \
-    build-essential python-imaging git python-setuptools  ncurses-dev python-virtualenv  python-pip postgresql-client-9.3 libpq-dev \
+    build-essential python-imaging git python-setuptools ncurses-dev python-virtualenv postgresql-client-9.3 libpq-dev \
     libpython-dev lib32ncurses5-dev pypy libffi6 openssl libgeos-dev \
     coffeescript node-less yui-compressor gcc libreadline6 libreadline6-dev patch libffi-dev libssl-dev libxml2-dev libxslt1-dev  python-dev \
     python-zmq libzmq-dev nginx libpcre3 libpcre3-dev supervisor wget libjpeg-dev libjpeg-turbo8-dev libmagic-dev
 
 WORKDIR /tmp
+RUN easy_install pip
 RUN wget http://download.osgeo.org/gdal/1.11.0/gdal-1.11.0.tar.gz
 RUN tar xvfz gdal-1.11.0.tar.gz
 RUN cd gdal-1.11.0;./configure --with-python; make -j4; make install
@@ -45,7 +46,7 @@ RUN python manage.py collectstatic --noinput
 
 RUN touch `echo $RANDOM`.txt
 
-RUN python manage.py compress --extension=.haml
+RUN python manage.py compress --extension=".haml" --force -v0
 
 #Nginx setup
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
