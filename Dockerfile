@@ -46,7 +46,7 @@ RUN python manage.py collectstatic --noinput
 
 RUN touch `echo $RANDOM`.txt
 
-RUN python manage.py compress --extension=".haml" --force -v0
+RUN python manage.py compress --extension=".haml" --force
 
 #Nginx setup
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
