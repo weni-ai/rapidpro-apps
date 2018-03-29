@@ -22,13 +22,13 @@ RUN cd gdal-1.11.0;./configure --with-python; make -j4; make install
 RUN ldconfig
 RUN wget http://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem -O /usr/local/share/ca-certificates/rds.crt
 RUN update-ca-certificates
+RUN pip install -U requests[security]
 RUN rm -rf /tmp/*
 #RapidPro setup
 RUN mkdir /rapidpro
 WORKDIR /rapidpro
 RUN virtualenv env
 RUN . env/bin/activate
-RUN pip install requests[security]
 ADD pip-freeze.txt /rapidpro/pip-freeze.txt
 RUN pip install -r pip-freeze.txt
 RUN pip install uwsgi
@@ -61,6 +61,7 @@ EXPOSE 8000
 EXPOSE 80
 
 COPY docker-entrypoint.sh /rapidpro/
+RUN /usr/local/bin/pip install -U requests[security]
 
 ENTRYPOINT ["/rapidpro/docker-entrypoint.sh"]
 
@@ -68,5 +69,4 @@ CMD ["supervisor"]
 
 #Image cleanup
 RUN apt-get clean
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*[~]$ 
-
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*[~]$
