@@ -972,6 +972,10 @@ CELERYBEAT_SCHEDULE = {
         'task': 'squash_contactgroupcounts',
         'schedule': timedelta(seconds=300),
     },
+    "refresh-whatsapp-tokens": {
+        'task': 'refresh_whatsapp_tokens',
+        'schedule': timedelta(hours=24)
+    }
 }
 
 # Mapping of task name to task function path, used when CELERY_ALWAYS_EAGER is set to True
