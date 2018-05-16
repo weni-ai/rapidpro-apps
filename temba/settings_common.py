@@ -1148,6 +1148,7 @@ CHANNEL_TYPES = [
     'temba.channels.types.macrokiosk.MacrokioskType',
     'temba.channels.types.mtarget.MtargetType',
     'temba.channels.types.mblox.MbloxType',
+    'temba.channels.types.messangi.MessangiType',
     'temba.channels.types.plivo.PlivoType',
     'temba.channels.types.redrabbit.RedRabbitType',
     'temba.channels.types.shaqodoon.ShaqodoonType',
@@ -1215,7 +1216,7 @@ FLOW_SERVER_FORCE = False
 # -----------------------------------------------------------------------------------
 # Which channel types will be sent using Courier instead of RapidPro
 # -----------------------------------------------------------------------------------
-COURIER_CHANNELS = set(['CT', 'DK', 'MT', 'WA', 'ZV'])
+COURIER_CHANNELS = set(['CT', 'DK', 'MT', 'WA', 'ZV', 'MG'])
 
 # -----------------------------------------------------------------------------------
 # Chatbase integration
