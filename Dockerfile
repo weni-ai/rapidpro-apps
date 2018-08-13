@@ -1,9 +1,10 @@
 FROM ilha/rapidpro-base:base
 
-RUN wget http://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem -O /usr/local/share/ca-certificates/rds.crt
-RUN update-ca-certificates
+RUN apt-get install varnish wget -y
 
-RUN apt-get install varnish -y
+RUN wget http://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem \
+    -O /usr/local/share/ca-certificates/rds.crt
+RUN update-ca-certificates
 
 COPY varnish.default.vcl /etc/varnish/default.vcl
 
