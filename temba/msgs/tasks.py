@@ -82,7 +82,6 @@ def process_message(msg, new_message=False, new_contact=False):
     """
     Processes the passed in message dealing with new contacts or mage messages appropriately.
     """
-    print("M[%09d] Processing - %s" % (msg.id, msg.text))
     start = time.time()
 
     # if message was created in Mage...
@@ -92,7 +91,6 @@ def process_message(msg, new_message=False, new_contact=False):
             handle_new_contact(msg.org, msg.contact)
 
     Msg.process_message(msg)
-    print("M[%09d] %08.3f s - %s" % (msg.id, time.time() - start, msg.text))
 
 
 @task(track_started=True, name='process_message_task')

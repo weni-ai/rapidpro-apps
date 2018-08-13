@@ -7,7 +7,7 @@ from six.moves.urllib.parse import urlencode
 from django import forms
 from django.contrib.auth import authenticate, login
 from django.core.cache import cache
-from django.db.models import Prefetch
+from django.db.models import Q, Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, mixins, status, pagination, views
@@ -16,7 +16,7 @@ from rest_framework.reverse import reverse
 from smartmin.views import SmartFormView
 from temba.api.models import APIToken
 from temba.contacts.models import Contact, ContactField, ContactGroup, TEL_SCHEME
-from temba.flows.models import Flow, FlowRun
+from temba.flows.models import Flow, FlowRun, FlowStep, RuleSet
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.utils import splitting_getlist, str_to_bool
 from temba.utils.dates import json_date_to_datetime
@@ -483,7 +483,7 @@ class BoundaryEndpoint(ListAPIMixin, BaseAPIView):
         }
 
     """
-    permission = 'orgs.org_surveyor'
+    permission = 'locations.adminboundary_api'
     model = AdminBoundary
 
     def get_queryset(self):
@@ -492,7 +492,9 @@ class BoundaryEndpoint(ListAPIMixin, BaseAPIView):
         if not org.country:  # pragma: needs cover
             return []
 
-        queryset = org.country.get_descendants(include_self=True).order_by('level', 'name')
+        queryset = self.model.objects.filter(Q(pk=org.country.pk) |
+                                             Q(parent=org.country) |
+                                             Q(parent__parent=org.country)).order_by('level', 'name')
 
         if self.request.GET.get('aliases'):
             queryset = queryset.prefetch_related(
