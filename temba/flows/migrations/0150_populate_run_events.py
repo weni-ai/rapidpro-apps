@@ -128,7 +128,7 @@ def fill_path_and_events(run, action_set_uuid_to_exit, cache):
             exit_uuid = exit_uuid_for_step(step, previous_exit_uuids, action_set_uuid_to_exit, cache)
             path_step[PATH_EXIT_UUID] = exit_uuid
 
-        if path_step[PATH_EXIT_UUID]:
+        if path_step.get(PATH_EXIT_UUID, None):
             run.path.append(path_step)
 
         step_events = []
