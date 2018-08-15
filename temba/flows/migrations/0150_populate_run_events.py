@@ -72,7 +72,7 @@ def serialize_broadcast(bcast, flow, contact):
 
 
 def exit_uuid_for_step(step, prev_used, action_set_objs, cache):
-    if step.step_type == 'R':
+    if step.step_type == 'R' and step.rule_uuid:
         return step.rule_uuid
 
     exit_uuid = prev_used.get(step.step_uuid)
@@ -128,8 +128,7 @@ def fill_path_and_events(run, action_set_uuid_to_exit, cache):
             exit_uuid = exit_uuid_for_step(step, previous_exit_uuids, action_set_uuid_to_exit, cache)
             path_step[PATH_EXIT_UUID] = exit_uuid
 
-        if path_step.get(PATH_EXIT_UUID, None):
-            run.path.append(path_step)
+        run.path.append(path_step)
 
         step_events = []
 
