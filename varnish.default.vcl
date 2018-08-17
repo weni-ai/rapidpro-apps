@@ -9,7 +9,7 @@ sub vcl_recv {
     if (req.url ~ "^/sitestatic/") {
         return (hash);
     } else {
-    	return (pipe);
+        return (pipe);
     }
 }
 
