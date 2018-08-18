@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from temba.channels.types.twiml_api.views import ClaimView
 from temba.contacts.models import TEL_SCHEME
-from ...models import Channel, ChannelType
+from ...models import ChannelType
 
 
 class TwimlAPIType(ChannelType):
@@ -19,6 +19,8 @@ class TwimlAPIType(ChannelType):
     name = "TwiML Rest API"
     slug = "twiml_api"
     icon = "icon-channel-twilio"
+
+    courier_url = r'^tw/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$'
 
     schemes = [TEL_SCHEME]
     max_length = 1600
@@ -48,11 +50,7 @@ class TwimlAPIType(ChannelType):
         ),
         dict(
             label=_(""),
-            url="https://{{ channel.callback_domain }}{% url 'handlers.twiml_api_handler' channel.uuid %}",
+            url="https://{{ channel.callback_domain }}{% url 'courier.tw' channel.uuid 'receive' %}",
             description=_("Incoming messages for this channel will be sent to this endpoint."),
         )
     )
-
-    def send(self, channel, msg, text):
-        # use regular Twilio channel sending
-        return Channel.get_type_from_code('T').send(channel, msg, text)

@@ -8,31 +8,28 @@ import json
 import pycountry
 import pytz
 import six
-import time
 import os
 
 from celery.app.task import Task
 from decimal import Decimal
 from django.conf import settings
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
 from django.core import checks
 from django.core.management import call_command, CommandError
 from django.core.urlresolvers import reverse
 from django.db import models, connection
-from django.test import override_settings, SimpleTestCase, TestCase
+from django.test import override_settings, TestCase, TransactionTestCase
 from django.utils import timezone
 from django_redis import get_redis_connection
 from mock import patch, PropertyMock
 from openpyxl import load_workbook
+from smartmin.tests import SmartminTestMixin
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactGroupCount, ExportContactsTask
-from temba.locations.models import AdminBoundary
-from temba.msgs.models import Msg, SystemLabelCount
-from temba.flows.models import FlowRun
 from temba.orgs.models import Org, UserSettings
-from temba.tests import TembaTest, matchers
+from temba.tests import TembaTest, matchers, ESMockWithScroll
 from temba_expressions.evaluator import EvaluationContext, DateStyle
 
-from . import format_decimal, json_to_dict, dict_to_struct, dict_to_json, str_to_bool, percentage, datetime_to_json_date
+from . import format_number, json_to_dict, dict_to_struct, dict_to_json, str_to_bool, percentage, datetime_to_json_date
 from . import chunk_list, get_country_code_by_name, voicexml, json_date_to_datetime
 from .cache import get_cacheable_result, get_cacheable_attr, incrby_existing, QueueRecord
 from .currencies import currency_for_country
@@ -45,12 +42,12 @@ from .expressions import _build_function_signature
 from .gsm7 import is_gsm7, replace_non_gsm7_accents, calculate_num_segments
 from .http import http_headers
 from .nexmo import NCCOException, NCCOResponse
-from .profiler import time_monitor
 from .queues import start_task, complete_task, push_task, HIGH_PRIORITY, LOW_PRIORITY, nonoverlapping_task
 from .timezones import TimeZoneFormField, timezone_to_country_code
 from .text import clean_string, decode_base64, truncate, slugify_with, random_string
 from .voicexml import VoiceXMLException
 from .models import JSONAsTextField
+from .locks import NonBlockingLock, LockNotAcquiredException
 
 
 class InitTest(TembaTest):
@@ -99,15 +96,19 @@ class InitTest(TembaTest):
         self.assertTrue(str_to_bool('1'))
 
     def test_format_decimal(self):
-        self.assertEqual('', format_decimal(None))
-        self.assertEqual('0', format_decimal(Decimal('0.0')))
-        self.assertEqual('10', format_decimal(Decimal('10')))
-        self.assertEqual('100', format_decimal(Decimal('100.0')))
-        self.assertEqual('123', format_decimal(Decimal('123')))
-        self.assertEqual('123', format_decimal(Decimal('123.0')))
-        self.assertEqual('123.34', format_decimal(Decimal('123.34')))
-        self.assertEqual('123.34', format_decimal(Decimal('123.3400000')))
-        self.assertEqual('-123', format_decimal(Decimal('-123.0')))
+        self.assertEqual('', format_number(None))
+        self.assertEqual('0', format_number(Decimal('0.0')))
+        self.assertEqual('10', format_number(Decimal('10')))
+        self.assertEqual('100', format_number(Decimal('100.0')))
+        self.assertEqual('123', format_number(Decimal('123')))
+        self.assertEqual('123', format_number(Decimal('123.0')))
+        self.assertEqual('123.34', format_number(Decimal('123.34')))
+        self.assertEqual('123.34', format_number(Decimal('123.3400000')))
+        self.assertEqual('-123', format_number(Decimal('-123.0')))
+        self.assertEqual('-12300', format_number(Decimal('-123E+2')))
+        self.assertEqual('-12350', format_number(Decimal('-123.5E+2')))
+        self.assertEqual('-1.235', format_number(Decimal('-123.5E-2')))
+        self.assertEqual('', format_number(Decimal('NaN')))
 
     def test_slugify_with(self):
         self.assertEqual('foo_bar', slugify_with('foo bar'))
@@ -203,6 +204,9 @@ class DatesTest(TembaTest):
             self.assertIsNone(str_to_datetime('03-12-99999', tz))  # year out of range
 
             self.assertEqual(tz.localize(datetime.datetime(2013, 2, 1, 3, 4, 5, 6)),
+                             str_to_datetime(' 2013-02-01 ', tz, dayfirst=True))  # iso
+
+            self.assertEqual(tz.localize(datetime.datetime(2013, 2, 1, 3, 4, 5, 6)),
                              str_to_datetime('01-02-2013', tz, dayfirst=True))  # day first
 
             self.assertEqual(tz.localize(datetime.datetime(2013, 1, 2, 3, 4, 5, 6)),
@@ -213,6 +217,18 @@ class DatesTest(TembaTest):
                              str_to_datetime('01-02-13', tz, dayfirst=False))
             self.assertEqual(tz.localize(datetime.datetime(1999, 1, 2, 3, 4, 5, 6)),
                              str_to_datetime('01-02-99', tz, dayfirst=False))
+
+            # no two digit iso date
+            self.assertEqual(None,
+                             str_to_datetime('99-02-01', tz, dayfirst=False))
+
+            # no single digit months in iso date
+            self.assertEqual(None,
+                             str_to_datetime('1999-2-1', tz, dayfirst=False))
+
+            # iso date must stand alone
+            self.assertEqual(None,
+                             str_to_datetime('not 1999-02-01', tz, dayfirst=False))
 
             self.assertEqual(tz.localize(datetime.datetime(2013, 2, 1, 7, 8, 0, 0)),
                              str_to_datetime('01-02-2013 07:08', tz, dayfirst=True))  # hour and minute provided
@@ -782,9 +798,7 @@ class ExpressionsTest(TembaTest):
     def setUp(self):
         super(ExpressionsTest, self).setUp()
 
-        contact = self.create_contact("Joe Blow", "123")
-        contact.language = u'eng'
-        contact.save()
+        contact = self.create_contact("Joe Blow", "123", language='eng')
 
         variables = dict()
         variables['contact'] = contact.build_expressions_context()
@@ -1653,37 +1667,13 @@ class MiddlewareTest(TembaTest):
         self.assertContains(self.client.get(reverse('contacts.contact_list')), "Importer des contacts")
 
 
-class ProfilerTest(TembaTest):
-    @time_monitor(threshold=50)
-    def foo(self, bar):
-        time.sleep(bar / 1000.0)
-
-    @patch('logging.Logger.error')
-    def test_time_monitor(self, mock_error):
-        self.foo(1)
-        self.assertEqual(len(mock_error.mock_calls), 0)
-
-        self.foo(51)
-        self.assertEqual(len(mock_error.mock_calls), 1)
-
-
-class MakeTestDBTest(SimpleTestCase):
-    """
-    This command can't be run in a transaction so we have to manually ensure all data is deleted on completion
-    """
-    allow_database_queries = True
-
-    def tearDown(self):
-        Msg.objects.all().delete()
-        FlowRun.objects.all().delete()
-        SystemLabelCount.objects.all().delete()
-        Org.objects.all().delete()
-        User.objects.all().delete()
-        Group.objects.all().delete()
-        AdminBoundary.objects.all().delete()
+class MakeTestDBTest(SmartminTestMixin, TransactionTestCase):
 
     def test_command(self):
-        call_command('test_db', 'generate', num_orgs=3, num_contacts=30, seed=1234)
+        self.create_anonymous_user()
+
+        with ESMockWithScroll():
+            call_command('test_db', 'generate', num_orgs=3, num_contacts=30, seed=1234)
 
         org1, org2, org3 = tuple(Org.objects.order_by('id'))
 
@@ -1694,7 +1684,12 @@ class MakeTestDBTest(SimpleTestCase):
         assertOrgCounts(ContactField.objects.all(), [6, 6, 6])
         assertOrgCounts(ContactGroup.user_groups.all(), [10, 10, 10])
         assertOrgCounts(Contact.objects.filter(is_test=True), [4, 4, 4])  # 1 for each user
-        assertOrgCounts(Contact.objects.filter(is_test=False), [17, 7, 6])
+
+        if six.PY2:
+            # approved by Nic Pottier :)
+            assertOrgCounts(Contact.objects.filter(is_test=False), [17, 7, 6])
+        else:
+            assertOrgCounts(Contact.objects.filter(is_test=False), [18, 8, 4])
 
         org_1_all_contacts = ContactGroup.system_groups.get(org=org1, name="All Contacts")
 
@@ -1702,7 +1697,14 @@ class MakeTestDBTest(SimpleTestCase):
         self.assertEqual(list(ContactGroupCount.objects.filter(group=org_1_all_contacts).values_list('count')), [(17,)])
 
         # same seed should generate objects with same UUIDs
-        self.assertEqual(ContactGroup.user_groups.order_by('id').first().uuid, 'ea60312b-25f5-47a0-8ac7-4fe0c2064f3e')
+        if six.PY2:
+            # approved by Nic Pottier :)
+            self.assertEqual(ContactGroup.user_groups.order_by('id').first().uuid, 'ea60312b-25f5-47a0-8ac7-4fe0c2064f3e')
+        else:
+            self.assertEqual(ContactGroup.user_groups.order_by('id').first().uuid, '12b01ad0-db44-462d-81e6-dc0995c13a79')
+
+        # check if contact fields are serialized
+        self.assertIsNotNone(Contact.objects.filter(is_test=False).first().fields)
 
         # check generate can't be run again on a now non-empty database
         with self.assertRaises(CommandError):
@@ -1849,3 +1851,27 @@ class MatchersTest(TembaTest):
         self.assertEqual("85ecbe45-e2df-4785-8fc8-16fa941e0a79", matchers.UUID4String())
         self.assertNotEqual(None, matchers.UUID4String())
         self.assertNotEqual("abc", matchers.UUID4String())
+
+
+class NonBlockingLockTest(TestCase):
+
+    def test_nonblockinglock(self):
+        with NonBlockingLock(redis=get_redis_connection(), name='test_nonblockinglock', timeout=5) as lock:
+            # we are able to get the initial lock
+            self.assertTrue(lock.acquired)
+
+            with NonBlockingLock(redis=get_redis_connection(), name='test_nonblockinglock', timeout=5) as lock:
+                # but we are not able to get it the second time
+                self.assertFalse(lock.acquired)
+                # we need to terminate the execution
+                lock.exit_if_not_locked()
+
+        def raise_exception():
+            with NonBlockingLock(redis=get_redis_connection(), name='test_nonblockinglock', timeout=5) as lock:
+                if not lock.acquired:
+                    raise LockNotAcquiredException
+
+                raise Exception
+
+        # any other exceptions are handled as usual
+        self.assertRaises(Exception, raise_exception)

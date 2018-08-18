@@ -16,7 +16,7 @@ from temba.locations.models import AdminBoundary
 from temba.msgs.models import Broadcast, Msg
 from temba.orgs.models import get_current_export_version
 from temba.utils.dates import datetime_to_json_date
-from temba.values.models import Value
+from temba.values.constants import Value
 
 # Maximum number of items that can be passed to bulk action endpoint. We don't currently enforce this for messages but
 # we may in the future.
@@ -205,8 +205,7 @@ class ContactReadSerializer(ReadSerializer):
             return fields
 
         for contact_field in self.context['contact_fields']:
-            value = obj.get_field(contact_field.key)
-            fields[contact_field.key] = Contact.serialize_field_value(contact_field, value)
+            fields[contact_field.key] = obj.get_field_serialized(contact_field)
         return fields
 
     def get_tel(self, obj):
@@ -261,7 +260,7 @@ class ContactWriteSerializer(WriteSerializer):
             for urn in value:
                 try:
                     normalized = URN.normalize(urn)
-                    scheme, path, display = URN.to_parts(normalized)
+                    scheme, path, query, display = URN.to_parts(normalized)
                     # for backwards compatibility we don't validate phone numbers here
                     if scheme != TEL_SCHEME and not URN.validate(normalized):  # pragma: needs cover
                         raise ValueError()
@@ -378,7 +377,7 @@ class ContactWriteSerializer(WriteSerializer):
         # Contact.get_or_create doesn't nullify language so do that here
         if 'language' in self.validated_data and language is None:
             self.instance.language = language.lower() if language else None
-            self.instance.save()
+            changed.append('language')
 
         # save our contact if it changed
         if changed:
@@ -778,7 +777,7 @@ class MsgCreateSerializer(WriteSerializer):
             country = channel.country
             for urn in phones:
                 try:
-                    tel, phone, display = URN.to_parts(urn)
+                    tel, phone, query, display = URN.to_parts(urn)
                     normalized = phonenumbers.parse(phone, country.code)
                     if not phonenumbers.is_possible_number(normalized):  # pragma: needs cover
                         raise serializers.ValidationError("Invalid phone number: '%s'" % phone)

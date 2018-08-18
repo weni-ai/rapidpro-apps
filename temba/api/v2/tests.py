@@ -25,8 +25,8 @@ from temba.flows.models import Flow, FlowRun, FlowLabel, FlowStart, ReplyAction,
 from temba.locations.models import BoundaryAlias
 from temba.msgs.models import Broadcast, Label, Msg
 from temba.orgs.models import Language
-from temba.tests import TembaTest, AnonymousOrg
-from temba.values.models import Value
+from temba.tests import TembaTest, AnonymousOrg, ESMockWithScroll
+from temba.values.constants import Value
 from uuid import uuid4
 from six.moves.urllib.parse import quote_plus
 from temba.api.models import APIToken, Resthook, WebHookEvent
@@ -709,7 +709,7 @@ class APITest(TembaTest):
 
         flow = self.create_flow()
         reporters = self.create_group("Reporters", [self.joe, self.frank])
-        registration = ContactField.get_or_create(self.org, self.admin, 'registration', "Registration")
+        registration = ContactField.get_or_create(self.org, self.admin, 'registration', "Registration", value_type=Value.TYPE_DATETIME)
 
         # create our contact and set a registration date
         contact = self.create_contact("Joe", "+12065551515")
@@ -1040,7 +1040,7 @@ class APITest(TembaTest):
         hans = self.create_contact("Hans", "0788000004", org=self.org2)
 
         # no filtering
-        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 6):
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 5):
             response = self.fetchJSON(url)
 
         resp_json = response.json()
@@ -1140,7 +1140,8 @@ class APITest(TembaTest):
         self.assertEqual(set(jaqen.user_groups.all()), set())
         self.assertEqual(set(jaqen.values.all()), set())
 
-        dyn_group = self.create_group("Dynamic Group", query="nickname is jado")
+        with ESMockWithScroll():
+            dyn_group = self.create_group("Dynamic Group", query="nickname is jado")
 
         # create with all fields
         response = self.postJSON(url, None, {
@@ -1156,10 +1157,11 @@ class APITest(TembaTest):
         self.assertEqual(resp_json['urns'], ['twitter:jean', 'tel:+250783333333'])
 
         # URNs will be normalized
+        nickname = ContactField.get_by_key(self.org, 'nickname')
         jean = Contact.objects.filter(name="Jean", language='fra').order_by('-pk').first()
         self.assertEqual(set(jean.urns.values_list('identity', flat=True)), {"tel:+250783333333", "twitter:jean"})
         self.assertEqual(set(jean.user_groups.all()), {group, dyn_group})
-        self.assertEqual(jean.get_field('nickname').string_value, "Jado")
+        self.assertEqual(jean.get_field_value(nickname), "Jado")
 
         # create with invalid fields
         response = self.postJSON(url, None, {
@@ -1184,7 +1186,7 @@ class APITest(TembaTest):
         self.assertEqual(jean.language, "fra")
         self.assertEqual(set(jean.urns.values_list('identity', flat=True)), {"tel:+250783333333", "twitter:jean"})
         self.assertEqual(set(jean.user_groups.all()), {group, dyn_group})
-        self.assertEqual(jean.get_field('nickname').string_value, "Jado")
+        self.assertEqual(jean.get_field_value(nickname), "Jado")
 
         # update by UUID and change all fields
         response = self.postJSON(url, 'uuid=%s' % jean.uuid, {
@@ -1201,7 +1203,7 @@ class APITest(TembaTest):
         self.assertEqual(jean.language, "eng")
         self.assertEqual(set(jean.urns.values_list('identity', flat=True)), {'tel:+250784444444'})
         self.assertEqual(set(jean.user_groups.all()), set())
-        self.assertEqual(jean.get_field('nickname').string_value, "John")
+        self.assertEqual(jean.get_field_value(nickname), "John")
 
         # update by URN (which should be normalized)
         response = self.postJSON(url, 'urn=%s' % quote_plus("tel:+250-78-4444444"), {'name': "Jean III"})
@@ -1418,7 +1420,9 @@ class APITest(TembaTest):
 
         group = self.create_group("Testers")
         self.create_field('isdeveloper', "Is developer")
-        self.create_group("Developers", query="isdeveloper = YES")
+
+        with ESMockWithScroll():
+            self.create_group("Developers", query="isdeveloper = YES")
 
         # start contacts in a flow
         flow = self.get_flow('color')
@@ -1811,10 +1815,12 @@ class APITest(TembaTest):
 
         self.create_field('isdeveloper', "Is developer")
         customers = self.create_group("Customers", [self.frank])
-        developers = self.create_group("Developers", query="isdeveloper = YES")
+        with ESMockWithScroll():
+            developers = self.create_group("Developers", query="isdeveloper = YES")
 
-        # a group which is being re-evaluated
-        unready = self.create_group("Big Group", query="isdeveloper=NO")
+            # a group which is being re-evaluated
+            unready = self.create_group("Big Group", query="isdeveloper=NO")
+
         unready.status = ContactGroup.STATUS_EVALUATING
         unready.save(update_fields=('status',))
 
@@ -2085,6 +2091,7 @@ class APITest(TembaTest):
         joe_msg3 = self.create_msg(direction='I', msg_type='F', text="Good", contact=self.joe,
                                    attachments=['image/jpeg:https://example.com/test.jpg'])
         frank_msg3 = self.create_msg(direction='I', msg_type='I', text="Bien", contact=self.frank, channel=self.twitter, visibility='A')
+        frank_msg4 = self.create_msg(direction='O', msg_type='I', text="Ça va?", contact=self.frank, status='F')
 
         # add a surveyor message (no URN etc)
         joe_msg4 = self.create_msg(direction='O', msg_type='F', text="Surveys!", contact=self.joe, contact_urn=None,
@@ -2145,6 +2152,10 @@ class APITest(TembaTest):
         # filter by folder (sent)
         response = self.fetchJSON(url, 'folder=sent')
         self.assertResultsById(response, [joe_msg4, frank_msg2])
+
+        # filter by folder (failed)
+        response = self.fetchJSON(url, 'folder=failed')
+        self.assertResultsById(response, [frank_msg4])
 
         # filter by invalid view
         response = self.fetchJSON(url, 'folder=invalid')
@@ -2290,7 +2301,7 @@ class APITest(TembaTest):
         # allow Frank to run the flow in French
         self.org.set_languages(self.admin, ['eng', 'fra'], 'eng')
         self.frank.language = 'fra'
-        self.frank.save()
+        self.frank.save(update_fields=('language',))
 
         flow1 = self.get_flow('color')
         flow2 = Flow.copy(flow1, self.user)
@@ -2339,6 +2350,7 @@ class APITest(TembaTest):
         resp_json = response.json()
         self.assertEqual(resp_json['results'][2], {
             'id': frank_run2.pk,
+            'uuid': str(frank_run2.uuid),
             'flow': {'uuid': flow1.uuid, 'name': "Color Flow"},
             'contact': {'uuid': self.frank.uuid, 'name': self.frank.name},
             'start': None,
@@ -2355,6 +2367,7 @@ class APITest(TembaTest):
         })
         self.assertEqual(resp_json['results'][4], {
             'id': joe_run1.pk,
+            'uuid': str(joe_run1.uuid),
             'flow': {'uuid': flow1.uuid, 'name': "Color Flow"},
             'contact': {'uuid': self.joe.uuid, 'name': self.joe.name},
             'start': {'uuid': str(joe_run1.start.uuid)},
@@ -2384,6 +2397,17 @@ class APITest(TembaTest):
 
         # filter by id
         response = self.fetchJSON(url, 'id=%d' % frank_run2.pk)
+        self.assertResultsById(response, [frank_run2])
+
+        # filter by uuid
+        response = self.fetchJSON(url, 'uuid=%s' % frank_run2.uuid)
+        self.assertResultsById(response, [frank_run2])
+
+        # filter by mismatching id and uuid
+        response = self.fetchJSON(url, 'uuid=%s&id=%d' % (frank_run2.uuid, joe_run1.pk))
+        self.assertResultsById(response, [])
+
+        response = self.fetchJSON(url, 'uuid=%s&id=%d' % (frank_run2.uuid, frank_run2.pk))
         self.assertResultsById(response, [frank_run2])
 
         # filter by flow

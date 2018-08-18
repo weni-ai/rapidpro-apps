@@ -17,7 +17,7 @@ from temba.msgs.models import QUEUED
 from temba.msgs.tasks import send_broadcast_task
 from temba.utils import on_transaction_commit
 from temba.utils.dates import datetime_to_json_date
-from temba.values.models import Value
+from temba.values.constants import Value
 
 from . import fields
 from .validators import UniqueForOrgValidator
@@ -370,8 +370,7 @@ class ContactReadSerializer(ReadSerializer):
 
         fields = {}
         for contact_field in self.context['contact_fields']:
-            value = obj.get_field(contact_field.key)
-            fields[contact_field.key] = Contact.serialize_field_value(contact_field, value, org=self.context['org'])
+            fields[contact_field.key] = obj.get_field_serialized(contact_field)
         return fields
 
     def get_blocked(self, obj):
@@ -710,7 +709,7 @@ class FlowRunReadSerializer(ReadSerializer):
 
     class Meta:
         model = FlowRun
-        fields = ('id', 'flow', 'contact', 'start', 'responded', 'path', 'values',
+        fields = ('id', 'uuid', 'flow', 'contact', 'start', 'responded', 'path', 'values',
                   'created_on', 'modified_on', 'exited_on', 'exit_type')
 
 

@@ -32,8 +32,8 @@ from temba.msgs.tasks import squash_labelcounts
 from temba.orgs.models import Org
 from temba.orgs.tasks import squash_topupcredits
 from temba.utils import chunk_list
-from temba.utils.dates import ms_to_datetime, datetime_to_str, datetime_to_ms
-from temba.values.models import Value
+from temba.utils.dates import ms_to_datetime, datetime_to_ms
+from temba.values.constants import Value
 
 
 # maximum age in days of database content
@@ -65,7 +65,7 @@ CHANNELS = (
 )
 FIELDS = (
     {'key': 'gender', 'label': "Gender", 'value_type': Value.TYPE_TEXT},
-    {'key': 'age', 'label': "Age", 'value_type': Value.TYPE_DECIMAL},
+    {'key': 'age', 'label': "Age", 'value_type': Value.TYPE_NUMBER},
     {'key': 'joined', 'label': "Joined On", 'value_type': Value.TYPE_DATETIME},
     {'key': 'ward', 'label': "Ward", 'value_type': Value.TYPE_WARD},
     {'key': 'district', 'label': "District", 'value_type': Value.TYPE_DISTRICT},
@@ -419,7 +419,7 @@ class Command(BaseCommand):
 
         # disable table triggers to speed up insertion and in the case of contact group m2m, avoid having an unsquashed
         # count row for every contact
-        with DisableTriggersOn(Contact, ContactURN, Value, ContactGroup.contacts.through):
+        with DisableTriggersOn(Contact, ContactURN, ContactGroup.contacts.through):
             names = [('%s %s' % (c1, c2)).strip() for c2 in CONTACT_NAMES[1] for c1 in CONTACT_NAMES[0]]
             names = [n if n else None for n in names]
 
@@ -454,6 +454,42 @@ class Command(BaseCommand):
                         'created_on': created_on,
                         'modified_on': self.random_date(created_on, self.db_ends_on),
                     }
+
+                    c['fields_as_json'] = {}
+
+                    if c['gender'] is not None:
+                        c['fields_as_json'][six.text_type(org.cache['fields']['gender'].uuid)] = {
+                            'text': six.text_type(c['gender'])
+                        }
+                    if c['age'] is not None:
+                        c['fields_as_json'][six.text_type(org.cache['fields']['age'].uuid)] = {
+                            'text': six.text_type(c['age']),
+                            'decimal': six.text_type(c['age'])
+                        }
+                    if c['joined'] is not None:
+                        c['fields_as_json'][six.text_type(org.cache['fields']['joined'].uuid)] = {
+                            'text': org.format_datetime(c['joined'], show_time=False),
+                            'datetime': timezone.localtime(c['joined'], org.timezone).isoformat()
+                        }
+
+                    if location:
+                        c['fields_as_json'].update({
+                            six.text_type(org.cache['fields']['ward'].uuid): {
+                                'text': six.text_type(c['ward'].path.split(' > ')[-1]),
+                                'ward': c['ward'].path,
+                                'district': c['district'].path,
+                                'state': c['state'].path
+                            },
+                            six.text_type(org.cache['fields']['district'].uuid): {
+                                'text': six.text_type(c['district'].path.split(' > ')[-1]),
+                                'district': c['district'].path,
+                                'state': c['state'].path
+                            },
+                            six.text_type(org.cache['fields']['state'].uuid): {
+                                'text': six.text_type(c['state'].path.split(' > ')[-1]),
+                                'state': c['state'].path
+                            }
+                        })
 
                     # work out which system groups this contact belongs to
                     if c['is_active']:
@@ -495,12 +531,11 @@ class Command(BaseCommand):
                                   is_stopped=c['is_stopped'], is_blocked=c['is_blocked'],
                                   is_active=c['is_active'],
                                   created_by=c['user'], created_on=c['created_on'],
-                                  modified_by=c['user'], modified_on=c['modified_on'])
+                                  modified_by=c['user'], modified_on=c['modified_on'], fields=c['fields_as_json'])
         Contact.objects.bulk_create([c['object'] for c in batch])
 
         # now that contacts have pks, bulk create the actual URN, value and group membership objects
         batch_urns = []
-        batch_values = []
         batch_memberships = []
 
         for c in batch:
@@ -513,31 +548,12 @@ class Command(BaseCommand):
             if c['twitter']:
                 c['urns'].append(ContactURN(org=org, contact=c['object'], priority=50, scheme=TWITTER_SCHEME,
                                             path=c['twitter'], identity=URN.from_twitter(c['twitter'])))
-            if c['gender']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['gender'],
-                                          string_value=c['gender']))
-            if c['age']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['age'],
-                                          string_value=str(c['age']), decimal_value=c['age']))
-            if c['joined']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['joined'],
-                                          string_value=datetime_to_str(c['joined']), datetime_value=c['joined']))
-            if c['ward']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['ward'],
-                                          string_value=c['ward'].name, location_value=c['ward']))
-            if c['district']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['district'],
-                                          string_value=c['district'].name, location_value=c['district']))
-            if c['state']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['state'],
-                                          string_value=c['state'].name, location_value=c['state']))
             for g in c['groups']:
                 batch_memberships.append(ContactGroup.contacts.through(contact=c['object'], contactgroup=g))
 
             batch_urns += c['urns']
 
         ContactURN.objects.bulk_create(batch_urns)
-        Value.objects.bulk_create(batch_values)
         ContactGroup.contacts.through.objects.bulk_create(batch_memberships)
 
     def simulate_activity(self, orgs, num_runs):

@@ -14,7 +14,7 @@ import six
 import stripe
 import traceback
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
@@ -500,7 +500,7 @@ class Org(SmartModel):
                             channel_prefixes = [sender.address.strip('+')]
 
                         for chan_prefix in channel_prefixes:
-                            for idx in range(prefix, len(chan_prefix)):
+                            for idx in range(prefix, len(chan_prefix) + 1):
                                 if idx >= prefix and chan_prefix[0:idx] == contact_number[0:idx]:
                                     prefix = idx
                                     channel = sender
@@ -995,7 +995,7 @@ class Org(SmartModel):
     def get_dayfirst(self):
         return self.date_format == DAYFIRST
 
-    def format_date(self, datetime, show_time=True):
+    def format_datetime(self, datetime, show_time=True):
         """
         Formats a datetime with or without time using this org's date format
         """
@@ -1003,13 +1003,13 @@ class Org(SmartModel):
         format = formats[1] if show_time else formats[0]
         return datetime_to_str(datetime, format, False, self.timezone)
 
-    def parse_date(self, date_string):
-        if isinstance(date_string, datetime):
-            return date_string
+    def parse_datetime(self, datetime_string):
+        if isinstance(datetime_string, datetime):
+            return datetime_string
 
-        return str_to_datetime(date_string, self.timezone, self.get_dayfirst())
+        return str_to_datetime(datetime_string, self.timezone, self.get_dayfirst())
 
-    def parse_decimal(self, decimal_string):
+    def parse_number(self, decimal_string):
         parsed = None
 
         try:
@@ -1058,6 +1058,14 @@ class Org(SmartModel):
 
         return boundary
 
+    def parse_location_path(self, location_string):
+        """
+        Parses a location path into a single location, returning None if not found
+        """
+        # while technically we could resolve a full boundary path without a country, our policy is that
+        # if you don't have a country set then you don't have locations
+        return AdminBoundary.objects.filter(path__iexact=location_string.strip()).first() if self.country_id and isinstance(location_string, six.string_types) else None
+
     def parse_location(self, location_string, level, parent=None):
         """
         Attempts to parse the passed in location string at the passed in level. This does various tokenizing
@@ -1069,11 +1077,20 @@ class Org(SmartModel):
         if not self.country_id or not isinstance(location_string, six.string_types):
             return []
 
-        # now look up the boundary by full name
-        boundary = self.find_boundary_by_name(location_string, level, parent)
+        boundary = None
 
+        # try it as a path first if it looks possible
+        if level == AdminBoundary.LEVEL_COUNTRY or AdminBoundary.PATH_SEPARATOR in location_string:
+            boundary = self.parse_location_path(location_string)
+            if boundary:
+                boundary = [boundary]
+
+        # try to look up it by full name
         if not boundary:
-            # try removing punctuation and try that
+            boundary = self.find_boundary_by_name(location_string, level, parent)
+
+        # try removing punctuation and try that
+        if not boundary:
             bare_name = regex.sub(r"\W+", " ", location_string, flags=regex.UNICODE | regex.V0).strip()
             boundary = self.find_boundary_by_name(bare_name, level, parent)
 
@@ -1518,9 +1535,13 @@ class Org(SmartModel):
     @cached_property
     def cached_contact_fields(self):
         from temba.contacts.models import ContactField
-        fields = ContactField.objects.filter(org=self, is_active=True)
-        for field in fields:
-            field.org = self
+
+        # build an ordered dictionary of key->contact field
+        fields = OrderedDict()
+        for cf in ContactField.objects.filter(org=self, is_active=True).order_by('key'):
+            cf.org = self
+            fields[cf.key] = cf
+
         return fields
 
     def clear_cached_groups(self):
@@ -2190,9 +2211,11 @@ class TopUp(SmartModel):
             if transfer:
                 comment = _('Transfer from %s' % transfer.topup.org.name)
             else:
-                if self.price > 0:
+                price = -1 if self.price is None else self.price
+
+                if price > 0:
                     comment = _('Purchased Credits')
-                elif self.price == 0:
+                elif price == 0:
                     comment = _('Complimentary Credits')
                 else:
                     comment = _('Credits')

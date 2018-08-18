@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
 import logging
-import pytz
-import regex
-import requests
-import six
 import time
 import traceback
-import uuid
-
 from datetime import datetime, timedelta
+from uuid import uuid4
+
+import pytz
+import regex
+import six
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
@@ -24,20 +22,21 @@ from django.utils.html import escape
 from django.utils.translation import ugettext, ugettext_lazy as _
 from django_redis import get_redis_connection
 from temba_expressions.evaluator import EvaluationContext, DateStyle
-from temba.channels.courier import push_courier_msgs
+
 from temba.assets.models import register_asset_store
-from temba.contacts.models import Contact, ContactGroup, ContactURN, URN
+from temba.channels.courier import push_courier_msgs
 from temba.channels.models import Channel, ChannelEvent
+from temba.contacts.models import Contact, ContactGroup, ContactURN, URN
 from temba.orgs.models import Org, TopUp, Language
 from temba.schedules.models import Schedule
 from temba.utils import analytics, chunk_list, on_transaction_commit, dict_to_json, get_anonymous_user
 from temba.utils.dates import get_datetime_format, datetime_to_str, datetime_to_s
 from temba.utils.export import BaseExportTask, BaseExportAssetStore
 from temba.utils.expressions import evaluate_template
-from temba.utils.http import http_headers
 from temba.utils.models import SquashableModel, TembaModel, TranslatableField, JSONAsTextField
 from temba.utils.queues import DEFAULT_PRIORITY, push_task, LOW_PRIORITY, HIGH_PRIORITY
 from temba.utils.text import clean_string
+from temba.utils.cache import check_and_mark_in_timerange
 from .handler import MessageHandler
 
 logger = logging.getLogger(__name__)
@@ -326,6 +325,10 @@ class Broadcast(models.Model):
         return self.schedule and self.schedule.has_pending_fire()
 
     def fire(self):
+        """
+        Fires a scheduled broadcast, this creates a new broadcast as self here is a placeholder for
+        the broadcast that is scheduled (as opposed to the real broadcast that is being sent)
+        """
         recipients = list(self.urns.all()) + list(self.contacts.all()) + list(self.groups.all())
         broadcast = Broadcast.create(self.org, self.created_by, self.text, recipients,
                                      media=self.media, base_language=self.base_language,
@@ -426,12 +429,26 @@ class Broadcast(models.Model):
         if partial_recipients:
             # if flow is being started, it'll provide a batch of unique contacts itself
             urns, contacts = partial_recipients
-        elif hasattr(self, '_recipient_cache'):
-            # look to see if previous call to update_recipients left a cached value
-            urns, contacts = self._recipient_cache
         else:
-            # otherwise fetch everything and calculate
-            urns, contacts = get_unique_recipients(self.urns.all(), self.contacts.all(), self.groups.all())
+            groups = self.groups.all()
+
+            # if we are sending to groups and any of them are big, make sure we aren't spamming
+            for group in groups:
+                if group.get_member_count() > 30:
+                    bcast_value = '%d_%s' % (group.id, self.text)
+
+                    # have we sent this exact message today or yesterday and with this message?
+                    if check_and_mark_in_timerange('bcasts', 1, bcast_value):
+                        self.status = FAILED
+                        self.save(update_fields=['status'])
+                        raise Exception("Not sending broadcast %d due to duplicate" % self.id)
+
+            if hasattr(self, '_recipient_cache'):
+                # look to see if previous call to update_recipients left a cached value
+                urns, contacts = self._recipient_cache
+            else:
+                # otherwise fetch everything and calculate
+                urns, contacts = get_unique_recipients(self.urns.all(), self.contacts.all(), groups)
 
         Contact.bulk_cache_initialize(self.org, contacts)
         recipients = list(urns) + list(contacts)
@@ -667,7 +684,7 @@ class Msg(models.Model):
 
     MAX_TEXT_LEN = settings.MSG_FIELD_SIZE
 
-    uuid = models.UUIDField(null=True, default=uuid.uuid4,
+    uuid = models.UUIDField(null=True, default=uuid4,
                             help_text=_("The UUID for this message"))
 
     org = models.ForeignKey(Org, related_name='msgs', verbose_name=_("Org"),
@@ -785,7 +802,7 @@ class Msg(models.Model):
                 # now push each onto our queue
                 for msg in msgs:
                     if (msg.msg_type != IVR and msg.channel and msg.channel.channel_type != Channel.TYPE_ANDROID) and msg.topup and not msg.contact.is_test:
-                        if msg.channel.channel_type in settings.COURIER_CHANNELS and msg.uuid:
+                        if msg.channel.channel_type not in settings.LEGACY_CHANNELS and msg.uuid:
                             courier_msgs.append(msg)
                             continue
 
@@ -850,8 +867,6 @@ class Msg(models.Model):
         """
         Processes a message, running it through all our handlers
         """
-        from temba.orgs.models import CHATBASE_TYPE_USER
-
         handlers = get_message_handlers()
 
         if msg.contact.is_blocked:
@@ -878,16 +893,6 @@ class Msg(models.Model):
 
         cls.mark_handled(msg)
 
-        # chatbase parameters to track logs
-        chatbase_not_handled = msg.msg_type != FLOW
-
-        # Sending data to Chatbase API
-        if not msg.contact.is_test:
-            (chatbase_api_key, chatbase_version) = msg.org.get_chatbase_credentials()
-            if chatbase_api_key:
-                cls.send_chatbase_log(chatbase_api_key, chatbase_version, msg.channel.name, msg.text, msg.contact.id,
-                                      CHATBASE_TYPE_USER, chatbase_not_handled)
-
         # record our handling latency for this object
         if msg.queued_on:
             analytics.gauge('temba.handling_latency', (msg.modified_on - msg.queued_on).total_seconds())
@@ -895,34 +900,6 @@ class Msg(models.Model):
         # this is the latency from when the message was received at the channel, which may be different than
         # above if people above us are queueing (or just because clocks are out of sync)
         analytics.gauge('temba.channel_handling_latency', (msg.modified_on - msg.created_on).total_seconds())
-
-    @classmethod
-    def send_chatbase_log(cls, chatbase_api_key, chatbase_version, channel_name, text, contact_id, log_type,
-                          not_handled=True):
-        """
-        Send messages logs in batch to Chatbase
-        """
-        if not settings.SEND_CHATBASE:
-            raise Exception("!! Skipping Chatbase request, SEND_CHATBASE set to False")
-
-        message = {
-            'type': log_type,
-            'user_id': contact_id,
-            'platform': channel_name,
-            'message': text,
-            'time_stamp': int(time.time()),
-            'api_key': chatbase_api_key
-        }
-
-        if chatbase_version:
-            message['version'] = chatbase_version
-
-        if log_type == 'user' and not_handled:
-            message['not_handled'] = not_handled
-
-        headers = http_headers(extra={'Content-Type': 'application/json'})
-
-        requests.post(settings.CHATBASE_API_URL, data=json.dumps(message), headers=headers)
 
     @classmethod
     def get_messages(cls, org, is_archived=False, direction=None, msg_type=None):
@@ -1031,7 +1008,7 @@ class Msg(models.Model):
 
         if external_id:
             Msg.objects.filter(id=msg.id).update(status=status, sent_on=msg.sent_on, external_id=external_id)
-        else:
+        else:  # pragma: no cover
             Msg.objects.filter(id=msg.id).update(status=status, sent_on=msg.sent_on)
 
     def as_json(self):
@@ -1263,13 +1240,8 @@ class Msg(models.Model):
                     metadata=self.metadata,
                     connection_id=self.connection_id)
 
-        if self.contact_urn.auth:
+        if self.contact_urn.auth:  # pragma: no cover
             data.update(dict(auth=self.contact_urn.auth))
-
-        (chatbase_api_key, chatbase_version) = self.org.get_chatbase_credentials()
-        if chatbase_api_key:
-            data.update(dict(chatbase_api_key=chatbase_api_key, chatbase_version=chatbase_version,
-                             is_org_connected_to_chatbase=True))
 
         return data
 
@@ -1412,7 +1384,7 @@ class Msg(models.Model):
     @classmethod
     def create_outgoing(cls, org, user, recipient, text, broadcast=None, channel=None, high_priority=False,
                         created_on=None, response_to=None, expressions_context=None, status=PENDING, insert_object=True,
-                        attachments=None, topup_id=None, msg_type=INBOX, connection=None, quick_replies=None):
+                        attachments=None, topup_id=None, msg_type=INBOX, connection=None, quick_replies=None, uuid=None):
 
         if not org or not user:  # pragma: no cover
             raise ValueError("Trying to create outgoing message with no org or user")
@@ -1527,7 +1499,8 @@ class Msg(models.Model):
                     quick_replies[counter] = value
             metadata = dict(quick_replies=quick_replies)
 
-        msg_args = dict(contact=contact,
+        msg_args = dict(uuid=uuid or uuid4(),
+                        contact=contact,
                         contact_urn=contact_urn,
                         org=org,
                         channel=channel,
@@ -1572,7 +1545,7 @@ class Msg(models.Model):
                 contact = recipient.contact
                 contact_urn = recipient
         elif isinstance(recipient, six.string_types):
-            scheme, path, display = URN.to_parts(recipient)
+            scheme, path, query, display = URN.to_parts(recipient)
             if scheme in resolved_schemes:
                 contact, contact_urn = Contact.get_or_create(org, recipient, user=user)
         else:  # pragma: no cover
