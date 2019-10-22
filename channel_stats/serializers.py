@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.db.models import Sum
 
 from rest_framework import serializers
+from dateutil.relativedelta import relativedelta
 
 from temba.api.v2.serializers import ReadSerializer
 from temba.channels.models import Channel, ChannelCount
@@ -28,7 +29,7 @@ class ChannelStatsReadSerializer(ReadSerializer):
         channel = obj
 
         end_date = (timezone.now() + timedelta(days=1)).date()
-        start_date = end_date - timedelta(days=120)
+        start_date = end_date - relativedelta(months=9)
 
         message_stats = []
         channels = [channel]
