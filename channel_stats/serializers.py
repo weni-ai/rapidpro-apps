@@ -29,7 +29,7 @@ class ChannelStatsReadSerializer(ReadSerializer):
         channel = obj
 
         end_date = (timezone.now() + timedelta(days=1)).date()
-        start_date = end_date - relativedelta(months=9)
+        start_date = end_date - relativedelta(months=12)
 
         message_stats = []
         channels = [channel]
