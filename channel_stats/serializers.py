@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 
 from temba.api.v2.serializers import ReadSerializer
 from temba.channels.models import Channel, ChannelCount
+from temba.contacts.models import Contact
 
 
 class ChannelStatsReadSerializer(ReadSerializer):
@@ -166,3 +167,34 @@ class ChannelStatsReadSerializer(ReadSerializer):
             "daily_count",
             "monthly_totals",
         )
+
+
+class ContactActiveSerializer(ReadSerializer):
+    sent_on = serializers.SerializerMethodField()
+    message = serializers.SerializerMethodField()
+    channel_uuid = serializers.SerializerMethodField()
+    channel_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Contact
+        fields = [
+            "uuid",
+            "name",
+            "sent_on",
+            "message",
+            "channel_uuid",
+            "channel_name",
+        ]
+
+    def get_sent_on(self, obj: Contact):
+        # The "prefetch_related" on view ensure just one registry
+        return obj.msgs.all()[0].sent_on
+
+    def get_message(self, obj: Contact):
+        return obj.msgs.all()[0].text
+
+    def get_channel_uuid(self, obj: Contact):
+        return obj.msgs.all()[0].channel.uuid
+
+    def get_channel_name(self, obj: Contact):
+        return obj.msgs.all()[0].channel.name
