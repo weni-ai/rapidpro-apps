@@ -1,14 +1,24 @@
-# RapidPro Channel Stats
+# RapidPro Apps
 
-### Add `temba/urls.py`
+To work properly, the `channel_stats` app must be in `PROJECT_ROOT/apps` directory, Once in it, include on project 
+settings as follow:
 
-`from temba.channel_stats.views import ChannelStatsEndpoint  # noqa`
+Settings:
+```python
+from .settings_common import *
 
-`urlpatterns += [
-    url(r"^api/v2/channel_stats\.(?P<format>(json|api))/?$", ChannelStatsEndpoint.as_view(), name="api.v2.channel_stats"),
-]`
+# ...
+INSTALLED_APPS = INSTALLED_APPS + (
+    # ...
+    "apps.channel_stats.apps.ChannelStatsConfig"
+)
+```
 
-### Add `temba/settings.prod.py`
+It's possible to add this app as a sub module using the git.
 
-`INSTALLED_APPS = (*INSTALLED_APPS, "temba.channel_stats",)`
+Example:
+```shell script
+$ git submodule add <remote-address> apps
+```
 
+After that, the urls will automatically be included in `temba.api.v2.urls.urlpatterns`.
