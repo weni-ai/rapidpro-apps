@@ -1,7 +1,7 @@
 # RapidPro Apps
 
-To work properly, the `channel_stats` app must be in `PROJECT_ROOT/apps` directory, Once in it, include on project 
-settings as follow:
+To work properly, the `channel_stats` app must be in `PROJECT_ROOT/apps` directory. Once in it, include on project 
+settings and, optionally, add the middleware to registry the URLs on API explorer:
 
 Settings:
 ```python
@@ -10,7 +10,12 @@ from .settings_common import *
 # ...
 INSTALLED_APPS = INSTALLED_APPS + (
     # ...
-    "apps.channel_stats.apps.ChannelStatsConfig"
+    "apps.channel_stats.apps.ChannelStatsConfig",
+)
+
+MIDDLEWARE = MIDDLEWARE + (
+    # ...
+    "apps.channel_stats.middleware.APIExplorerV2",
 )
 ```
 
