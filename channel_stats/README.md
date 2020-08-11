@@ -14,7 +14,13 @@ INSTALLED_APPS = INSTALLED_APPS + (
 )
 ```
 
-After that, the urls will automatically be included in `temba.api.v2.urls.urlpatterns`.
+This will allow to automatically include the urls in API scope: `temba.api.v2.urls.urlpatterns`.
+
+The final step is migrate
+
+```shell
+$ python manage.py migrate channel_stats
+```
 
 > **Note:** It's possible to add this app as a sub module using the git.
 > `$ git submodule add <remote-address> apps`
