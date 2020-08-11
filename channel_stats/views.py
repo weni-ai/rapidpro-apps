@@ -30,7 +30,7 @@ class ChannelStatsEndpoint(ListAPIMixin, BaseAPIView):
         return {
             "method": "GET",
             "title": "List Channel Stats",
-            "url": reverse("api.v2.channels_stats"),
+            "url": reverse("api.v2.channel_stats.channels"),
             "slug": "channel-stats",
             "params": [
                 {
