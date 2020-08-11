@@ -1,4 +1,5 @@
 from django.db.models import Exists, F, OuterRef, Prefetch, Subquery
+from django.http import Http404
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework.reverse import reverse
@@ -66,6 +67,7 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
     Response:
 
         {
+            "count": 1,
             "next": null,
             "previous": null,
             "results": [
@@ -79,6 +81,10 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
                 }
             ]
         }
+
+    ### Important:
+
+    The **404 status** will happen if the organization's ID cannot be found.
     """
     DAYS_RANGE = 31
     PARAM_ORG_ID = "org_id"
@@ -91,9 +97,12 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
 
     def filter_queryset(self, queryset):
         if self.request.user.is_superuser:
-            org = Org.objects.filter(pk=self.request.query_params.get(self.PARAM_ORG_ID))
+            org = Org.objects.filter(pk=self.request.query_params.get(self.PARAM_ORG_ID)).first()
         else:
             org = self.request.user.get_org()
+
+        if not org:
+            raise Http404
 
         between = (parse_date(self.request.query_params.get(self.PARAM_START_DATE)),
                    parse_date(self.request.query_params.get(self.PARAM_END_DATE)))
