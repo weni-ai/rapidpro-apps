@@ -1,6 +1,7 @@
 from datetime import timedelta
 from django.utils import timezone
 from django.db.models import Sum
+from django.utils.dateparse import parse_date
 
 from rest_framework import serializers
 from dateutil.relativedelta import relativedelta
@@ -8,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 from temba.api.v2.serializers import ReadSerializer
 from temba.channels.models import Channel, ChannelCount
 from temba.contacts.models import Contact
+from temba.msgs.models import OUTGOING
 
 
 class ChannelStatsReadSerializer(ReadSerializer):
@@ -170,10 +172,13 @@ class ChannelStatsReadSerializer(ReadSerializer):
 
 
 class ContactActiveSerializer(ReadSerializer):
+    _msg = None
+
     sent_on = serializers.SerializerMethodField()
     message = serializers.SerializerMethodField()
     channel_uuid = serializers.SerializerMethodField()
     channel_name = serializers.SerializerMethodField()
+    urn = serializers.SerializerMethodField()
 
     class Meta:
         model = Contact
@@ -184,17 +189,50 @@ class ContactActiveSerializer(ReadSerializer):
             "message",
             "channel_uuid",
             "channel_name",
+            "urn",
         ]
 
+    def msg(self, obj: Contact):
+        request = self.context.get("request")
+        if not self._msg and request:
+            view = self.context.get("view")
+            between = (parse_date(request.query_params.get(view.PARAM_START_DATE)),
+                       parse_date(request.query_params.get(view.PARAM_END_DATE)))
+            self._msg = obj.msgs.select_related("channel", "contact_urn").only(
+                "uuid",
+                "sent_on",
+                "text",
+                "contact",
+                "channel__uuid",
+                "channel__name",
+                "contact_urn__identity",
+            ).filter(
+                direction=OUTGOING,
+                sent_on__date__range=between
+            ).order_by("-sent_on").first()
+        return self._msg
+
     def get_sent_on(self, obj: Contact):
-        # The "prefetch_related" on view ensure just one registry
-        return obj.msgs.all()[0].sent_on
+        msg = self.msg(obj)
+        if msg:
+            return msg.sent_on
 
     def get_message(self, obj: Contact):
-        return obj.msgs.all()[0].text
+        msg = self.msg(obj)
+        if msg:
+            return msg.text
 
     def get_channel_uuid(self, obj: Contact):
-        return obj.msgs.all()[0].channel.uuid
+        msg = self.msg(obj)
+        if msg:
+            return msg.channel.uuid
 
     def get_channel_name(self, obj: Contact):
-        return obj.msgs.all()[0].channel.name
+        msg = self.msg(obj)
+        if msg:
+            return msg.channel.name
+
+    def get_urn(self, obj: Contact):
+        msg = self.msg(obj)
+        if msg:
+            return msg.contact_urn.identity
