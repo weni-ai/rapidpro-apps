@@ -1,9 +1,9 @@
-from django.db.models import Exists, F, OuterRef, Prefetch, Subquery
+from django.db.models import Exists, OuterRef
 from django.http import Http404
 from django.utils import timezone
 from django.utils.dateparse import parse_date
-from rest_framework.reverse import reverse
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_400_BAD_REQUEST
 
 from temba.api.v2.views_base import BaseAPIView, ListAPIMixin

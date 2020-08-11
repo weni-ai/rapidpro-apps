@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import migrations
 
 INDEX_NAME = "channel_stats_msg_sent_on_idx"
