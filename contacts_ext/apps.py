@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
 
-class ChannelStatsConfig(AppConfig):
-    name = 'apps.channel_stats'
+class ContactsExtConfig(AppConfig):
+    name = 'apps.contacts_ext'
 
     def ready(self):
         from .urls import urlpatterns

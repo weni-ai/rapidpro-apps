@@ -4,8 +4,8 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from . import views
 
 urlpatterns = [
-    url(r"^channel_stats$", views.ChannelStatsEndpoint.as_view(),
-        name="api.v2.channel_stats.channels"),
+    url(r"^contacts_ext/active$", views.ActiveContactsEndpoint.as_view(),
+        name="api.v2.contacts_ext.active"),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns, allowed=["json", "api"])
