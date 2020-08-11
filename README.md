@@ -10,7 +10,7 @@ A good way to copy to the right path is executing the command bellow:
 ```shell script
 $ git submodule add <remote-address> apps
 ```
-õ
+
 ## APPs available
 
 - [Channel Stats](channel_stats/README.md);
