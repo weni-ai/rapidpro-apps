@@ -189,7 +189,7 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
     def get_read_explorer(cls):
         return {
             "method": "GET",
-            "title": "List Channel Stats",
+            "title": "List Active Contacts",
             "url": reverse("api.v2.channel_stats.contacts"),
             "slug": "channel-stats-active-contacts",
             "params": [
