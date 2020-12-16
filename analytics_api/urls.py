@@ -1,7 +1,7 @@
 from django.conf.urls import url
 from rest_framework.urlpatterns import format_suffix_patterns
 
-from .views import ContactAnalytics
+from .views import ContactAnalyticsEndpoint
 
 urlpatterns = [
     url(r"^analytics_api/contacts/$", ContactAnalyticsEndpoint.as_view(),

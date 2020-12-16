@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class AnalyticsApiConfig(AppConfig):
-    name = 'analytics_api'
+    name = 'apps.analytics_api'
 
     def ready(self):
         from .urls import urlpatterns
