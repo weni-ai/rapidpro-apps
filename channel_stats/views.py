@@ -79,6 +79,7 @@ class ChannelStatsEndpoint(ListAPIMixin, BaseAPIView):
             ]
         }
     """
+
     permission = "channels.channel_api"
     model = Channel
     serializer_class = ChannelStatsReadSerializer

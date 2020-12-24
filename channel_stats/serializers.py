@@ -47,15 +47,12 @@ class ChannelStatsReadSerializer(ReadSerializer):
         message_stats.append(dict(name="Errors", type="error", data=error))
 
         if channel.get_ivr_count():
-            message_stats.append(
-                dict(name="Incoming", type="ivr", data=ivr_in))
-            message_stats.append(
-                dict(name="Outgoing", type="ivr", data=ivr_out))
+            message_stats.append(dict(name="Incoming", type="ivr", data=ivr_in))
+            message_stats.append(dict(name="Outgoing", type="ivr", data=ivr_out))
             message_stats.append(dict(name="Errors", type="error", data=error))
 
         daily_counts = list(
-            ChannelCount.objects.filter(
-                channel__in=channels, day__gte=start_date)
+            ChannelCount.objects.filter(channel__in=channels, day__gte=start_date)
             .filter(
                 count_type__in=[
                     ChannelCount.INCOMING_MSG_TYPE,
@@ -76,19 +73,24 @@ class ChannelStatsReadSerializer(ReadSerializer):
                 daily_count = daily_counts.pop(0)
                 if daily_count["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
                     msg_in.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                        dict(date=daily_count["day"], count=daily_count["count_sum"])
+                    )
                 elif daily_count["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
                     msg_out.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                        dict(date=daily_count["day"], count=daily_count["count_sum"])
+                    )
                 elif daily_count["count_type"] == ChannelCount.INCOMING_IVR_TYPE:
                     ivr_in.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                        dict(date=daily_count["day"], count=daily_count["count_sum"])
+                    )
                 elif daily_count["count_type"] == ChannelCount.OUTGOING_IVR_TYPE:
                     ivr_out.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                        dict(date=daily_count["day"], count=daily_count["count_sum"])
+                    )
                 elif daily_count["count_type"] == ChannelCount.ERROR_LOG_TYPE:
                     error.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                        dict(date=daily_count["day"], count=daily_count["count_sum"])
+                    )
 
             current = current + timedelta(days=1)
 
@@ -98,7 +100,8 @@ class ChannelStatsReadSerializer(ReadSerializer):
         channel = obj
         message_stats_table = []
         month_start = channel.created_on.replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0)
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
 
         monthly_totals = list(
             ChannelCount.objects.filter(channel=channel, day__gte=month_start)

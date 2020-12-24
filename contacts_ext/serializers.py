@@ -31,20 +31,25 @@ class ContactActiveSerializer(ReadSerializer):
         request = self.context.get("request")
         if not self._msg and request:
             view = self.context.get("view")
-            between = (parse_date(request.query_params.get(view.PARAM_START_DATE)),
-                       parse_date(request.query_params.get(view.PARAM_END_DATE)))
-            self._msg = obj.msgs.select_related("channel", "contact_urn").only(
-                "uuid",
-                "sent_on",
-                "text",
-                "contact",
-                "channel__uuid",
-                "channel__name",
-                "contact_urn__identity",
-            ).filter(
-                direction=OUTGOING,
-                sent_on__date__range=between
-            ).order_by("-sent_on").first()
+            between = (
+                parse_date(request.query_params.get(view.PARAM_START_DATE)),
+                parse_date(request.query_params.get(view.PARAM_END_DATE)),
+            )
+            self._msg = (
+                obj.msgs.select_related("channel", "contact_urn")
+                .only(
+                    "uuid",
+                    "sent_on",
+                    "text",
+                    "contact",
+                    "channel__uuid",
+                    "channel__name",
+                    "contact_urn__identity",
+                )
+                .filter(direction=OUTGOING, sent_on__date__range=between)
+                .order_by("-sent_on")
+                .first()
+            )
         return self._msg
 
     def get_sent_on(self, obj: Contact):

@@ -33,7 +33,11 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
         # filter by group name/uuid (optional)
         group_ref = params.get("group")
         if group_ref:
-            group = ContactGroup.user_groups.filter(org=org).filter(Q(uuid=group_ref) | Q(name=group_ref)).first()
+            group = (
+                ContactGroup.user_groups.filter(org=org)
+                .filter(Q(uuid=group_ref) | Q(name=group_ref))
+                .first()
+            )
             if group:
                 queryset = queryset.filter(all_groups=group)
             else:
@@ -56,14 +60,18 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
             active=Count("id", filter=Q(status="A")),
             blocked=Count("id", filter=Q(status="B")),
             stopped=Count("id", filter=Q(status="S")),
-            archived=Count("id", filter=Q(status="V"))
+            archived=Count("id", filter=Q(status="V")),
         )
 
-        contacts_by_date = Contact.objects.values("created_on__date").annotate(total=Count("created_on__date"))
+        contacts_by_date = Contact.objects.values("created_on__date").annotate(
+            total=Count("created_on__date")
+        )
         cleaned_contacts_by_date = {}
 
         for date in contacts_by_date:
-            cleaned_contacts_by_date[date.get("created_on__date").strftime("%Y-%m-%d")] = date.get("total")
+            cleaned_contacts_by_date[
+                date.get("created_on__date").strftime("%Y-%m-%d")
+            ] = date.get("total")
 
         contact_analytics = {
             "total": total_and_current_contacts.get("total"),
@@ -73,7 +81,7 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
                 "stopped": total_and_current_contacts.get("stopped"),
                 "archived": total_and_current_contacts.get("archived"),
             },
-            "by_date": cleaned_contacts_by_date
+            "by_date": cleaned_contacts_by_date,
         }
 
         return Response(contact_analytics, status=200)

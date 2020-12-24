@@ -11,6 +11,4 @@ CREATE INDEX {INDEX_NAME} ON "msgs_msg" ("contact_id", "sent_on" DESC)
 class Migration(migrations.Migration):
     dependencies = [("msgs", "0138_remove_broadcast_recipient_count")]
 
-    operations = [
-        migrations.RunSQL(SQL_INDEX, f"DROP INDEX IF EXISTS \"{INDEX_NAME}\";")
-    ]
+    operations = [migrations.RunSQL(SQL_INDEX, f'DROP INDEX IF EXISTS "{INDEX_NAME}";')]
