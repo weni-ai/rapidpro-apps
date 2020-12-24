@@ -5,9 +5,9 @@ from .views import ContactAnalyticsEndpoint
 
 urlpatterns = [
     url(
-        r"^analytics_api/contacts/$",
+        r"^analytics/contacts/$",
         ContactAnalyticsEndpoint.as_view(),
-        name="api.v2.analytics_api.contacts",
+        name="api.v2.analytics.contacts",
     )
 ]
 
