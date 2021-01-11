@@ -65,9 +65,7 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
 
     def filter_queryset(self, queryset):
         if self.request.user.is_superuser:
-            org = Org.objects.filter(
-                pk=self.request.query_params.get(self.PARAM_ORG_ID)
-            ).first()
+            org = Org.objects.filter(pk=self.request.query_params.get(self.PARAM_ORG_ID)).first()
         else:
             org = self.request.user.get_org()
 
@@ -119,32 +117,22 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
         }
 
     def get(self, request, *args, **kwargs):
-        if self.request.user.is_superuser and not self.request.query_params.get(
-            self.PARAM_ORG_ID
-        ):
+        if self.request.user.is_superuser and not self.request.query_params.get(self.PARAM_ORG_ID):
             return Response(
                 {self.PARAM_ORG_ID: "Superuser must inform a value"},
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        start_date = parse_date(
-            self.request.query_params.get(self.PARAM_START_DATE) or ""
-        )
+        start_date = parse_date(self.request.query_params.get(self.PARAM_START_DATE) or "")
         end_date = parse_date(self.request.query_params.get(self.PARAM_END_DATE) or "")
         if not start_date:
             return Response({self.PARAM_START_DATE: "Required parameter."})
         elif not end_date:
             return Response({self.PARAM_END_DATE: "Required parameter."})
         elif end_date <= start_date:
-            return Response(
-                {
-                    self.PARAM_END_DATE: f'Field must be greater then "{self.PARAM_START_DATE}"'
-                }
-            )
+            return Response({self.PARAM_END_DATE: f'Field must be greater then "{self.PARAM_START_DATE}"'})
         elif start_date.month < timezone.now().month - 1:
             return Response({self.PARAM_START_DATE: f""})
         elif (end_date - start_date).days > self.DAYS_RANGE:
-            return Response(
-                {"detail": f"The range can not me greater then {self.DAYS_RANGE} days"}
-            )
+            return Response({"detail": f"The range can not me greater then {self.DAYS_RANGE} days"})
         return super().get(request, *args, **kwargs)
