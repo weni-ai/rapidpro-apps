@@ -1,3 +1,5 @@
+from uuid import uuid1
+
 from django.contrib.auth.models import Group
 from django.urls import reverse
 from django.utils.http import urlencode
@@ -11,9 +13,17 @@ class AnalyticsContactTest(TembaTest):
     def setUp(self):
         super().setUp()
 
+        # create some static groups
+        self.group = self.create_group("Customers", org=self.org)
+        self.group2 = self.create_group("Nerds", org=self.org)
+
+        # create some contacts
         for x in range(0, 10):
             contact_name = "Joe Blow " + str(x)
-            self.create_contact(contact_name)
+            created_contact = self.create_contact(contact_name)
+            self.group2.contacts.add(created_contact)
+
+        self.create_contact("Contact without group")
 
     def reverse(self, viewname, kwargs=None, query_params=None):
         url = reverse(viewname, kwargs=kwargs)
@@ -46,3 +56,14 @@ class AnalyticsContactTest(TembaTest):
         contacts = response.json().get("by_date").get(last_created_on)
 
         self.assertEqual(contacts, Contact.objects.filter(status="A").count())
+
+    def test_group_filter(self):
+        response = self.get_response(group=self.group2.uuid)
+
+        self.assertEqual(response.json().get("total"), self.group2.contacts.count())
+
+    def test_non_existent_group_filter(self):
+        random_uuid = uuid1()
+        response = self.get_response(group=random_uuid)
+
+        self.assertEqual(response.json().get("total"), 0)

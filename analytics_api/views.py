@@ -20,16 +20,6 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
         deleted_only = str_to_bool(params.get("deleted"))
         queryset = queryset.filter(is_active=(not deleted_only))
 
-        # filter by UUID (optional)
-        uuid = params.get("uuid")
-        if uuid:
-            queryset = queryset.filter(uuid=uuid)
-
-        # filter by URN (optional)
-        urn = params.get("urn")
-        if urn:
-            queryset = queryset.filter(urns__identity=self.normalize_urn(urn))
-
         # filter by group name/uuid (optional)
         group_ref = params.get("group")
         if group_ref:
