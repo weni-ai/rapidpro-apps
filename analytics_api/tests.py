@@ -1,9 +1,10 @@
 from django.contrib.auth.models import Group
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from temba.api.models import APIToken
-from temba.tests import TembaTest
 from temba.contacts.models import Contact
+from temba.tests import TembaTest
 
 
 class AnalyticsContactTest(TembaTest):
@@ -14,8 +15,16 @@ class AnalyticsContactTest(TembaTest):
             contact_name = "Joe Blow " + str(x)
             self.create_contact(contact_name)
 
-    def get_response(self):
-        url = reverse("api.v2.analytics.contacts")
+    def reverse(self, viewname, kwargs=None, query_params=None):
+        url = reverse(viewname, kwargs=kwargs)
+
+        if query_params:
+            return "%s?%s" % (url, urlencode(query_params))
+        else:
+            return url
+
+    def get_response(self, **query_params):
+        url = self.reverse("api.v2.analytics.contacts", query_params=query_params)
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(url, HTTP_AUTHORIZATION=f"Token {token.key}")
@@ -33,7 +42,7 @@ class AnalyticsContactTest(TembaTest):
     def test_by_date(self):
         response = self.get_response()
 
-        last_created_on = Contact.objects.last().created_on.strftime("%Y-%m-%d")
+        last_created_on = Contact.objects.values_list("created_on__date", flat=True).last().strftime("%Y-%m-%d")
         contacts = response.json().get("by_date").get(last_created_on)
 
         self.assertEqual(contacts, Contact.objects.filter(status="A").count())

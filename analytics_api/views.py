@@ -1,9 +1,9 @@
-from django.db.models import Count, Q, Prefetch
-from rest_framework.response import Response
+from django.db.models import Count, Prefetch, Q
 from rest_framework.renderers import JSONRenderer
+from rest_framework.response import Response
 
-from temba.contacts.models import Contact, ContactGroup
 from temba.api.v2.views_base import BaseAPIView, ListAPIMixin
+from temba.contacts.models import Contact, ContactGroup
 from temba.utils import str_to_bool
 
 
@@ -51,7 +51,8 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
         return self.filter_before_after(queryset, "modified_on")
 
     def get(self, request, *args, **kwargs):
-        total_and_current_contacts = Contact.objects.aggregate(
+        queryset = self.filter_queryset(self.get_queryset())
+        total_and_current_contacts = queryset.aggregate(
             total=Count("id"),
             active=Count("id", filter=Q(status="A")),
             blocked=Count("id", filter=Q(status="B")),
