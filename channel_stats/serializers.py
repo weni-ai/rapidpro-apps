@@ -72,25 +72,15 @@ class ChannelStatsReadSerializer(ReadSerializer):
             while daily_counts and daily_counts[0]["day"] == current:
                 daily_count = daily_counts.pop(0)
                 if daily_count["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
-                    msg_in.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"])
-                    )
+                    msg_in.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
                 elif daily_count["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
-                    msg_out.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"])
-                    )
+                    msg_out.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
                 elif daily_count["count_type"] == ChannelCount.INCOMING_IVR_TYPE:
-                    ivr_in.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"])
-                    )
+                    ivr_in.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
                 elif daily_count["count_type"] == ChannelCount.OUTGOING_IVR_TYPE:
-                    ivr_out.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"])
-                    )
+                    ivr_out.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
                 elif daily_count["count_type"] == ChannelCount.ERROR_LOG_TYPE:
-                    error.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"])
-                    )
+                    error.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
 
             current = current + timedelta(days=1)
 
@@ -99,9 +89,7 @@ class ChannelStatsReadSerializer(ReadSerializer):
     def get_monthly_totals(self, obj):
         channel = obj
         message_stats_table = []
-        month_start = channel.created_on.replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
+        month_start = channel.created_on.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         monthly_totals = list(
             ChannelCount.objects.filter(channel=channel, day__gte=month_start)
