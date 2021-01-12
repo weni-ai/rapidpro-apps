@@ -10,7 +10,7 @@ from .settings_common import *
 # ...
 INSTALLED_APPS = INSTALLED_APPS + (
     # ...
-    "apps.analytics_api.apps.AnalyticsApiConfig",
+    "apps.analytics_api",
 )
 ```
 
