@@ -4,6 +4,7 @@ from django.urls import reverse
 from temba.api.models import APIToken
 from temba.tests import TembaTest
 from temba.contacts.models import Contact
+from django.utils.http import urlencode
 
 
 class AnalyticsContactTest(TembaTest):
@@ -14,8 +15,16 @@ class AnalyticsContactTest(TembaTest):
             contact_name = "Joe Blow " + str(x)
             self.create_contact(contact_name)
 
-    def get_response(self):
-        url = reverse("api.v2.analytics.contacts")
+    def reverse(self, viewname, kwargs=None, query_params=None):
+        url = reverse(viewname, kwargs=kwargs)
+
+        if query_params:
+            return "%s?%s" % (url, urlencode(query_params))
+        else:
+            return url
+
+    def get_response(self, **query_params):
+        url = self.reverse("api.v2.analytics.contacts", query_params=query_params)
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(url, HTTP_AUTHORIZATION=f"Token {token.key}")
