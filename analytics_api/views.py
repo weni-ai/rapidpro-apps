@@ -55,7 +55,8 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
         return self.filter_before_after(queryset, "modified_on")
 
     def get(self, request, *args, **kwargs):
-        total_and_current_contacts = Contact.objects.aggregate(
+        queryset = self.filter_queryset(self.get_queryset())
+        total_and_current_contacts = queryset.aggregate(
             total=Count("id"),
             active=Count("id", filter=Q(status="A")),
             blocked=Count("id", filter=Q(status="B")),
