@@ -33,7 +33,7 @@ class AnalyticsContactTest(TembaTest):
     def test_by_date(self):
         response = self.get_response()
 
-        last_created_on = Contact.objects.last().created_on.strftime("%Y-%m-%d")
+        last_created_on = Contact.objects.values_list('created_on__date', flat=True).last().strftime('%Y-%m-%d')
         contacts = response.json().get("by_date").get(last_created_on)
 
         self.assertEqual(contacts, Contact.objects.filter(status="A").count())
