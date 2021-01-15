@@ -6,11 +6,12 @@ from django.utils.http import urlencode
 
 from temba.api.models import APIToken
 from temba.contacts.models import Contact
-from temba.tests import TembaTest
+from temba.tests import TembaTest, mock_mailroom
 
 
 class AnalyticsContactTest(TembaTest):
-    def setUp(self):
+    @mock_mailroom
+    def setUp(self, mr_mocks):
         super().setUp()
 
         # create some static groups
@@ -23,7 +24,26 @@ class AnalyticsContactTest(TembaTest):
             created_contact = self.create_contact(contact_name)
             self.group2.contacts.add(created_contact)
 
+        # create a contact without group
         self.create_contact("Contact without group")
+
+        # create blocked contacts
+        for x in range(0, 5):
+            contact_name = "Joe Blocked " + str(x)
+            blocked_contact = self.create_contact(contact_name)
+            blocked_contact.block(self.user)
+
+        # create stopped contacts
+        for x in range(0, 5):
+            contact_name = "Joe stopped " + str(x)
+            blocked_contact = self.create_contact(contact_name)
+            blocked_contact.stop(self.user)
+
+        # create archived contacts
+        for x in range(0, 5):
+            contact_name = "Joe archived " + str(x)
+            blocked_contact = self.create_contact(contact_name)
+            blocked_contact.archive(self.user)
 
     def reverse(self, viewname, kwargs=None, query_params=None):
         url = reverse(viewname, kwargs=kwargs)
@@ -41,29 +61,26 @@ class AnalyticsContactTest(TembaTest):
 
     def test_total_contacts(self):
         response = self.get_response()
+        self.assertEqual(response.json().get("total"), 26)
 
-        self.assertEqual(response.json().get("total"), Contact.objects.count())
-
-    def test_active_contacts(self):
+    def test_contacts_by_status(self):
         response = self.get_response()
-
-        self.assertEqual(response.json().get("current").get("actives"), Contact.objects.filter(status="A").count())
+        self.assertEqual(response.json().get("current").get("actives"), 11)
+        self.assertEqual(response.json().get("current").get("blocked"), 5)
+        self.assertEqual(response.json().get("current").get("stopped"), 5)
+        self.assertEqual(response.json().get("current").get("archived"), 5)
 
     def test_by_date(self):
         response = self.get_response()
-
         last_created_on = Contact.objects.values_list("created_on__date", flat=True).last().strftime("%Y-%m-%d")
         contacts = response.json().get("by_date").get(last_created_on)
-
-        self.assertEqual(contacts, Contact.objects.filter(status="A").count())
+        self.assertEqual(contacts, 26)
 
     def test_group_filter(self):
         response = self.get_response(group=self.group2.uuid)
-
         self.assertEqual(response.json().get("total"), self.group2.contacts.count())
 
     def test_non_existent_group_filter(self):
         random_uuid = uuid1()
         response = self.get_response(group=random_uuid)
-
         self.assertEqual(response.json().get("total"), 0)
