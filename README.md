@@ -15,3 +15,4 @@ $ git submodule add <remote-address> apps
 
 - [Channel Stats](channel_stats/README.md);
 - [Contact Extension](contacts_ext/README.md).
+- [Analytics API](analytics_api/README.md).

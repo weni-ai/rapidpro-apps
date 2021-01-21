@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
 
-class ChannelStatsConfig(AppConfig):
-    name = "apps.channel_stats"
+class AnalyticsApiConfig(AppConfig):
+    name = "apps.analytics_api"
 
     def ready(self):
         from .urls import urlpatterns

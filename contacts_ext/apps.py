@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class ContactsExtConfig(AppConfig):
-    name = 'apps.contacts_ext'
+    name = "apps.contacts_ext"
 
     def ready(self):
         from .urls import urlpatterns

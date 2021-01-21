@@ -53,6 +53,7 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
 
     The **404 status** will happen if the organization's ID cannot be found.
     """
+
     DAYS_RANGE = 31
     PARAM_ORG_ID = "org_id"
     PARAM_START_DATE = "start_date"
@@ -71,13 +72,23 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
         if not org:
             raise Http404
 
-        between = (parse_date(self.request.query_params.get(self.PARAM_START_DATE)),
-                   parse_date(self.request.query_params.get(self.PARAM_END_DATE)))
-        return queryset.annotate(
-            has_msg=Exists(Msg.objects.filter(
-                contact__pk=OuterRef("pk"), direction=OUTGOING, sent_on__date__range=between,
-            ).values("pk"))
-        ).only("uuid", "name").filter(org=org, has_msg=True)
+        between = (
+            parse_date(self.request.query_params.get(self.PARAM_START_DATE)),
+            parse_date(self.request.query_params.get(self.PARAM_END_DATE)),
+        )
+        return (
+            queryset.annotate(
+                has_msg=Exists(
+                    Msg.objects.filter(
+                        contact__pk=OuterRef("pk"),
+                        direction=OUTGOING,
+                        sent_on__date__range=between,
+                    ).values("pk")
+                )
+            )
+            .only("uuid", "name")
+            .filter(org=org, has_msg=True)
+        )
 
     @classmethod
     def get_read_explorer(cls):
@@ -109,7 +120,7 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
         if self.request.user.is_superuser and not self.request.query_params.get(self.PARAM_ORG_ID):
             return Response(
                 {self.PARAM_ORG_ID: "Superuser must inform a value"},
-                status=HTTP_400_BAD_REQUEST
+                status=HTTP_400_BAD_REQUEST,
             )
 
         start_date = parse_date(self.request.query_params.get(self.PARAM_START_DATE) or "")
@@ -119,7 +130,7 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
         elif not end_date:
             return Response({self.PARAM_END_DATE: "Required parameter."})
         elif end_date <= start_date:
-            return Response({self.PARAM_END_DATE: f"Field must be greater then \"{self.PARAM_START_DATE}\""})
+            return Response({self.PARAM_END_DATE: f'Field must be greater then "{self.PARAM_START_DATE}"'})
         elif start_date.month < timezone.now().month - 1:
             return Response({self.PARAM_START_DATE: f""})
         elif (end_date - start_date).days > self.DAYS_RANGE:
