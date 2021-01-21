@@ -2,10 +2,10 @@ from uuid import uuid1
 
 from django.contrib.auth.models import Group
 from django.urls import reverse
+from django.utils import timezone as tz
 from django.utils.http import urlencode
 
 from temba.api.models import APIToken
-from temba.contacts.models import Contact
 from temba.tests import TembaTest, mock_mailroom
 
 
@@ -45,6 +45,19 @@ class AnalyticsContactTest(TembaTest):
             blocked_contact = self.create_contact(contact_name)
             blocked_contact.archive(self.user)
 
+        # create deleted contacts
+        for x in range(0, 3):
+            self.create_contact("Joe deleted {}".format(x)).release(self.user)
+
+        # Adds some contacts with another creation dates
+        old_joe = self.create_contact("Old Joe")
+        old_joe.created_on = tz.now() - tz.timedelta(days=1)
+        old_joe.save(update_fields=["created_on"], handle_update=False)
+
+        older_joe = self.create_contact("Older Joe")
+        older_joe.created_on = tz.now() - tz.timedelta(days=7)
+        older_joe.save(update_fields=["created_on"], handle_update=False)
+
     def reverse(self, viewname, kwargs=None, query_params=None):
         url = reverse(viewname, kwargs=kwargs)
 
@@ -52,6 +65,9 @@ class AnalyticsContactTest(TembaTest):
             return "%s?%s" % (url, urlencode(query_params))
         else:
             return url
+
+    def format_date(self, dt):
+        return dt.strftime("%Y-%m-%d")
 
     def get_response(self, **query_params):
         url = self.reverse("api.v2.analytics.contacts", query_params=query_params)
@@ -61,26 +77,72 @@ class AnalyticsContactTest(TembaTest):
 
     def test_total_contacts(self):
         response = self.get_response()
-        self.assertEqual(response.json().get("total"), 26)
+        self.assertEqual(response.json().get("total"), 28)
 
     def test_contacts_by_status(self):
         response = self.get_response()
-        self.assertEqual(response.json().get("current").get("actives"), 11)
+        self.assertEqual(response.json().get("current").get("actives"), 13)
         self.assertEqual(response.json().get("current").get("blocked"), 5)
         self.assertEqual(response.json().get("current").get("stopped"), 5)
         self.assertEqual(response.json().get("current").get("archived"), 5)
 
     def test_by_date(self):
         response = self.get_response()
-        last_created_on = Contact.objects.values_list("created_on__date", flat=True).last().strftime("%Y-%m-%d")
-        contacts = response.json().get("by_date").get(last_created_on)
-        self.assertEqual(contacts, 26)
+        contacts = response.json()["by_date"]
+
+        today = self.format_date(tz.now())
+        yesterday = self.format_date(tz.now() - tz.timedelta(1))
+        last_week = self.format_date(tz.now() - tz.timedelta(7))
+
+        self.assertEqual(contacts[today], 26)
+        self.assertEqual(contacts[yesterday], 1)
+        self.assertEqual(contacts[last_week], 1)
 
     def test_group_filter(self):
         response = self.get_response(group=self.group2.uuid)
-        self.assertEqual(response.json().get("total"), self.group2.contacts.count())
+        self.assertEqual(response.json().get("total"), 10)
 
     def test_non_existent_group_filter(self):
         random_uuid = uuid1()
         response = self.get_response(group=random_uuid)
         self.assertEqual(response.json().get("total"), 0)
+
+    def test_deleted_contacts(self):
+        response = self.get_response(deleted=True)
+        self.assertEqual(response.json().get("total"), 3)
+
+    def test_after_and_before(self):
+        response = self.get_response()
+        self.assertEqual(response.json().get("total"), 28)
+        self.assertEqual(response.json().get("current").get("actives"), 13)
+        self.assertEqual(response.json().get("current").get("blocked"), 5)
+        self.assertEqual(response.json().get("current").get("stopped"), 5)
+        self.assertEqual(response.json().get("current").get("archived"), 5)
+
+        response = self.get_response(after=self.format_date(tz.now()))
+        self.assertEqual(response.json().get("total"), 26)
+        self.assertEqual(response.json().get("current").get("actives"), 11)
+        self.assertEqual(response.json().get("current").get("blocked"), 5)
+        self.assertEqual(response.json().get("current").get("stopped"), 5)
+        self.assertEqual(response.json().get("current").get("archived"), 5)
+
+        response = self.get_response(before=self.format_date(tz.now()))
+        self.assertEqual(response.json().get("total"), 2)
+        self.assertEqual(response.json().get("current").get("actives"), 2)
+        self.assertEqual(response.json().get("current").get("blocked"), 0)
+        self.assertEqual(response.json().get("current").get("stopped"), 0)
+        self.assertEqual(response.json().get("current").get("archived"), 0)
+
+        response = self.get_response(before=self.format_date(tz.now() - tz.timedelta(1)))
+        self.assertEqual(response.json().get("total"), 1)
+        self.assertEqual(response.json().get("current").get("actives"), 1)
+        self.assertEqual(response.json().get("current").get("blocked"), 0)
+        self.assertEqual(response.json().get("current").get("stopped"), 0)
+        self.assertEqual(response.json().get("current").get("archived"), 0)
+
+        response = self.get_response(before=self.format_date(tz.now() - tz.timedelta(7)))
+        self.assertEqual(response.json().get("total"), 0)
+        self.assertEqual(response.json().get("current").get("actives"), 0)
+        self.assertEqual(response.json().get("current").get("blocked"), 0)
+        self.assertEqual(response.json().get("current").get("stopped"), 0)
+        self.assertEqual(response.json().get("current").get("archived"), 0)

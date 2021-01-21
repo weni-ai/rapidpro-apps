@@ -38,7 +38,7 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
             )
         )
 
-        return self.filter_before_after(queryset, "modified_on")
+        return self.filter_before_after(queryset, "created_on")
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -50,7 +50,7 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
             archived=Count("id", filter=Q(status="V")),
         )
 
-        contacts_by_date = Contact.objects.values("created_on__date").annotate(total=Count("created_on__date"))
+        contacts_by_date = queryset.values("created_on__date").annotate(total=Count("created_on__date"))
         cleaned_contacts_by_date = {}
 
         for date in contacts_by_date:
