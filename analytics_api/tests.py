@@ -45,6 +45,10 @@ class AnalyticsContactTest(TembaTest):
             blocked_contact = self.create_contact(contact_name)
             blocked_contact.archive(self.user)
 
+        # create deleted contacts
+        for x in range(0, 3):
+            self.create_contact("Joe deleted {}".format(x)).release(self.user)
+
     def reverse(self, viewname, kwargs=None, query_params=None):
         url = reverse(viewname, kwargs=kwargs)
 
@@ -84,3 +88,7 @@ class AnalyticsContactTest(TembaTest):
         random_uuid = uuid1()
         response = self.get_response(group=random_uuid)
         self.assertEqual(response.json().get("total"), 0)
+
+    def test_deleted_contacts(self):
+        response = self.get_response(deleted=True)
+        self.assertEqual(response.json().get("total"), 3)
