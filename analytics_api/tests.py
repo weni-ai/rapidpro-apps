@@ -82,7 +82,7 @@ class AnalyticsContactTest(TembaTest):
 
     def test_group_filter(self):
         response = self.get_response(group=self.group2.uuid)
-        self.assertEqual(response.json().get("total"), self.group2.contacts.count())
+        self.assertEqual(response.json().get("total"), 10)
 
     def test_non_existent_group_filter(self):
         random_uuid = uuid1()
