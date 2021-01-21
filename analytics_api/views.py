@@ -38,7 +38,7 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
             )
         )
 
-        return self.filter_before_after(queryset, "modified_on")
+        return self.filter_before_after(queryset, "created_on")
 
     def get(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
