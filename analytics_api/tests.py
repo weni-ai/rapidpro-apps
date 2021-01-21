@@ -2,11 +2,11 @@ from uuid import uuid1
 
 from django.contrib.auth.models import Group
 from django.urls import reverse
+from django.utils import timezone as tz
 from django.utils.http import urlencode
 
 from temba.api.models import APIToken
 from temba.tests import TembaTest, mock_mailroom
-from django.utils import timezone as tz
 
 
 class AnalyticsContactTest(TembaTest):
@@ -92,7 +92,7 @@ class AnalyticsContactTest(TembaTest):
 
         today = self.format_date(tz.now())
         yesterday = self.format_date(tz.now() - tz.timedelta(1))
-        last_week = self.format_date(tz.now()-tz.timedelta(7))
+        last_week = self.format_date(tz.now() - tz.timedelta(7))
 
         self.assertEqual(contacts[today], 26)
         self.assertEqual(contacts[yesterday], 1)
@@ -133,14 +133,14 @@ class AnalyticsContactTest(TembaTest):
         self.assertEqual(response.json().get("current").get("stopped"), 0)
         self.assertEqual(response.json().get("current").get("archived"), 0)
 
-        response = self.get_response(before=self.format_date(tz.now()-tz.timedelta(1)))
+        response = self.get_response(before=self.format_date(tz.now() - tz.timedelta(1)))
         self.assertEqual(response.json().get("total"), 1)
         self.assertEqual(response.json().get("current").get("actives"), 1)
         self.assertEqual(response.json().get("current").get("blocked"), 0)
         self.assertEqual(response.json().get("current").get("stopped"), 0)
         self.assertEqual(response.json().get("current").get("archived"), 0)
 
-        response = self.get_response(before=self.format_date(tz.now()-tz.timedelta(7)))
+        response = self.get_response(before=self.format_date(tz.now() - tz.timedelta(7)))
         self.assertEqual(response.json().get("total"), 0)
         self.assertEqual(response.json().get("current").get("actives"), 0)
         self.assertEqual(response.json().get("current").get("blocked"), 0)
