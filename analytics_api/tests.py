@@ -110,3 +110,39 @@ class AnalyticsContactTest(TembaTest):
     def test_deleted_contacts(self):
         response = self.get_response(deleted=True)
         self.assertEqual(response.json().get("total"), 3)
+
+    def test_after_and_before(self):
+        response = self.get_response()
+        self.assertEqual(response.json().get("total"), 28)
+        self.assertEqual(response.json().get("current").get("actives"), 13)
+        self.assertEqual(response.json().get("current").get("blocked"), 5)
+        self.assertEqual(response.json().get("current").get("stopped"), 5)
+        self.assertEqual(response.json().get("current").get("archived"), 5)
+
+        response = self.get_response(after=self.format_date(tz.now()))
+        self.assertEqual(response.json().get("total"), 26)
+        self.assertEqual(response.json().get("current").get("actives"), 11)
+        self.assertEqual(response.json().get("current").get("blocked"), 5)
+        self.assertEqual(response.json().get("current").get("stopped"), 5)
+        self.assertEqual(response.json().get("current").get("archived"), 5)
+
+        response = self.get_response(before=self.format_date(tz.now()))
+        self.assertEqual(response.json().get("total"), 2)
+        self.assertEqual(response.json().get("current").get("actives"), 2)
+        self.assertEqual(response.json().get("current").get("blocked"), 0)
+        self.assertEqual(response.json().get("current").get("stopped"), 0)
+        self.assertEqual(response.json().get("current").get("archived"), 0)
+
+        response = self.get_response(before=self.format_date(tz.now()-tz.timedelta(1)))
+        self.assertEqual(response.json().get("total"), 1)
+        self.assertEqual(response.json().get("current").get("actives"), 1)
+        self.assertEqual(response.json().get("current").get("blocked"), 0)
+        self.assertEqual(response.json().get("current").get("stopped"), 0)
+        self.assertEqual(response.json().get("current").get("archived"), 0)
+
+        response = self.get_response(before=self.format_date(tz.now()-tz.timedelta(7)))
+        self.assertEqual(response.json().get("total"), 0)
+        self.assertEqual(response.json().get("current").get("actives"), 0)
+        self.assertEqual(response.json().get("current").get("blocked"), 0)
+        self.assertEqual(response.json().get("current").get("stopped"), 0)
+        self.assertEqual(response.json().get("current").get("archived"), 0)
