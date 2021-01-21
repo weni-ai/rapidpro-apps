@@ -77,11 +77,11 @@ class AnalyticsContactTest(TembaTest):
 
     def test_total_contacts(self):
         response = self.get_response()
-        self.assertEqual(response.json().get("total"), 26)
+        self.assertEqual(response.json().get("total"), 28)
 
     def test_contacts_by_status(self):
         response = self.get_response()
-        self.assertEqual(response.json().get("current").get("actives"), 11)
+        self.assertEqual(response.json().get("current").get("actives"), 13)
         self.assertEqual(response.json().get("current").get("blocked"), 5)
         self.assertEqual(response.json().get("current").get("stopped"), 5)
         self.assertEqual(response.json().get("current").get("archived"), 5)
