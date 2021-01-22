@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from temba.api.v2.views_base import BaseAPIView, ListAPIMixin
 from temba.contacts.models import Contact, ContactGroup
-from temba.flows.models import Flow, FlowRun, FlowRunCount
+from temba.flows.models import FlowRun
 from temba.utils import str_to_bool
 
 
