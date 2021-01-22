@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from temba.api.v2.views_base import BaseAPIView, ListAPIMixin
 from temba.contacts.models import Contact, ContactGroup
+from temba.flows.models import Flow, FlowRun, FlowRunCount
 from temba.utils import str_to_bool
 
 
@@ -68,3 +69,50 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
         }
 
         return Response(contact_analytics, status=200)
+
+
+class FlowRunAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
+    permission = "flows.flow_api"
+    model = FlowRun
+    renderer_classes = [JSONRenderer]
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+        params = self.request.query_params
+
+        flow_uuid = params.get("flow_uuid")
+        if flow_uuid:
+            queryset = queryset.filter(flow__uuid=flow_uuid)
+
+        return self.filter_before_after(queryset, "created_on")
+
+    def get(self, request, *args, **kwargs):
+        flows_runs = self.filter_queryset(self.get_queryset())
+        flows_runs_stats = flows_runs.values("flow__uuid", "flow__name").annotate(
+            total=Count("id"),
+            status_active=Count("id", filter=Q(status=FlowRun.STATUS_ACTIVE)),
+            status_waiting=Count("id", filter=Q(status=FlowRun.STATUS_WAITING)),
+            status_completed=Count("id", filter=Q(status=FlowRun.STATUS_COMPLETED)),
+            status_interrupted=Count("id", filter=Q(status=FlowRun.STATUS_INTERRUPTED)),
+            status_expired=Count("id", filter=Q(status=FlowRun.STATUS_EXPIRED)),
+            status_failed=Count("id", filter=Q(status=FlowRun.STATUS_FAILED)),
+        )
+
+        flows_runs_stats_cleaned = {
+            flow_run_stats.get("flow__name"): {
+                "uuid": flow_run_stats.get("flow__uuid"),
+                "stats": {
+                    "total": flow_run_stats.get("total"),
+                    "by_status": {
+                        "active": flow_run_stats.get("status_active"),
+                        "waiting": flow_run_stats.get("status_waiting"),
+                        "completed": flow_run_stats.get("status_completed"),
+                        "interrupted": flow_run_stats.get("status_interrupted"),
+                        "expired": flow_run_stats.get("status_expired"),
+                        "failed": flow_run_stats.get("status_failed"),
+                    },
+                },
+            }
+            for flow_run_stats in flows_runs_stats
+        }
+        return Response(flows_runs_stats_cleaned, status=200)
