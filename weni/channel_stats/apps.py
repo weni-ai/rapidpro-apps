@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class ChannelStatsConfig(AppConfig):
-    name = "apps.channel_stats"
+    name = "weni.channel_stats"
 
     def ready(self):
         from .urls import urlpatterns
