@@ -2,6 +2,7 @@ from rest_framework.reverse import reverse
 
 from temba.api.v2.views_base import BaseAPIView, ListAPIMixin
 from temba.channels.models import Channel
+
 from .serializers import ChannelStatsReadSerializer
 
 
