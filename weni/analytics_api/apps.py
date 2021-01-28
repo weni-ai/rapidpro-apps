@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class AnalyticsApiConfig(AppConfig):
-    name = "apps.analytics_api"
+    name = "weni.analytics_api"
 
     def ready(self):
         from .urls import urlpatterns
