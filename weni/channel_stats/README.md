@@ -1,16 +1,14 @@
 # RapidPro Apps: Channel Stats
 
-To work properly, the `channel_stats` app must be in `$PROJECT_ROOT/apps` directory. Once in it, include on project 
-settings:
+To enable this app, add `weni.channel_stats` into `INSTALLED_APPS` setting.
 
-**settings.py**
+Example:
 ```python
-from .settings_common import *
+...
 
-# ...
 INSTALLED_APPS = INSTALLED_APPS + (
     # ...
-    "apps.channel_stats.apps.ChannelStatsConfig",
+    "weni.channel_stats",
 )
 ```
 
