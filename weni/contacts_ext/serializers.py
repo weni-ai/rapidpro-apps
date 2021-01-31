@@ -37,15 +37,7 @@ class ContactActiveSerializer(ReadSerializer):
             )
             self._msg = (
                 obj.msgs.select_related("channel", "contact_urn")
-                .only(
-                    "uuid",
-                    "sent_on",
-                    "text",
-                    "contact",
-                    "channel__uuid",
-                    "channel__name",
-                    "contact_urn__identity",
-                )
+                .only("uuid", "sent_on", "text", "contact", "channel__uuid", "channel__name", "contact_urn__identity",)
                 .filter(direction=OUTGOING, sent_on__date__range=between)
                 .order_by("-sent_on")
                 .first()

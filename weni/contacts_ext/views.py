@@ -8,8 +8,9 @@ from rest_framework.status import HTTP_400_BAD_REQUEST
 
 from temba.api.v2.views_base import BaseAPIView, ListAPIMixin
 from temba.contacts.models import Contact
-from temba.msgs.models import Msg, OUTGOING
+from temba.msgs.models import OUTGOING, Msg
 from temba.orgs.models import Org
+
 from .serializers import ContactActiveSerializer
 
 
@@ -80,9 +81,7 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
             queryset.annotate(
                 has_msg=Exists(
                     Msg.objects.filter(
-                        contact__pk=OuterRef("pk"),
-                        direction=OUTGOING,
-                        sent_on__date__range=between,
+                        contact__pk=OuterRef("pk"), direction=OUTGOING, sent_on__date__range=between,
                     ).values("pk")
                 )
             )
@@ -103,25 +102,14 @@ class ActiveContactsEndpoint(ListAPIMixin, BaseAPIView):
                     "required": False,
                     "help": "Integer ID. This field is required if the user is a super user.",
                 },
-                {
-                    "name": cls.PARAM_START_DATE,
-                    "required": True,
-                    "help": "Start date in format YYYY-MM-DD",
-                },
-                {
-                    "name": cls.PARAM_END_DATE,
-                    "required": True,
-                    "help": "End date in format YYYY-MM-DD",
-                },
+                {"name": cls.PARAM_START_DATE, "required": True, "help": "Start date in format YYYY-MM-DD"},
+                {"name": cls.PARAM_END_DATE, "required": True, "help": "End date in format YYYY-MM-DD"},
             ],
         }
 
     def get(self, request, *args, **kwargs):
         if self.request.user.is_superuser and not self.request.query_params.get(self.PARAM_ORG_ID):
-            return Response(
-                {self.PARAM_ORG_ID: "Superuser must inform a value"},
-                status=HTTP_400_BAD_REQUEST,
-            )
+            return Response({self.PARAM_ORG_ID: "Superuser must inform a value"}, status=HTTP_400_BAD_REQUEST,)
 
         start_date = parse_date(self.request.query_params.get(self.PARAM_START_DATE) or "")
         end_date = parse_date(self.request.query_params.get(self.PARAM_END_DATE) or "")
