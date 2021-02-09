@@ -1,5 +1,5 @@
-from uuid import uuid1
 from abc import ABC, abstractmethod
+from uuid import uuid1
 
 from django.contrib.auth.models import Group
 from django.urls import reverse
@@ -7,8 +7,8 @@ from django.utils import timezone as tz
 from django.utils.http import urlencode
 
 from temba.api.models import APIToken
-from temba.tests import TembaTest, mock_mailroom
 from temba.flows.models import FlowRun
+from temba.tests import TembaTest, mock_mailroom
 
 
 def format_date(dt):
