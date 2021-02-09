@@ -8,4 +8,4 @@ class AuthConfig(AppConfig):
     name = "weni.auth"
 
     def ready(self):
-        update_urlpatterns(urlpatterns)
+        update_urlpatterns(urlpatterns, "temba.urls")
