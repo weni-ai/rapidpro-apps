@@ -78,11 +78,11 @@ class AnalyticsContactTest(TembaTest, TembaRequestMixin):
         # Adds some contacts with another creation dates
         old_joe = self.create_contact("Old Joe")
         old_joe.created_on = tz.now() - tz.timedelta(days=1)
-        old_joe.save(update_fields=["created_on"], handle_update=False)
+        old_joe.save(update_fields=["created_on"])
 
         older_joe = self.create_contact("Older Joe")
         older_joe.created_on = tz.now() - tz.timedelta(days=7)
-        older_joe.save(update_fields=["created_on"], handle_update=False)
+        older_joe.save(update_fields=["created_on"])
 
     def get_url_namespace(self):
         return "api.v2.analytics.contacts"
