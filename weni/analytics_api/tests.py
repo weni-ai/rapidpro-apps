@@ -193,7 +193,7 @@ class AnalyticsFlowRunTest(TembaTest, TembaRequestMixin):
         self.flow_run_interrupted.save(update_fields=["created_on"])
 
     def get_url_namespace(self):
-        return "api.v2.analytics.flows_runs"
+        return "api.v2.analytics.flow_runs"
 
     def test_return_is_a_dict(self):
         response = self.get_response()
