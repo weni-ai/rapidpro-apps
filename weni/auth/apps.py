@@ -3,6 +3,7 @@ from django.apps import AppConfig
 
 class AuthConfig(AppConfig):
     name = "weni.auth"
+    label = "weni_auth"
 
     def ready(self):
         from .urls import urlpatterns
