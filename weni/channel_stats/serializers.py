@@ -1,9 +1,9 @@
 from datetime import timedelta
-from django.utils import timezone
-from django.db.models import Sum
 
-from rest_framework import serializers
 from dateutil.relativedelta import relativedelta
+from django.db.models import Sum
+from django.utils import timezone
+from rest_framework import serializers
 
 from temba.api.v2.serializers import ReadSerializer
 from temba.channels.models import Channel, ChannelCount
@@ -47,15 +47,12 @@ class ChannelStatsReadSerializer(ReadSerializer):
         message_stats.append(dict(name="Errors", type="error", data=error))
 
         if channel.get_ivr_count():
-            message_stats.append(
-                dict(name="Incoming", type="ivr", data=ivr_in))
-            message_stats.append(
-                dict(name="Outgoing", type="ivr", data=ivr_out))
+            message_stats.append(dict(name="Incoming", type="ivr", data=ivr_in))
+            message_stats.append(dict(name="Outgoing", type="ivr", data=ivr_out))
             message_stats.append(dict(name="Errors", type="error", data=error))
 
         daily_counts = list(
-            ChannelCount.objects.filter(
-                channel__in=channels, day__gte=start_date)
+            ChannelCount.objects.filter(channel__in=channels, day__gte=start_date)
             .filter(
                 count_type__in=[
                     ChannelCount.INCOMING_MSG_TYPE,
@@ -75,20 +72,15 @@ class ChannelStatsReadSerializer(ReadSerializer):
             while daily_counts and daily_counts[0]["day"] == current:
                 daily_count = daily_counts.pop(0)
                 if daily_count["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
-                    msg_in.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                    msg_in.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
                 elif daily_count["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
-                    msg_out.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                    msg_out.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
                 elif daily_count["count_type"] == ChannelCount.INCOMING_IVR_TYPE:
-                    ivr_in.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                    ivr_in.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
                 elif daily_count["count_type"] == ChannelCount.OUTGOING_IVR_TYPE:
-                    ivr_out.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                    ivr_out.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
                 elif daily_count["count_type"] == ChannelCount.ERROR_LOG_TYPE:
-                    error.append(
-                        dict(date=daily_count["day"], count=daily_count["count_sum"]))
+                    error.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
 
             current = current + timedelta(days=1)
 
@@ -97,8 +89,7 @@ class ChannelStatsReadSerializer(ReadSerializer):
     def get_monthly_totals(self, obj):
         channel = obj
         message_stats_table = []
-        month_start = channel.created_on.replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0)
+        month_start = channel.created_on.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         monthly_totals = list(
             ChannelCount.objects.filter(channel=channel, day__gte=month_start)
