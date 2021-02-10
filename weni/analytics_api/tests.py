@@ -45,8 +45,8 @@ class AnalyticsContactTest(TembaTest, TembaRequestMixin):
         self.group2 = self.create_group("Nerds", org=self.org)
 
         # create some contacts
-        for x in range(0, 10):
-            contact_name = "Joe Blow " + str(x)
+        for contact in range(0, 10):
+            contact_name = "Joe Blow " + str(contact)
             created_contact = self.create_contact(contact_name)
             self.group2.contacts.add(created_contact)
 
@@ -54,26 +54,26 @@ class AnalyticsContactTest(TembaTest, TembaRequestMixin):
         self.create_contact("Contact without group")
 
         # create blocked contacts
-        for x in range(0, 5):
-            contact_name = "Joe Blocked " + str(x)
+        for contact in range(0, 5):
+            contact_name = "Joe Blocked " + str(contact)
             blocked_contact = self.create_contact(contact_name)
             blocked_contact.block(self.user)
 
         # create stopped contacts
-        for x in range(0, 5):
-            contact_name = "Joe stopped " + str(x)
+        for contact in range(0, 5):
+            contact_name = "Joe stopped " + str(contact)
             blocked_contact = self.create_contact(contact_name)
             blocked_contact.stop(self.user)
 
         # create archived contacts
-        for x in range(0, 5):
-            contact_name = "Joe archived " + str(x)
+        for contact in range(0, 5):
+            contact_name = "Joe archived " + str(contact)
             blocked_contact = self.create_contact(contact_name)
             blocked_contact.archive(self.user)
 
         # create deleted contacts
-        for x in range(0, 3):
-            self.create_contact("Joe deleted {}".format(x)).release(self.user)
+        for contact in range(0, 3):
+            self.create_contact("Joe deleted {}".format(contact)).release(self.user)
 
         # Adds some contacts with another creation dates
         old_joe = self.create_contact("Old Joe")
