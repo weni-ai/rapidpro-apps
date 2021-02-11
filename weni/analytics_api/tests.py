@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from uuid import uuid1
 
 from django.contrib.auth.models import Group
@@ -6,6 +7,7 @@ from django.utils import timezone as tz
 from django.utils.http import urlencode
 
 from temba.api.models import APIToken
+from temba.flows.models import FlowRun
 from temba.tests import TembaTest, mock_mailroom
 
 
@@ -43,8 +45,8 @@ class AnalyticsContactTest(TembaTest, TembaRequestMixin):
         self.group2 = self.create_group("Nerds", org=self.org)
 
         # create some contacts
-        for x in range(0, 10):
-            contact_name = "Joe Blow " + str(x)
+        for contact in range(0, 10):
+            contact_name = "Joe Blow " + str(contact)
             created_contact = self.create_contact(contact_name)
             self.group2.contacts.add(created_contact)
 
@@ -52,35 +54,35 @@ class AnalyticsContactTest(TembaTest, TembaRequestMixin):
         self.create_contact("Contact without group")
 
         # create blocked contacts
-        for x in range(0, 5):
-            contact_name = "Joe Blocked " + str(x)
+        for contact in range(0, 5):
+            contact_name = "Joe Blocked " + str(contact)
             blocked_contact = self.create_contact(contact_name)
             blocked_contact.block(self.user)
 
         # create stopped contacts
-        for x in range(0, 5):
-            contact_name = "Joe stopped " + str(x)
+        for contact in range(0, 5):
+            contact_name = "Joe stopped " + str(contact)
             blocked_contact = self.create_contact(contact_name)
             blocked_contact.stop(self.user)
 
         # create archived contacts
-        for x in range(0, 5):
-            contact_name = "Joe archived " + str(x)
+        for contact in range(0, 5):
+            contact_name = "Joe archived " + str(contact)
             blocked_contact = self.create_contact(contact_name)
             blocked_contact.archive(self.user)
 
         # create deleted contacts
-        for x in range(0, 3):
-            self.create_contact("Joe deleted {}".format(x)).release(self.user)
+        for contact in range(0, 3):
+            self.create_contact("Joe deleted {}".format(contact)).release(self.user)
 
         # Adds some contacts with another creation dates
         old_joe = self.create_contact("Old Joe")
         old_joe.created_on = tz.now() - tz.timedelta(days=1)
-        old_joe.save(update_fields=["created_on"], handle_update=False)
+        old_joe.save(update_fields=["created_on"])
 
         older_joe = self.create_contact("Older Joe")
         older_joe.created_on = tz.now() - tz.timedelta(days=7)
-        older_joe.save(update_fields=["created_on"], handle_update=False)
+        older_joe.save(update_fields=["created_on"])
 
     def get_url_namespace(self):
         return "api.v2.analytics.contacts"
@@ -191,7 +193,7 @@ class AnalyticsFlowRunTest(TembaTest, TembaRequestMixin):
         self.flow_run_interrupted.save(update_fields=["created_on"])
 
     def get_url_namespace(self):
-        return "api.v2.analytics.flows_runs"
+        return "api.v2.analytics.flow_runs"
 
     def test_return_is_a_dict(self):
         response = self.get_response()

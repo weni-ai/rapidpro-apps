@@ -1,16 +1,16 @@
 # RapidPro Apps: Analytics API
 
-To work properly, the `analytics_api` app must be in `$PROJECT_ROOT/apps` directory. Once in it, include on project
-settings:
+To enable this app, add `weni.analytics_api` to your INSTALLED_APPS setting.
+
+Example:
 
 **settings.py**
 ```python
-from .settings_common import *
+...
 
-# ...
 INSTALLED_APPS = INSTALLED_APPS + (
-    # ...
-    "apps.analytics_api",
+    ...
+    "weni.analytics_api",
 )
 ```
 
