@@ -1,5 +1,7 @@
 from django.contrib.auth.models import User
 
+from rest_framework.exceptions import ValidationError
+
 from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
 import org_pb2
 import org_pb2_grpc
@@ -78,6 +80,32 @@ class OrgServiceTest(RPCTransactionTestCase):
 
         org.administrators.add(weniuser)
         self.assertEquals(self.get_org_users_count(testuser), 2)
+
+    def test_create_org(self):
+        org_name = "TestCreateOrg"
+        user = User.objects.first()
+
+        with self.assertRaises(ValidationError):
+            self.stub.Create(org_pb2.OrgCreateRequest(
+                name=org_name, timezone="Africa/Kigali", user_id=50))
+
+        with self.assertRaises(ValidationError):
+            self.stub.Create(org_pb2.OrgCreateRequest(
+                name=org_name, timezone="Wrong/Zone", user_id=user.id))
+
+        self.stub.Create(org_pb2.OrgCreateRequest(
+            name=org_name, timezone="Africa/Kigali", user_id=user.id))
+
+        orgs = Org.objects.filter(name=org_name)
+        org = orgs.first()
+
+        self.assertEquals(len(orgs), 1)
+
+        created_by = org.created_by
+        modified_by = org.modified_by
+
+        self.assertEquals(created_by, user)
+        self.assertEquals(modified_by, user)
 
     def get_org_users_count(self, user: User) -> int:
         orgs = self.get_user_orgs(user)
