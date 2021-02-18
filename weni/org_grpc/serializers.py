@@ -26,3 +26,33 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
         model = Org
         proto_class = org_pb2.Org
         fields = ["id", "name", "uuid", "users"]
+
+
+class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
+
+    user_id = serializers.IntegerField()
+
+    def validate_user_id(self, value: int) -> int:
+        try:
+            User.objects.get(id=value)
+        except User.DoesNotExist:
+            raise proto_serializers.ValidationError("user_id not found!")
+
+        return value
+
+    def save(self):
+
+        user = User.objects.get(id=self.validated_data.get("user_id"))
+        validated_data = {
+            "name": self.validated_data.get("name"),
+            "timezone": self.validated_data.get("timezone"),
+            "created_by": user,
+            "modified_by": user
+        }
+
+        Org.objects.create(**validated_data)
+
+    class Meta:
+        model = Org
+        proto_class = org_pb2.Org
+        fields = ["name", "timezone", "user_id"]
