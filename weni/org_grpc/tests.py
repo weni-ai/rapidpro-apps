@@ -107,6 +107,31 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEquals(created_by, user)
         self.assertEquals(modified_by, user)
 
+    def test_destroy_org(self):
+        org = Org.objects.first()
+        is_active = org.is_active
+        modified_by = org.modified_by
+
+        with self.assertRaisesMessage(FakeRpcError, 'User: 999 not found!'):
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(
+                id=org.id, user_id=999))
+
+        weniuser = User.objects.get(username="weniuser")
+
+        with self.assertRaisesMessage(FakeRpcError, 'Org: 999 not found!'):
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(
+                id=999, user_id=weniuser.id))
+
+        self.stub.Destroy(org_pb2.OrgDestroyRequest(
+            id=org.id, user_id=weniuser.id))
+
+        destroyed_org = Org.objects.get(id=org.id)
+
+        self.assertFalse(destroyed_org.is_active)
+        self.assertNotEquals(is_active, destroyed_org.is_active)
+        self.assertEquals(weniuser, destroyed_org.modified_by)
+        self.assertNotEquals(modified_by, destroyed_org.modified_by)
+
     def get_org_users_count(self, user: User) -> int:
         orgs = self.get_user_orgs(user)
         org = next(orgs)
