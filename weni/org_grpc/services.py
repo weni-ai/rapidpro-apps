@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 
 import grpc
+from google.protobuf import empty_pb2
 from django_grpc_framework import generics
 from weni.org_grpc.serializers import (
     OrgProtoSerializer,
@@ -8,6 +9,8 @@ from weni.org_grpc.serializers import (
 )
 
 from django_grpc_framework import mixins
+
+from temba.orgs.models import Org
 
 
 class OrgService(generics.GenericService, mixins.ListModelMixin):
@@ -27,6 +30,35 @@ class OrgService(generics.GenericService, mixins.ListModelMixin):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return serializer.message
+
+    def Destroy(self, request, context):
+        org = self.get_org_object(request.id)
+        user = self.get_user_object(request.user_id)
+
+        self.pre_destroy(org, user)
+        org.release()
+
+        return empty_pb2.Empty()
+
+    def pre_destroy(self, org: Org, user: User):
+        if user.id and user.id > 0 and hasattr(org, 'modified_by_id'):
+            org.modified_by = user
+
+            # Interim fix, remove after implementation in the model.
+            org.save(update_fields=['modified_by'])
+
+    def get_org_object(self, pk: int) -> Org:
+        return self._get_object(Org, pk)
+
+    def get_user_object(self, pk: int) -> User:
+        return self._get_object(User, pk)
+
+    def _get_object(self, model, pk: int):
+        try:
+            return model.objects.get(pk=pk)
+        except model.DoesNotExist:
+            self.context.abort(grpc.StatusCode.NOT_FOUND,
+                               f'{model.__name__}: {pk} not found!')
 
     def get_user(self, request):
         user_email = request.user_email
