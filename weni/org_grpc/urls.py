@@ -1,4 +1,5 @@
-import org_pb2_grpc
+from weni.org_grpc.grpc import org_pb2_grpc
+
 from weni.org_grpc.services import OrgService
 
 
