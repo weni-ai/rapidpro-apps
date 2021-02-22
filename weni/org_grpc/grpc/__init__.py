@@ -1,0 +1,1 @@
+from weni.org_grpc.grpc import org_pb2, org_pb2_grpc

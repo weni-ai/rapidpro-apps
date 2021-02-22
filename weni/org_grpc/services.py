@@ -5,7 +5,8 @@ from google.protobuf import empty_pb2
 from django_grpc_framework import generics
 from weni.org_grpc.serializers import (
     OrgProtoSerializer,
-    OrgCreateProtoSerializer
+    OrgCreateProtoSerializer,
+    OrgUpdateProtoSerializer
 )
 
 from django_grpc_framework import mixins
@@ -40,12 +41,19 @@ class OrgService(generics.GenericService, mixins.ListModelMixin):
 
         return empty_pb2.Empty()
 
+    def Update(self, request, context):
+        serializer = OrgUpdateProtoSerializer(message=request)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return serializer.message
+
     def pre_destroy(self, org: Org, user: User):
-        if user.id and user.id > 0 and hasattr(org, 'modified_by_id'):
+        if user.id and user.id > 0 and hasattr(org, "modified_by_id"):
             org.modified_by = user
 
             # Interim fix, remove after implementation in the model.
-            org.save(update_fields=['modified_by'])
+            org.save(update_fields=["modified_by"])
 
     def get_org_object(self, pk: int) -> Org:
         return self._get_object(Org, pk)
@@ -58,21 +66,22 @@ class OrgService(generics.GenericService, mixins.ListModelMixin):
             return model.objects.get(pk=pk)
         except model.DoesNotExist:
             self.context.abort(grpc.StatusCode.NOT_FOUND,
-                               f'{model.__name__}: {pk} not found!')
+                               f"{model.__name__}: {pk} not found!")
 
     def get_user(self, request):
         user_email = request.user_email
 
         if not user_email:
             self.context.abort(grpc.StatusCode.NOT_FOUND,
-                f"Email cannot be null")
+                               f"Email cannot be null")
 
         try:
             return User.objects.get(email=request.user_email)
         except User.DoesNotExist:
             self.context.abort(grpc.StatusCode.NOT_FOUND,
-                f"User:{request.user_email} not found!")
+                               f"User:{request.user_email} not found!")
 
     def get_orgs(self, user: User):
         return user.org_admins.union(user.org_viewers.all(),
-            user.org_editors.all(), user.org_surveyors.all())
+                                     user.org_editors.all(),
+                                     user.org_surveyors.all())
