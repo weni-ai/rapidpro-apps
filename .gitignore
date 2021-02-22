@@ -130,3 +130,7 @@ ansible/site.retry
 
 # autoenv
 .direnv/
+
+# gRPC
+
+*pb2*
