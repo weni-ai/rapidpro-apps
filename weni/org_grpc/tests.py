@@ -1,13 +1,11 @@
 from datetime import datetime
-from time import strftime
 
 from django.contrib.auth.models import User
 
 from rest_framework.exceptions import ValidationError
 
 from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
-from weni.org_grpc.grpc import org_pb2
-from weni.org_grpc.grpc import org_pb2_grpc
+from weni.org_grpc.grpc_gen import org_pb2, org_pb2_grpc
 
 from temba.orgs.models import Org
 
