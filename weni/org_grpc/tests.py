@@ -1,14 +1,11 @@
 from datetime import datetime
 
 from django.contrib.auth.models import User
-
+from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
 from rest_framework.exceptions import ValidationError
 
-from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
-from weni.org_grpc.grpc_gen import org_pb2, org_pb2_grpc
-
 from temba.orgs.models import Org
-
+from weni.org_grpc.grpc_gen import org_pb2, org_pb2_grpc
 from weni.org_grpc.serializers import SerializerUtils
 
 
@@ -18,33 +15,14 @@ class OrgServiceTest(RPCTransactionTestCase):
 
     def setUp(self):
 
-        User.objects.create_user(
-            username="testuser", password="123", email="test@weni.ai"
-        )
-        User.objects.create_user(
-            username="weniuser", password="123", email="wene@user.com"
-        )
+        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
+        User.objects.create_user(username="weniuser", password="123", email="wene@user.com")
 
         user = User.objects.get(username="testuser")
 
-        Org.objects.create(
-            name="Temba",
-            timezone="Africa/Kigali",
-            created_by=user,
-            modified_by=user
-        )
-        Org.objects.create(
-            name="Weni",
-            timezone="Africa/Kigali",
-            created_by=user,
-            modified_by=user
-        )
-        Org.objects.create(
-            name="Test",
-            timezone="Africa/Kigali",
-            created_by=user,
-            modified_by=user
-        )
+        Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        Org.objects.create(name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        Org.objects.create(name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user)
 
         super().setUp()
 
@@ -99,15 +77,12 @@ class OrgServiceTest(RPCTransactionTestCase):
         user = User.objects.first()
 
         with self.assertRaises(ValidationError):
-            self.stub.Create(org_pb2.OrgCreateRequest(
-                name=org_name, timezone="Africa/Kigali", user_id=self.WRONG_ID))
+            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_id=self.WRONG_ID))
 
         with self.assertRaises(ValidationError):
-            self.stub.Create(org_pb2.OrgCreateRequest(
-                name=org_name, timezone="Wrong/Zone", user_id=user.id))
+            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_id=user.id))
 
-        self.stub.Create(org_pb2.OrgCreateRequest(
-            name=org_name, timezone="Africa/Kigali", user_id=user.id))
+        self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_id=user.id))
 
         orgs = Org.objects.filter(name=org_name)
         org = orgs.first()
@@ -126,17 +101,14 @@ class OrgServiceTest(RPCTransactionTestCase):
         modified_by = org.modified_by
 
         with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_ID} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(
-                id=org.id, user_id=self.WRONG_ID))
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_id=self.WRONG_ID))
 
         weniuser = User.objects.get(username="weniuser")
 
         with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_ID} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(
-                id=self.WRONG_ID, user_id=weniuser.id))
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=self.WRONG_ID, user_id=weniuser.id))
 
-        self.stub.Destroy(org_pb2.OrgDestroyRequest(
-            id=org.id, user_id=weniuser.id))
+        self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_id=weniuser.id))
 
         destroyed_org = Org.objects.get(id=org.id)
 
@@ -152,12 +124,10 @@ class OrgServiceTest(RPCTransactionTestCase):
         permission_error_message = f"User: {user.id} has no permission to update Org: {org.id}"
 
         with self.assertRaisesMessage(ValidationError, permission_error_message):
-            self.stub.Update(org_pb2.OrgUpdateRequest(
-                id=org.id, user_id=user.id))
+            self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_id=user.id))
 
         with self.assertRaisesMessage(ValidationError, "User: 0 not found!"):
-            self.stub.Update(org_pb2.OrgUpdateRequest(
-                id=org.id))
+            self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id))
 
         user.is_superuser = True
         user.save()
@@ -174,12 +144,10 @@ class OrgServiceTest(RPCTransactionTestCase):
             "is_anon": True,
             "is_multi_user": True,
             "is_multi_org": True,
-            "is_suspended": True
+            "is_suspended": True,
         }
 
-        self.stub.Update(org_pb2.OrgUpdateRequest(
-            id=org.id, user_id=user.id, **update_fields)
-        )
+        self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_id=user.id, **update_fields))
 
         updated_org = Org.objects.get(pk=org.pk)
 
@@ -195,8 +163,9 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEquals(update_fields.get("plan"), updated_org.plan)
         self.assertNotEquals(org.plan, updated_org.plan)
 
-        self.assertEquals(update_fields.get("plan_end"),
-            updated_org.plan_end.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEquals(
+            update_fields.get("plan_end"), updated_org.plan_end.strftime("%Y-%m-%d %H:%M:%S"),
+        )
         self.assertNotEquals(org.plan_end, updated_org.plan_end)
 
         self.assertEquals(update_fields.get("brand"), updated_org.brand)

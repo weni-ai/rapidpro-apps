@@ -1,21 +1,13 @@
-from django.contrib.auth.models import User
-
 import grpc
+from django.contrib.auth.models import User
+from django_grpc_framework import generics, mixins
 from google.protobuf import empty_pb2
-from django_grpc_framework import generics
-from weni.org_grpc.serializers import (
-    OrgProtoSerializer,
-    OrgCreateProtoSerializer,
-    OrgUpdateProtoSerializer
-)
-
-from django_grpc_framework import mixins
 
 from temba.orgs.models import Org
+from weni.org_grpc.serializers import OrgCreateProtoSerializer, OrgProtoSerializer, OrgUpdateProtoSerializer
 
 
 class OrgService(generics.GenericService, mixins.ListModelMixin):
-
     def List(self, request, context):
 
         user = self.get_user(request)
@@ -65,23 +57,18 @@ class OrgService(generics.GenericService, mixins.ListModelMixin):
         try:
             return model.objects.get(pk=pk)
         except model.DoesNotExist:
-            self.context.abort(grpc.StatusCode.NOT_FOUND,
-                               f"{model.__name__}: {pk} not found!")
+            self.context.abort(grpc.StatusCode.NOT_FOUND, f"{model.__name__}: {pk} not found!")
 
     def get_user(self, request):
         user_email = request.user_email
 
         if not user_email:
-            self.context.abort(grpc.StatusCode.NOT_FOUND,
-                               f"Email cannot be null")
+            self.context.abort(grpc.StatusCode.NOT_FOUND, "Email cannot be null")
 
         try:
             return User.objects.get(email=request.user_email)
         except User.DoesNotExist:
-            self.context.abort(grpc.StatusCode.NOT_FOUND,
-                               f"User:{request.user_email} not found!")
+            self.context.abort(grpc.StatusCode.NOT_FOUND, f"User:{request.user_email} not found!")
 
     def get_orgs(self, user: User):
-        return user.org_admins.union(user.org_viewers.all(),
-                                     user.org_editors.all(),
-                                     user.org_surveyors.all())
+        return user.org_admins.union(user.org_viewers.all(), user.org_editors.all(), user.org_surveyors.all())
