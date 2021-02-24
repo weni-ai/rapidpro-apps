@@ -1,7 +1,17 @@
+from django.contrib.auth.models import User
+
+from rest_framework import serializers
+
 from django_grpc_framework import proto_serializers
 
 from weni.user_grpc.grpc_gen import user_pb2
 
 
-class OrgProtoSerializer(proto_serializers.Serializer):
-    ...
+class UserPermissionProtoSerializer(proto_serializers.ProtoSerializer):
+    administrator = serializers.BooleanField(default=False)
+    viewer = serializers.BooleanField(default=False)
+    editor = serializers.BooleanField(default=False)
+    surveyor = serializers.BooleanField(default=False)
+
+    class Meta:
+        proto_class = user_pb2.Permission
