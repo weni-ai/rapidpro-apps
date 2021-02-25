@@ -52,6 +52,22 @@ class UserPermissionService(AbstractUserService, mixins.RetrieveModelMixin, mixi
 
         return serializer.message
 
+    def Remove(self, request, context):
+        org = self.get_org_object(request.org_id)
+        user = self.get_user_object(request.user_id)
+
+        self.validate_permission(org, request.permission)
+        self.remove_user_permission(org, user, request.permission)
+
+        permissions = self.get_user_permissions(org, user)
+        serializer = UserPermissionProtoSerializer(permissions)
+
+        return serializer.message
+
+    def remove_user_permission(self, org: Org, user: User, permission: str):
+        permissions = self.get_permissions(org)
+        permissions.get(permission).remove(user)
+
     def set_user_permission(self, org: Org, user: User, permission: str):
         permissions = self.get_permissions(org)
 

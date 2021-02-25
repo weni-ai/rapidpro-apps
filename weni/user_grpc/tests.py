@@ -36,23 +36,12 @@ class UserServiceTest(RPCTransactionTestCase):
         with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_ID} not found!"):
             self.user_permission_retrieve_request(org_id=org.id, user_id=self.WRONG_ID)
 
-        def permission_is_unique_true(response, permission: str) -> bool:
-            permissions = {
-                "administrator": response.administrator,
-                "viewer": response.viewer,
-                "editor": response.editor,
-                "surveyor": response.surveyor,
-            }
-            false_valeues = [key for key, value in permissions.items() if not value]
-
-            return len(false_valeues) == 3 and permission not in false_valeues
-
         org.administrators.add(user)
 
         response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
 
         self.assertTrue(response.administrator)
-        self.assertTrue(permission_is_unique_true(response, "administrator"))
+        self.assertTrue(self.permission_is_unique_true(response, "administrator"))
 
         org.administrators.remove(user)
         org.viewers.add(user)
@@ -60,7 +49,7 @@ class UserServiceTest(RPCTransactionTestCase):
         response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
 
         self.assertTrue(response.viewer)
-        self.assertTrue(permission_is_unique_true(response, "viewer"))
+        self.assertTrue(self.permission_is_unique_true(response, "viewer"))
 
         org.viewers.remove(user)
         org.editors.add(user)
@@ -68,7 +57,7 @@ class UserServiceTest(RPCTransactionTestCase):
         response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
 
         self.assertTrue(response.editor)
-        self.assertTrue(permission_is_unique_true(response, "editor"))
+        self.assertTrue(self.permission_is_unique_true(response, "editor"))
 
         org.editors.remove(user)
         org.surveyors.add(user)
@@ -76,7 +65,7 @@ class UserServiceTest(RPCTransactionTestCase):
         response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
 
         self.assertTrue(response.surveyor)
-        self.assertTrue(permission_is_unique_true(response, "surveyor"))
+        self.assertTrue(self.permission_is_unique_true(response, "surveyor"))
 
     def test_user_retrieve(self):
         user = User.objects.first()
@@ -132,6 +121,22 @@ class UserServiceTest(RPCTransactionTestCase):
         self.assertTrue(retrieve_response.surveyor)
         self.assertTrue(self.permission_is_unique_true(retrieve_response, "surveyor"))
 
+    def test_user_permission_remove(self):
+        org = Org.objects.first()
+        user = User.objects.first()
+
+        with self.assertRaisesMessage(FakeRpcError, "adm is not a valid permission!"):
+            self.user_permission_remove_request(org_id=org.id, user_id=user.id, permission="adm")
+
+        self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="viewer")
+        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+
+        self.user_permission_remove_request(org_id=org.id, user_id=user.id, permission="viewer")
+        retrieve_response_removed = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+
+        self.assertFalse(retrieve_response_removed.viewer)
+        self.assertNotEquals(retrieve_response.viewer, retrieve_response_removed.viewer)
+
     def permission_is_unique_true(self, response, permission: str) -> bool:
         permissions = {
             "administrator": response.administrator,
@@ -148,6 +153,9 @@ class UserServiceTest(RPCTransactionTestCase):
 
     def user_permission_update_request(self, **kwargs):
         return self.user_permission_stub.Update(user_pb2.UserPermissionUpdateRequest(**kwargs))
+
+    def user_permission_remove_request(self, **kwargs):
+        return self.user_permission_stub.Remove(user_pb2.UserPermissionUpdateRequest(**kwargs))
 
     def user_retrieve_request(self, **kwargs):
         return self.user_stub.Retrieve(user_pb2.UserRetrieveRequest(**kwargs))
