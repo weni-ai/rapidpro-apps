@@ -93,18 +93,11 @@ class UserPermissionService(AbstractUserService, mixins.RetrieveModelMixin, mixi
 
     def get_user_permissions(self, org: Org, user: User) -> dict:
         permissions = {}
+        org_permissions = self.get_permissions(org)
 
-        if org.administrators.filter(pk=user.id).exists():
-            permissions["administrator"] = True
-
-        if org.viewers.filter(pk=user.id).exists():
-            permissions["viewer"] = True
-
-        if org.editors.filter(pk=user.id).exists():
-            permissions["editor"] = True
-
-        if org.surveyors.filter(pk=user.id).exists():
-            permissions["surveyor"] = True
+        for perm_name, org_field in org_permissions.items():
+            if org_field.filter(pk=user.id).exists():
+                permissions[perm_name] = True
 
         return permissions
 
