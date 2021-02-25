@@ -15,3 +15,10 @@ class UserPermissionProtoSerializer(proto_serializers.ProtoSerializer):
 
     class Meta:
         proto_class = user_pb2.Permission
+
+
+class UserProtoSerializer(proto_serializers.ModelProtoSerializer):
+    class Meta:
+        model = User
+        proto_class = user_pb2.User
+        fields = ["id", "email", "username", "first_name", "last_name"]

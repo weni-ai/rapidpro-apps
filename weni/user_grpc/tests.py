@@ -13,7 +13,9 @@ class UserServiceTest(RPCTransactionTestCase):
     WRONG_ID = -1
 
     def setUp(self):
-        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
+        User.objects.create_user(
+            username="testuser", password="123", email="test@weni.ai", first_name="Weni", last_name="ai",
+        )
 
         user = User.objects.first()
 
@@ -21,19 +23,18 @@ class UserServiceTest(RPCTransactionTestCase):
 
         super().setUp()
 
-        self.stub = user_pb2_grpc.UserPermissionControllerStub(self.channel)
-
-    def test_empty_args(self):
-        with self.assertRaisesMessage(FakeRpcError, "Org pk cannot be 0 or None"):
-            self.user_permission_retrieve_request()
-
-        with self.assertRaisesMessage(FakeRpcError, "User pk cannot be 0 or None"):
-            org = Org.objects.first()
-            self.user_permission_retrieve_request(org_id=org.id)
+        self.user_permission_stub = user_pb2_grpc.UserPermissionControllerStub(self.channel)
+        self.user_stub = user_pb2_grpc.UserControllerStub(self.channel)
 
     def test_user_permission_retrieve(self):
         org = Org.objects.first()
         user = User.objects.first()
+
+        with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_ID} not found!"):
+            self.user_permission_retrieve_request(org_id=self.WRONG_ID, user_id=self.WRONG_ID)
+
+        with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_ID} not found!"):
+            self.user_permission_retrieve_request(org_id=org.id, user_id=self.WRONG_ID)
 
         def permission_is_unique_true(response, permission: str) -> bool:
             permissions = {
@@ -77,5 +78,24 @@ class UserServiceTest(RPCTransactionTestCase):
         self.assertTrue(response.surveyor)
         self.assertTrue(permission_is_unique_true(response, "surveyor"))
 
+    def test_user_retrieve(self):
+        user = User.objects.first()
+
+        wrong_email = "wrong@email.com"
+
+        with self.assertRaisesMessage(FakeRpcError, f"User: {wrong_email} not found!"):
+            self.user_retrieve_request(email=wrong_email)
+
+        response = self.user_retrieve_request(email=user.email)
+
+        self.assertEquals(response.id, user.id)
+        self.assertEquals(response.username, user.username)
+        self.assertEquals(response.email, user.email)
+        self.assertEquals(response.first_name, user.first_name)
+        self.assertEquals(response.last_name, user.last_name)
+
     def user_permission_retrieve_request(self, **kwargs):
-        return self.stub.Retrieve(user_pb2.UserPermissionRetrieveRequest(**kwargs))
+        return self.user_permission_stub.Retrieve(user_pb2.UserPermissionRetrieveRequest(**kwargs))
+
+    def user_retrieve_request(self, **kwargs):
+        return self.user_stub.Retrieve(user_pb2.UserRetrieveRequest(**kwargs))
