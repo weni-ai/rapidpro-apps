@@ -97,8 +97,57 @@ class UserServiceTest(RPCTransactionTestCase):
         self.assertEquals(response.is_active, user.is_active)
         self.assertEquals(response.is_superuser, user.is_superuser)
 
+    def test_user_permission_update(self):
+        org = Org.objects.first()
+        user = User.objects.first()
+
+        with self.assertRaisesMessage(FakeRpcError, "adm is not a valid permission!"):
+            self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="adm")
+
+        update_response = self.user_permission_update_request(
+            org_id=org.id, user_id=user.id, permission="administrator"
+        )
+        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+
+        self.assertEquals(update_response, retrieve_response)
+
+        self.assertTrue(retrieve_response.administrator)
+        self.assertTrue(self.permission_is_unique_true(retrieve_response, "administrator"))
+
+        self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="viewer")
+        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+
+        self.assertTrue(retrieve_response.viewer)
+        self.assertTrue(self.permission_is_unique_true(retrieve_response, "viewer"))
+
+        self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="editor")
+        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+
+        self.assertTrue(retrieve_response.editor)
+        self.assertTrue(self.permission_is_unique_true(retrieve_response, "editor"))
+
+        self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="surveyor")
+        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+
+        self.assertTrue(retrieve_response.surveyor)
+        self.assertTrue(self.permission_is_unique_true(retrieve_response, "surveyor"))
+
+    def permission_is_unique_true(self, response, permission: str) -> bool:
+        permissions = {
+            "administrator": response.administrator,
+            "viewer": response.viewer,
+            "editor": response.editor,
+            "surveyor": response.surveyor,
+        }
+        false_valeues = [key for key, value in permissions.items() if not value]
+
+        return len(false_valeues) == 3 and permission not in false_valeues
+
     def user_permission_retrieve_request(self, **kwargs):
         return self.user_permission_stub.Retrieve(user_pb2.UserPermissionRetrieveRequest(**kwargs))
+
+    def user_permission_update_request(self, **kwargs):
+        return self.user_permission_stub.Update(user_pb2.UserPermissionUpdateRequest(**kwargs))
 
     def user_retrieve_request(self, **kwargs):
         return self.user_stub.Retrieve(user_pb2.UserRetrieveRequest(**kwargs))
