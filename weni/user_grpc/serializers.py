@@ -21,4 +21,4 @@ class UserProtoSerializer(proto_serializers.ModelProtoSerializer):
     class Meta:
         model = User
         proto_class = user_pb2.User
-        fields = ["id", "email", "username", "first_name", "last_name"]
+        fields = ["id", "email", "username", "first_name", "last_name", "date_joined", "is_active", "is_superuser"]

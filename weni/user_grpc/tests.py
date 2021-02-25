@@ -93,6 +93,9 @@ class UserServiceTest(RPCTransactionTestCase):
         self.assertEquals(response.email, user.email)
         self.assertEquals(response.first_name, user.first_name)
         self.assertEquals(response.last_name, user.last_name)
+        self.assertEquals(response.date_joined, user.date_joined.strftime("%Y-%m-%dT%H:%M:%S.%fZ"))
+        self.assertEquals(response.is_active, user.is_active)
+        self.assertEquals(response.is_superuser, user.is_superuser)
 
     def user_permission_retrieve_request(self, **kwargs):
         return self.user_permission_stub.Retrieve(user_pb2.UserPermissionRetrieveRequest(**kwargs))
