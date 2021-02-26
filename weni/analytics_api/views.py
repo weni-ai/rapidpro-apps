@@ -9,10 +9,42 @@ from temba.utils import str_to_bool
 
 
 class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
+    """
+    This endpoint shows the analytical data of the contacts over a period of time.
+
+    ## List Analytics Contacts data
+
+    A **GET** returns analytical data related to contacts, containing segmentation by time and by type.
+
+    * **group** - A group name or UUID to filter by. ex: Customers.
+    * **deleted** - Whether to return only deleted contacts. ex: false.
+    * **before** - Only return events created before this date, ex: 2015-01-28T18:00:00.000
+    * **after** - Only return events created after this date, ex: 2015-01-28T18:00:00.000
+
+    Example:
+
+        GET /api/v2/analytics/contacts
+
+    Response:
+        {
+            "total": 100,
+            "current": {
+                "actives": 100,
+                "blocked": 0,
+                "stopped": 0,
+                "archived": 0
+            },
+            "by_date": {
+                "2019-02-07": 10,
+                "2020-12-23": 30,
+                "2018-11-01": 60,
+            }
+        }
+    """
+
     permission = "contacts.contact_api"
     model = Contact
     lookup_params = {"uuid": "uuid", "urn": "urns__identity"}
-    renderer_classes = [JSONRenderer]
 
     def filter_queryset(self, queryset):
         params = self.request.query_params
@@ -70,11 +102,68 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
 
         return Response(contact_analytics, status=200)
 
+    @classmethod
+    def get_read_explorer(cls):
+        return {
+            "method": "GET",
+            "title": "List Contacts Analytics",
+            "url": reverse("api.v2.analytics.contacts"),
+            "slug": "contacts-analytics",
+            "params": [
+                {"name": "group", "required": False, "help": "A group name or UUID to filter by. ex: Customers"},
+                {"name": "deleted", "required": False, "help": "Whether to return only deleted contacts. ex: false"},
+                {
+                    "name": "before",
+                    "required": False,
+                    "help": "Only return events created before this date, ex: 2015-01-28T18:00:00.000",
+                },
+                {
+                    "name": "after",
+                    "required": False,
+                    "help": "Only return events created after this date, ex: 2015-01-28T18:00:00.000",
+                },
+            ],
+        }
+
 
 class FlowRunAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
+    """
+    This endpoint shows the analytical data of the flow runs over a period of time.
+
+    ## List Analytics Flow Runs data
+
+    A **GET** returns analytical data related to flows, containing information about the type 
+                of runs and being able to segment by date
+
+    * **flow_uuid** - A flow UUID to filter by, ex: f5901b62-ba76-4003-9c62-72fdacc1b7b7.
+    * **before** - Only return events created before this date, ex: 2015-01-28T18:00:00.000
+    * **after** - Only return events created after this date, ex: 2015-01-28T18:00:00.000
+
+    Example:
+
+        GET /api/v2/analytics/flow-runs
+
+    Response:
+        {
+            "Full Call Flow": {
+                "uuid": "f5901b62-ba76-4003-9c62-72fdacc1b7b7",
+                "stats": {
+                    "total": 7,
+                    "by_status": {
+                        "active": 0,
+                        "waiting": 0,
+                        "completed": 4,
+                        "interrupted": 3,
+                        "expired": 0,
+                        "failed": 0
+                    }
+                }
+            }
+        }
+    """
+
     permission = "flows.flow_api"
     model = FlowRun
-    renderer_classes = [JSONRenderer]
 
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset)
@@ -116,3 +205,29 @@ class FlowRunAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
             for flow_run_stats in flows_runs_stats
         }
         return Response(flows_runs_stats_cleaned, status=200)
+
+    @classmethod
+    def get_read_explorer(cls):
+        return {
+            "method": "GET",
+            "title": "List Flow Runs Analytics",
+            "url": reverse("api.v2.analytics.flow_runs"),
+            "slug": "flow-runs-analytics",
+            "params": [
+                {
+                    "name": "flow_uuid",
+                    "required": False,
+                    "help": "A flow UUID to filter by, ex: f5901b62-ba76-4003-9c62-72fdacc1b7b7",
+                },
+                {
+                    "name": "before",
+                    "required": False,
+                    "help": "Only return events created before this date, ex: 2015-01-28T18:00:00.000",
+                },
+                {
+                    "name": "after",
+                    "required": False,
+                    "help": "Only return events created after this date, ex: 2015-01-28T18:00:00.000",
+                },
+            ],
+        }
