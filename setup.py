@@ -1,5 +1,9 @@
 from setuptools import setup
 
-setup(install_requires=[
-    'django-grpc==1.0.8',
-])
+setup(name="rapidpro-apps", install_requires=[
+    "mozilla-django-oidc",
+    "djangogrpcframework",
+    "djangogrpcframework",
+    "grpcio",
+    "grpcio-tools",
+    ])
