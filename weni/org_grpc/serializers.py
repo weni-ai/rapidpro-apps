@@ -18,6 +18,7 @@ class SerializerUtils(object):
 class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
 
     users = serializers.SerializerMethodField()
+    timezone = serializers.CharField()
 
     def get_users(self, org: Org):
         users = org.administrators.union(org.viewers.all(), org.editors.all(), org.surveyors.all())
@@ -26,7 +27,7 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
     class Meta:
         model = Org
         proto_class = org_pb2.Org
-        fields = ["id", "name", "uuid", "users"]
+        fields = ["id", "name", "uuid", "timezone", "date_format", "users"]
 
 
 class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
@@ -37,18 +38,6 @@ class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
         SerializerUtils.get_object(User, value)
 
         return value
-
-    def save(self):
-
-        user = User.objects.get(id=self.validated_data.get("user_id"))
-        validated_data = {
-            "name": self.validated_data.get("name"),
-            "timezone": self.validated_data.get("timezone"),
-            "created_by": user,
-            "modified_by": user,
-        }
-
-        Org.objects.create(**validated_data)
 
     class Meta:
         model = Org

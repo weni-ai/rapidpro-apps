@@ -21,8 +21,20 @@ class OrgService(generics.GenericService, mixins.ListModelMixin):
     def Create(self, request, context):
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return serializer.message
+
+        user = User.objects.get(id=serializer.validated_data.get("user_id"))
+        validated_data = {
+            "name": serializer.validated_data.get("name"),
+            "timezone": serializer.validated_data.get("timezone"),
+            "created_by": user,
+            "modified_by": user,
+        }
+
+        org = Org.objects.create(**validated_data)
+
+        org_serializer = OrgProtoSerializer(org)
+
+        return org_serializer.message
 
     def Destroy(self, request, context):
         org = self.get_org_object(request.id)
