@@ -49,15 +49,25 @@ class OrgServiceTest(RPCTransactionTestCase):
         orgs = Org.objects.all()
         user = User.objects.get(username="testuser")
 
+        weni_org = orgs.get(name="Weni")
+        temba_org = orgs.get(name="Temba")
+        test_org = orgs.get(name="Test")
+
+        weni_org.administrators.add(user)
+        weni_org.is_active = False
+        weni_org.save(update_fields=["is_active"])
+
         self.assertEquals(self.get_orgs_count(user), 0)
 
-        orgs[0].administrators.add(user)
+        weni_org.is_active = True
+        weni_org.save(update_fields=["is_active"])
+
         self.assertEquals(self.get_orgs_count(user), 1)
 
-        orgs[1].viewers.add(user)
+        temba_org.viewers.add(user)
         self.assertEquals(self.get_orgs_count(user), 2)
 
-        orgs[2].editors.add(user)
+        test_org.editors.add(user)
         self.assertEquals(self.get_orgs_count(user), 3)
 
     def test_list_users_on_org(self):
