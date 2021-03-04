@@ -83,4 +83,9 @@ class OrgService(generics.GenericService, mixins.ListModelMixin):
             self.context.abort(grpc.StatusCode.NOT_FOUND, f"User:{request.user_email} not found!")
 
     def get_orgs(self, user: User):
-        return user.org_admins.union(user.org_viewers.all(), user.org_editors.all(), user.org_surveyors.all())
+        admins = user.org_admins.filter(is_active=True)
+        viewers = user.org_viewers.filter(is_active=True)
+        editors = user.org_editors.filter(is_active=True)
+        surveyors = user.org_surveyors.filter(is_active=True)
+
+        return admins.union(viewers, editors, surveyors)
