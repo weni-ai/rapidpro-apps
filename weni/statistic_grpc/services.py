@@ -10,7 +10,7 @@ class OrgStatisticService(generics.GenericService, AbstractService):
 
         response = {
             "active_flows": org.flows.filter(is_active=True).count(),
-            "active_classifier": org.classifiers.filter(is_active=True).count(),
+            "active_classifiers": org.classifiers.filter(is_active=True).count(),
             "active_contacts": org.contacts.filter(is_active=True).count(),
         }
 

@@ -64,13 +64,13 @@ class OrgStatisticServiceTest(test_grpc.RPCTransactionTestCase):
         response = self.org_statistic_list_request(org_uuid=org_uuid)
         self.assertEqual(response.active_flows, 3)
 
-        self.assertEqual(response.active_classifier, 2)
+        self.assertEqual(response.active_classifiers, 2)
 
         classifier = Classifier.objects.get(is_active=False)
         self.set_obj_active(classifier, True)
 
         response = self.org_statistic_list_request(org_uuid=org_uuid)
-        self.assertEqual(response.active_classifier, 3)
+        self.assertEqual(response.active_classifiers, 3)
 
     def set_obj_active(self, obj, is_active: bool):
         obj.is_active = is_active
