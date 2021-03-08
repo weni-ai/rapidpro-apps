@@ -1,5 +1,10 @@
-from django.db import connection
 from datetime import datetime
+
+from django.db import connection
+from django.db.models import OuterRef, Subquery
+from temba.contacts.models import Contact
+from temba.msgs.models import Msg
+from temba.orgs.models import Org
 
 
 class ActiveContactsQuery:
@@ -27,3 +32,34 @@ class ActiveContactsQuery:
             )
             row = cursor.fetchone()
             return row[0]
+
+    @classmethod
+    def detailed(cls, org_uuid: str, before: datetime, after: datetime):
+        org = Org.objects.get(uuid=org_uuid)
+        msg = (
+            Msg.objects.filter(contact_urn__contact__pk=OuterRef("pk"), created_on__lte=before, created_on__gte=after)
+            .exclude(status="F")
+            .order_by("-created_on")
+        )
+
+        return (
+            Contact.objects.annotate(
+                msg__uuid=Subquery(msg.values("uuid")[:1]),
+                msg__text=Subquery(msg.values("text")[:1]),
+                msg__sent_on=Subquery(msg.values("sent_on")[:1]),
+                msg__direction=Subquery(msg.values("direction")[:1]),
+                channel__uuid=Subquery(msg.values("channel__uuid")[:1]),
+                channel__name=Subquery(msg.values("channel__name")[:1]),
+            )
+            .filter(org=org, msg__uuid__isnull=False,)
+            .values_list(
+                "uuid",
+                "name",
+                "msg__uuid",
+                "msg__text",
+                "msg__sent_on",
+                "msg__direction",
+                "channel__uuid",
+                "channel__name"
+            )
+        )
