@@ -7,9 +7,9 @@ from google.protobuf.timestamp_pb2 import Timestamp as TimestampMessage
 from rest_framework.exceptions import ErrorDetail
 from temba.orgs.models import Org
 from temba.tests import TembaTest
-from weni.billing.grpc_gen.billing_pb2 import BillingRequest
+from weni.billing.grpc_gen import billing_pb2 as pb2
 from weni.billing.queries import ActiveContactsQuery
-from weni.billing.serializers import BillingRequestSerializer
+from weni.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer
 
 
 class ActiveContactsQueryTest(TembaTest):
@@ -71,6 +71,48 @@ class ActiveContactsQueryTest(TembaTest):
         self.assertEqual(another_org.count(), 0)
 
 
+class ActiveContactDetailSerializerTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.serializer_class = ActiveContactDetailSerializer
+        contact_uuid = uuid.uuid4()
+        contact_name = "Joe"
+        msg_uuid = uuid.uuid4()
+        msg_text = "Hi, Joe!"
+
+        msg_sent_on = tz.now()
+        ts = TimestampMessage()
+        ts.FromDatetime(msg_sent_on)
+        msg_direction = "O"
+        channel_uuid = uuid.uuid4()
+        channel_name = "Test Channel"
+        cls.data = dict(
+            uuid=contact_uuid,
+            name=contact_name,
+            msg__uuid=msg_uuid,
+            msg__text=msg_text,
+            msg__sent_on=msg_sent_on,
+            msg__direction=msg_direction,
+            channel__uuid=channel_uuid,
+            channel__name=channel_name,
+        )
+        cls.message = pb2.ActiveContactDetail(
+            uuid=str(contact_uuid),
+            name=contact_name,
+            msg=pb2.Msg(
+                uuid=str(msg_uuid),
+                text=msg_text,
+                sent_on=ts,
+                direction=pb2.OUTPUT,
+            ),
+            channel=pb2.Channel(uuid=str(channel_uuid), name=channel_name),
+        )
+
+    def test_serialize(self):
+        serializer = self.serializer_class(self.data)
+        self.assertEqual(serializer.message, self.message)
+
+
 class BillingRequestSerializerTest(TestCase):
     @classmethod
     def create_message(cls, org_uuid=None, before=None, after=None):
@@ -86,7 +128,7 @@ class BillingRequestSerializerTest(TestCase):
         after_message = TimestampMessage()
         after_message.FromDatetime(after)
 
-        return BillingRequest(org_uuid=str(org_uuid), before=before_message, after=after_message)
+        return pb2.BillingRequest(org_uuid=str(org_uuid), before=before_message, after=after_message)
 
     @classmethod
     def setUpTestData(cls):
@@ -99,7 +141,7 @@ class BillingRequestSerializerTest(TestCase):
         before_message.FromDatetime(before)
         after_message.FromDatetime(after)
         cls.valid_data = dict(org_uuid=org_uuid, before=before, after=after)
-        cls.valid_message = BillingRequest(org_uuid=str(org_uuid), before=before_message, after=after_message)
+        cls.valid_message = pb2.BillingRequest(org_uuid=str(org_uuid), before=before_message, after=after_message)
 
     def test_serialize(self):
         serializer = BillingRequestSerializer(self.valid_data)
@@ -113,18 +155,18 @@ class BillingRequestSerializerTest(TestCase):
     def test_serialize_empty(self):
         with self.assertRaisesMessage(KeyError, "org_uuid"):
             serializer = BillingRequestSerializer(dict(before=tz.now(), after=tz.now()))
-            self.assertIsInstance(serializer.message, BillingRequest)
+            self.assertIsInstance(serializer.message, pb2.BillingRequest)
 
         with self.assertRaisesRegex(KeyError, "before"):
             serializer = BillingRequestSerializer(dict(org_uuid="dontmatternow", after=tz.now()))
-            self.assertIsInstance(serializer.message, BillingRequest)
+            self.assertIsInstance(serializer.message, pb2.BillingRequest)
 
         with self.assertRaisesRegex(KeyError, "after"):
             serializer = BillingRequestSerializer(dict(org_uuid="dontmatternow", before=tz.now()))
-            self.assertIsInstance(serializer.message, BillingRequest)
+            self.assertIsInstance(serializer.message, pb2.BillingRequest)
 
     def test_required(self):
-        serializer = BillingRequestSerializer(message=BillingRequest())
+        serializer = BillingRequestSerializer(message=pb2.BillingRequest())
         self.assertFalse(serializer.is_valid())
         self.assertIn("org_uuid", serializer.errors)
         self.assertIn("before", serializer.errors)
