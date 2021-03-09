@@ -21,12 +21,17 @@ class ActiveContactsQueryTest(TembaTest):
         # create some contacts and incoming msgs
         for index in range(10):
             contact = self.create_contact(f"Contact {index+1}", phone=f"+5531248269{index:2d}")
-            self.create_incoming_msg(contact, "Hi there")
+            self.create_outgoing_msg(contact, f"Hello, {contact.name}!")
 
         # some other contacts out of time range filter
         for index in range(10, 15):
             contact = self.create_contact(f"Contact {index+1}", phone=f"+5531248269{index:2d}")
-            self.create_incoming_msg(contact, "Hi there", created_on=self.start - tz.timedelta(minutes=10))
+            self.create_outgoing_msg(
+                contact,
+                f"Hi there, {contact.name}!",
+                created_on=tz.now() - tz.timedelta(minutes=10),
+                sent_on=tz.now() - tz.timedelta(minutes=10),
+            )
 
         self.another_org = Org.objects.create(
             name="Weni",
@@ -38,8 +43,32 @@ class ActiveContactsQueryTest(TembaTest):
 
     def test_total(self):
         self.assertEqual(self.query.total(self.org.uuid, tz.now(), self.start), 10)
-        self.assertEqual(self.query.total(self.org.uuid, tz.now(), self.start - tz.timedelta(minutes=11)), 15)
+        self.assertEqual(
+            self.query.total(self.org.uuid, tz.now(), self.start - tz.timedelta(minutes=11)),
+            15,
+        )
         self.assertEqual(self.query.total(self.another_org.uuid, tz.now(), self.start), 0)
+
+    def test_detailed(self):
+        start_to_now = self.query.detailed(self.org.uuid, tz.now(), self.start)
+        self.assertEqual(start_to_now.count(), 10)
+        for row in start_to_now:
+            self.assertEqual(row["msg__text"], f"Hello, {row['name']}!")
+            self.assertTrue(row["msg__sent_on"] >= self.start)
+            self.assertTrue(row["msg__sent_on"] <= tz.now())
+
+        before_start = self.query.detailed(self.org.uuid, self.start, self.start - tz.timedelta(minutes=10))
+        self.assertEqual(before_start.count(), 5)
+        for row in before_start:
+            self.assertEqual(row["msg__text"], f"Hi there, {row['name']}!")
+            self.assertTrue(row["msg__sent_on"] >= self.start - tz.timedelta(minutes=10))
+            self.assertTrue(row["msg__sent_on"] <= self.start)
+
+        ten_minutes_ago = self.query.detailed(self.org.uuid, tz.now(), self.start - tz.timedelta(minutes=10))
+        self.assertEqual(ten_minutes_ago.count(), 15)
+
+        another_org = self.query.detailed(self.another_org.uuid, tz.now(), self.start)
+        self.assertEqual(another_org.count(), 0)
 
 
 class BillingRequestSerializerTest(TestCase):
@@ -107,10 +136,16 @@ class BillingRequestSerializerTest(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn("org_uuid", serializer.errors)
         self.assertEqual(len(serializer.errors["org_uuid"]), 1)
-        self.assertEqual(serializer.errors["org_uuid"][0], ErrorDetail(string="Must be a valid UUID.", code="invalid"))
+        self.assertEqual(
+            serializer.errors["org_uuid"][0],
+            ErrorDetail(string="Must be a valid UUID.", code="invalid"),
+        )
 
     def test_invalid_after(self):
-        msg = self.create_message(after=tz.now() + tz.timedelta(hours=1), before=tz.now() + tz.timedelta(hours=2))
+        msg = self.create_message(
+            after=tz.now() + tz.timedelta(hours=1),
+            before=tz.now() + tz.timedelta(hours=2),
+        )
         serializer = self.serializer_class(message=msg)
         self.assertFalse(serializer.is_valid())
         self.assertNotIn("before", serializer.errors)
@@ -118,7 +153,8 @@ class BillingRequestSerializerTest(TestCase):
         self.assertIn("after", serializer.errors)
         self.assertEqual(len(serializer.errors["after"]), 1)
         self.assertEqual(
-            serializer.errors["after"][0], ErrorDetail(string="Cannot search after this date.", code="invalid")
+            serializer.errors["after"][0],
+            ErrorDetail(string="Cannot search after this date.", code="invalid"),
         )
 
     def test_reversed_dates(self):
