@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n#weni/billing/grpc_gen/billing.proto\x12\x07\x62illing\x1a\x1fgoogle/protobuf/timestamp.proto\"y\n\x0e\x42illingRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\x12*\n\x06\x62\x65\x66ore\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12)\n\x05\x61\x66ter\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"*\n\x0f\x42illingResponse\x12\x17\n\x0f\x61\x63tive_contacts\x18\x01 \x01(\x05\x32G\n\x07\x42illing\x12<\n\x05Total\x12\x17.billing.BillingRequest\x1a\x18.billing.BillingResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n#weni/billing/grpc_gen/billing.proto\x12\x07\x62illing\x1a\x1fgoogle/protobuf/timestamp.proto\"y\n\x0e\x42illingRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\x12*\n\x06\x62\x65\x66ore\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12)\n\x05\x61\x66ter\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"*\n\x0f\x42illingResponse\x12\x17\n\x0f\x61\x63tive_contacts\x18\x01 \x01(\x05\"\xd1\x01\n\x17\x44\x65tailedBillingResponse\x12\x14\n\x0c\x63ontact_uuid\x18\x01 \x01(\t\x12\x14\n\x0c\x63ontact_name\x18\x02 \x01(\t\x12\x10\n\x08msg_uuid\x18\x03 \x01(\t\x12\x0c\n\x04text\x18\x04 \x01(\t\x12+\n\x07sent_on\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x11\n\tdirection\x18\x06 \x01(\t\x12\x14\n\x0c\x63hannel_uuid\x18\x07 \x01(\t\x12\x14\n\x0c\x63hannel_name\x18\x08 \x01(\t2\x92\x01\n\x07\x42illing\x12<\n\x05Total\x12\x17.billing.BillingRequest\x1a\x18.billing.BillingResponse\"\x00\x12I\n\x08\x44\x65tailed\x12\x17.billing.BillingRequest\x1a .billing.DetailedBillingResponse\"\x00\x30\x01\x62\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
@@ -104,10 +104,93 @@ _BILLINGRESPONSE = _descriptor.Descriptor(
   serialized_end=246,
 )
 
+
+_DETAILEDBILLINGRESPONSE = _descriptor.Descriptor(
+  name='DetailedBillingResponse',
+  full_name='billing.DetailedBillingResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='contact_uuid', full_name='billing.DetailedBillingResponse.contact_uuid', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='contact_name', full_name='billing.DetailedBillingResponse.contact_name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='msg_uuid', full_name='billing.DetailedBillingResponse.msg_uuid', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='text', full_name='billing.DetailedBillingResponse.text', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='sent_on', full_name='billing.DetailedBillingResponse.sent_on', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='direction', full_name='billing.DetailedBillingResponse.direction', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='channel_uuid', full_name='billing.DetailedBillingResponse.channel_uuid', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='channel_name', full_name='billing.DetailedBillingResponse.channel_name', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=249,
+  serialized_end=458,
+)
+
 _BILLINGREQUEST.fields_by_name['before'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
 _BILLINGREQUEST.fields_by_name['after'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_DETAILEDBILLINGRESPONSE.fields_by_name['sent_on'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
 DESCRIPTOR.message_types_by_name['BillingRequest'] = _BILLINGREQUEST
 DESCRIPTOR.message_types_by_name['BillingResponse'] = _BILLINGRESPONSE
+DESCRIPTOR.message_types_by_name['DetailedBillingResponse'] = _DETAILEDBILLINGRESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 BillingRequest = _reflection.GeneratedProtocolMessageType('BillingRequest', (_message.Message,), {
@@ -124,6 +207,13 @@ BillingResponse = _reflection.GeneratedProtocolMessageType('BillingResponse', (_
   })
 _sym_db.RegisterMessage(BillingResponse)
 
+DetailedBillingResponse = _reflection.GeneratedProtocolMessageType('DetailedBillingResponse', (_message.Message,), {
+  'DESCRIPTOR' : _DETAILEDBILLINGRESPONSE,
+  '__module__' : 'weni.billing.grpc_gen.billing_pb2'
+  # @@protoc_insertion_point(class_scope:billing.DetailedBillingResponse)
+  })
+_sym_db.RegisterMessage(DetailedBillingResponse)
+
 
 
 _BILLING = _descriptor.ServiceDescriptor(
@@ -133,8 +223,8 @@ _BILLING = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=248,
-  serialized_end=319,
+  serialized_start=461,
+  serialized_end=607,
   methods=[
   _descriptor.MethodDescriptor(
     name='Total',
@@ -143,6 +233,16 @@ _BILLING = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_BILLINGREQUEST,
     output_type=_BILLINGRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Detailed',
+    full_name='billing.Billing.Detailed',
+    index=1,
+    containing_service=None,
+    input_type=_BILLINGREQUEST,
+    output_type=_DETAILEDBILLINGRESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),

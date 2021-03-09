@@ -19,6 +19,11 @@ class BillingStub(object):
                 request_serializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
                 response_deserializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingResponse.FromString,
                 )
+        self.Detailed = channel.unary_stream(
+                '/billing.Billing/Detailed',
+                request_serializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
+                response_deserializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.DetailedBillingResponse.FromString,
+                )
 
 
 class BillingServicer(object):
@@ -31,6 +36,12 @@ class BillingServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Detailed(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BillingServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -38,6 +49,11 @@ def add_BillingServicer_to_server(servicer, server):
                     servicer.Total,
                     request_deserializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.FromString,
                     response_serializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingResponse.SerializeToString,
+            ),
+            'Detailed': grpc.unary_stream_rpc_method_handler(
+                    servicer.Detailed,
+                    request_deserializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.FromString,
+                    response_serializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.DetailedBillingResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -63,5 +79,22 @@ class Billing(object):
         return grpc.experimental.unary_unary(request, target, '/billing.Billing/Total',
             weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
             weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Detailed(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/billing.Billing/Detailed',
+            weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
+            weni_dot_billing_dot_grpc__gen_dot_billing__pb2.DetailedBillingResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
