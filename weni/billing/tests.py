@@ -7,9 +7,10 @@ from google.protobuf.timestamp_pb2 import Timestamp as TimestampMessage
 from rest_framework.exceptions import ErrorDetail
 from temba.orgs.models import Org
 from temba.tests import TembaTest
-from weni.billing.grpc_gen import billing_pb2 as pb2
+from weni.billing.grpc_gen import billing_pb2 as pb2, billing_pb2_grpc as stubs
 from weni.billing.queries import ActiveContactsQuery
 from weni.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer
+from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
 
 
 class ActiveContactsQueryTest(TembaTest):
@@ -210,3 +211,16 @@ class BillingRequestSerializerTest(TestCase):
             errors["non_field_errors"][0],
             ErrorDetail(string='"after" should be earlier then "before"', code="invalid"),
         )
+
+
+class BillingServiceTest(RPCTransactionTestCase):
+
+    def setUp(self):
+        self.stub = stubs.BillingStub(self.channel)
+        super().setUp()
+
+    def test_total(self):
+        ...
+
+    def test_detailed(self):
+        ...
