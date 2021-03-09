@@ -22,7 +22,7 @@ class BillingStub(object):
         self.Detailed = channel.unary_stream(
                 '/billing.Billing/Detailed',
                 request_serializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
-                response_deserializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.DetailedBillingResponse.FromString,
+                response_deserializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.ActiveContactDetail.FromString,
                 )
 
 
@@ -53,7 +53,7 @@ def add_BillingServicer_to_server(servicer, server):
             'Detailed': grpc.unary_stream_rpc_method_handler(
                     servicer.Detailed,
                     request_deserializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.FromString,
-                    response_serializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.DetailedBillingResponse.SerializeToString,
+                    response_serializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.ActiveContactDetail.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -95,6 +95,6 @@ class Billing(object):
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/billing.Billing/Detailed',
             weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
-            weni_dot_billing_dot_grpc__gen_dot_billing__pb2.DetailedBillingResponse.FromString,
+            weni_dot_billing_dot_grpc__gen_dot_billing__pb2.ActiveContactDetail.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
