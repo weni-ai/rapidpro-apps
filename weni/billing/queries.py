@@ -52,7 +52,7 @@ class ActiveContactsQuery:
                 channel__name=Subquery(msg.values("channel__name")[:1]),
             )
             .filter(org=org, msg__uuid__isnull=False,)
-            .values_list(
+            .values(
                 "uuid",
                 "name",
                 "msg__uuid",
