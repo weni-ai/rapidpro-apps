@@ -13,6 +13,7 @@ class OrgServiceTest(RPCTransactionTestCase):
 
     WRONG_ID = -1
     WRONG_UUID = "31313-dasda-dasdasd-23123"
+    WRONG_EMAIL = "wrong@email.com"
 
     def setUp(self):
 
@@ -87,18 +88,19 @@ class OrgServiceTest(RPCTransactionTestCase):
         org_name = "TestCreateOrg"
         user = User.objects.first()
 
-        with self.assertRaises(ValidationError):
-            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_id=self.WRONG_ID))
+        with self.assertRaises(FakeRpcError):
+            self.stub.Create(org_pb2.OrgCreateRequest(
+                name=org_name, timezone="Africa/Kigali", user_email=self.WRONG_EMAIL))
 
         with self.assertRaises(ValidationError):
-            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_id=user.id))
+            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email))
 
-        self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_id=user.id))
+        self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_email=user.email))
 
         orgs = Org.objects.filter(name=org_name)
         org = orgs.first()
 
-        self.assertEquals(len(orgs), 1)
+        self.assertEquals(orgs.count(), 1)
 
         created_by = org.created_by
         modified_by = org.modified_by

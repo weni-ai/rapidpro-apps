@@ -32,17 +32,12 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
 
 class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
 
-    user_id = serializers.IntegerField()
-
-    def validate_user_id(self, value: int) -> int:
-        SerializerUtils.get_object(User, value)
-
-        return value
+    user_email = serializers.EmailField()
 
     class Meta:
         model = Org
         proto_class = org_pb2.Org
-        fields = ["name", "timezone", "user_id"]
+        fields = ["name", "timezone", "user_email"]
 
 
 class OrgUpdateProtoSerializer(proto_serializers.ModelProtoSerializer):
