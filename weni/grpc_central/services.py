@@ -1,9 +1,9 @@
+from django.core import exceptions
 from django.contrib.auth.models import User
 
 import grpc
 
 from temba.orgs.models import Org
-from django.core import exceptions
 
 
 class AbstractService:
