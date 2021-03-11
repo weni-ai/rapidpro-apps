@@ -12,6 +12,7 @@ from weni.org_grpc.serializers import SerializerUtils
 class OrgServiceTest(RPCTransactionTestCase):
 
     WRONG_ID = -1
+    WRONG_UUID = "31313-dasda-dasdasd-23123"
 
     def setUp(self):
 
@@ -104,6 +105,31 @@ class OrgServiceTest(RPCTransactionTestCase):
 
         self.assertEquals(created_by, user)
         self.assertEquals(modified_by, user)
+
+    def test_retrieve_org(self):
+        org = Org.objects.last()
+        user = User.objects.last()
+
+        org.administrators.add(user)
+
+        org_uuid = str(org.uuid)
+        org_timezone = str(org.timezone)
+
+        with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_UUID} not found!"):
+            self.org_retrieve_request(uuid=self.WRONG_UUID)
+
+        response = self.org_retrieve_request(uuid=org_uuid)
+        response_user = response.users[0]
+
+        self.assertEqual(response.id, org.id)
+        self.assertEqual(response.name, org.name)
+        self.assertEqual(response.uuid, org_uuid)
+        self.assertEqual(org_timezone, response.timezone)
+        self.assertEqual(org.date_format, response.date_format)
+
+        self.assertEqual(user.id, response_user.id)
+        self.assertEqual(user.email, response_user.email)
+        self.assertEqual(user.username, response_user.username)
 
     def test_destroy_org(self):
         org = Org.objects.last()
@@ -206,3 +232,6 @@ class OrgServiceTest(RPCTransactionTestCase):
 
     def stub_org_list_request(self, **kwargs):
         return self.stub.List(org_pb2.OrgListRequest(**kwargs))
+
+    def org_retrieve_request(self, **kwargs):
+        return self.stub.Retrieve(org_pb2.OrgRetrieveRequest(**kwargs))
