@@ -89,8 +89,9 @@ class OrgServiceTest(RPCTransactionTestCase):
         user = User.objects.first()
 
         with self.assertRaises(FakeRpcError):
-            self.stub.Create(org_pb2.OrgCreateRequest(
-                name=org_name, timezone="Africa/Kigali", user_email=self.WRONG_EMAIL))
+            self.stub.Create(
+                org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_email=self.WRONG_EMAIL)
+            )
 
         with self.assertRaises(ValidationError):
             self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email))

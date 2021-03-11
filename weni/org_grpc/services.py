@@ -25,12 +25,7 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
-        org = Org.objects.create(
-            name=request.name,
-            timezone=request.timezone,
-            created_by=user,
-            modified_by=user
-        )
+        org = Org.objects.create(name=request.name, timezone=request.timezone, created_by=user, modified_by=user)
 
         org_serializer = OrgProtoSerializer(org)
 
@@ -64,14 +59,15 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         org = org_qs.first()
 
         if not self._user_has_permisson(user, org) and not user.is_superuser:
-            self.context.abort(grpc.StatusCode.PERMISSION_DENIED,
-                               f"User: {user.pk} has no permission to update Org: {org.pk}")
+            self.context.abort(
+                grpc.StatusCode.PERMISSION_DENIED, f"User: {user.pk} has no permission to update Org: {org.pk}"
+            )
 
         updated_fields = self.get_updated_fields(data)
 
         if updated_fields:
             org_qs.update(**updated_fields, modified_by=user)
-            
+
         return serializer.message
 
     def pre_destroy(self, org: Org, user: User):

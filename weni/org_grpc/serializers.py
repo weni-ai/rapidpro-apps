@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User
 from django_grpc_framework import proto_serializers
 from rest_framework import serializers
 
