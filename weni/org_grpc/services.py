@@ -44,7 +44,7 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
 
     def Destroy(self, request, context):
         org = self.get_org_object(request.id)
-        user = self.get_user_object(request.user_id)
+        user = self.get_user_object(request.user_email, "email")
 
         self.pre_destroy(org, user)
         org.release()

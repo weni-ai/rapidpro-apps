@@ -138,15 +138,15 @@ class OrgServiceTest(RPCTransactionTestCase):
         is_active = org.is_active
         modified_by = org.modified_by
 
-        with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_ID} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_id=self.WRONG_ID))
+        with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_EMAIL} not found!"):
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_email=self.WRONG_EMAIL))
 
         weniuser = User.objects.get(username="weniuser")
 
         with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_ID} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=self.WRONG_ID, user_id=weniuser.id))
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=self.WRONG_ID, user_email=weniuser.email))
 
-        self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_id=weniuser.id))
+        self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_email=weniuser.email))
 
         destroyed_org = Org.objects.get(id=org.id)
 
