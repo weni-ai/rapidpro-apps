@@ -161,10 +161,10 @@ class OrgServiceTest(RPCTransactionTestCase):
 
         permission_error_message = f"User: {user.id} has no permission to update Org: {org.id}"
 
-        with self.assertRaisesMessage(ValidationError, permission_error_message):
-            self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_id=user.id))
+        with self.assertRaisesMessage(FakeRpcError, permission_error_message):
+            self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_email=user.email))
 
-        with self.assertRaisesMessage(ValidationError, "User: 0 not found!"):
+        with self.assertRaisesMessage(FakeRpcError, "User: None not found!"):
             self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id))
 
         user.is_superuser = True
@@ -185,7 +185,7 @@ class OrgServiceTest(RPCTransactionTestCase):
             "is_suspended": True,
         }
 
-        self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_id=user.id, **update_fields))
+        self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_email=user.email, **update_fields))
 
         updated_org = Org.objects.get(pk=org.pk)
 

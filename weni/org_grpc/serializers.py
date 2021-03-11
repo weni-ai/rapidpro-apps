@@ -43,7 +43,7 @@ class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
 class OrgUpdateProtoSerializer(proto_serializers.ModelProtoSerializer):
 
     id = serializers.IntegerField()
-    user_id = serializers.IntegerField()
+    user_email = serializers.EmailField()
     timezone = serializers.CharField(required=False)
     name = serializers.CharField(required=False)
     plan_end = serializers.DateTimeField(required=False)
@@ -53,44 +53,12 @@ class OrgUpdateProtoSerializer(proto_serializers.ModelProtoSerializer):
 
         return value
 
-    def validate_user_id(self, value):
-        SerializerUtils.get_object(User, value)
-
-        return value
-
-    def save(self):
-        data = dict(self.validated_data)
-
-        org_qs = Org.objects.filter(pk=data.get("id"))
-
-        org = org_qs.first()
-        user = SerializerUtils.get_object(User, data.get("user_id"))
-
-        if not self._user_has_permisson(user, org) and not user.is_superuser:
-            raise proto_serializers.ValidationError(f"User: {user.pk} has no permission to update Org: {org.pk}")
-
-        updated_fields = self.get_updated_fields(data)
-
-        if updated_fields:
-            org_qs.update(**updated_fields, modified_by=user)
-
-    def get_updated_fields(self, data):
-        return {key: value for key, value in data.items() if key not in ["id", "user_id"]}
-
-    def _user_has_permisson(self, user: User, org: Org) -> bool:
-        return (
-            user.org_admins.filter(pk=org.pk)
-            or user.org_viewers.filter(pk=org.pk)
-            or user.org_editors.filter(pk=org.pk)
-            or user.org_surveyors.filter(pk=org.pk)
-        )
-
     class Meta:
         model = Org
         proto_class = org_pb2.Org
         fields = [
             "id",
-            "user_id",
+            "user_email",
             "name",
             "timezone",
             "date_format",
