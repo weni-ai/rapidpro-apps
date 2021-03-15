@@ -1,17 +1,19 @@
+from django.core import exceptions
+from django.contrib.auth.models import User
+
 import grpc
 
 from temba.orgs.models import Org
-from django.core import exceptions
 
 
 class AbstractService:
-    def get_org_object_pk(self, pk: int) -> Org:
-        return self.get_org_object(pk)
+    def get_user_object(self, value, query_parameter: str = "pk"):
+        return self._get_object(User, value, query_parameter)
 
-    def get_org_object(self, value: str, query_parameter: str = "pk") -> Org:
+    def get_org_object(self, value, query_parameter: str = "pk") -> Org:
         return self._get_object(Org, value, query_parameter)
 
-    def _get_object(self, model, value: str, query_parameter: str = "pk"):
+    def _get_object(self, model, value, query_parameter: str):
 
         query = {query_parameter: value}
 

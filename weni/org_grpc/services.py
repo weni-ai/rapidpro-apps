@@ -5,9 +5,10 @@ from google.protobuf import empty_pb2
 
 from temba.orgs.models import Org
 from weni.org_grpc.serializers import OrgCreateProtoSerializer, OrgProtoSerializer, OrgUpdateProtoSerializer
+from weni.grpc_central.services import AbstractService
 
 
-class OrgService(generics.GenericService, mixins.ListModelMixin):
+class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin):
     def List(self, request, context):
 
         user = self.get_user(request)
@@ -36,6 +37,12 @@ class OrgService(generics.GenericService, mixins.ListModelMixin):
 
         return org_serializer.message
 
+    def Retrieve(self, request, context):
+        org = self.get_org_object(request.uuid, "uuid")
+        serializer = OrgProtoSerializer(org)
+
+        return serializer.message
+
     def Destroy(self, request, context):
         org = self.get_org_object(request.id)
         user = self.get_user_object(request.user_id)
@@ -58,18 +65,6 @@ class OrgService(generics.GenericService, mixins.ListModelMixin):
 
             # Interim fix, remove after implementation in the model.
             org.save(update_fields=["modified_by"])
-
-    def get_org_object(self, pk: int) -> Org:
-        return self._get_object(Org, pk)
-
-    def get_user_object(self, pk: int) -> User:
-        return self._get_object(User, pk)
-
-    def _get_object(self, model, pk: int):
-        try:
-            return model.objects.get(pk=pk)
-        except model.DoesNotExist:
-            self.context.abort(grpc.StatusCode.NOT_FOUND, f"{model.__name__}: {pk} not found!")
 
     def get_user(self, request):
         user_email = request.user_email
