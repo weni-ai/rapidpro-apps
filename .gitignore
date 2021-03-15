@@ -132,5 +132,4 @@ ansible/site.retry
 .direnv/
 
 # gRPC
-*pb2*
 *.proto
