@@ -25,6 +25,11 @@ class OrgControllerStub(object):
                 request_serializer=weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.OrgCreateRequest.SerializeToString,
                 response_deserializer=weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.Org.FromString,
                 )
+        self.Retrieve = channel.unary_unary(
+                '/org.OrgController/Retrieve',
+                request_serializer=weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.OrgRetrieveRequest.SerializeToString,
+                response_deserializer=weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.Org.FromString,
+                )
         self.Update = channel.unary_unary(
                 '/org.OrgController/Update',
                 request_serializer=weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.OrgUpdateRequest.SerializeToString,
@@ -47,6 +52,12 @@ class OrgControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Create(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Retrieve(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -75,6 +86,11 @@ def add_OrgControllerServicer_to_server(servicer, server):
             'Create': grpc.unary_unary_rpc_method_handler(
                     servicer.Create,
                     request_deserializer=weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.OrgCreateRequest.FromString,
+                    response_serializer=weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.Org.SerializeToString,
+            ),
+            'Retrieve': grpc.unary_unary_rpc_method_handler(
+                    servicer.Retrieve,
+                    request_deserializer=weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.OrgRetrieveRequest.FromString,
                     response_serializer=weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.Org.SerializeToString,
             ),
             'Update': grpc.unary_unary_rpc_method_handler(
@@ -127,6 +143,23 @@ class OrgController(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/org.OrgController/Create',
             weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.OrgCreateRequest.SerializeToString,
+            weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.Org.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Retrieve(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/org.OrgController/Retrieve',
+            weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.OrgRetrieveRequest.SerializeToString,
             weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2.Org.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
