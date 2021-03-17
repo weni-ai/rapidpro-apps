@@ -20,18 +20,12 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
             yield msg
 
     def Create(self, request, context):
+        user = self.get_user_object(request.user_email, "email")
+
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
-        user = User.objects.get(id=serializer.validated_data.get("user_id"))
-        validated_data = {
-            "name": serializer.validated_data.get("name"),
-            "timezone": serializer.validated_data.get("timezone"),
-            "created_by": user,
-            "modified_by": user,
-        }
-
-        org = Org.objects.create(**validated_data)
+        org = Org.objects.create(name=request.name, timezone=request.timezone, created_by=user, modified_by=user)
 
         org_serializer = OrgProtoSerializer(org)
 
@@ -45,7 +39,7 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
 
     def Destroy(self, request, context):
         org = self.get_org_object(request.id)
-        user = self.get_user_object(request.user_id)
+        user = self.get_user_object(request.user_email, "email")
 
         self.pre_destroy(org, user)
         org.release()
@@ -53,9 +47,26 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         return empty_pb2.Empty()
 
     def Update(self, request, context):
+        user = self.get_user_object(request.user_email, "email")
+
         serializer = OrgUpdateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+
+        data = dict(serializer.validated_data)
+
+        org_qs = Org.objects.filter(pk=data.get("id"))
+
+        org = org_qs.first()
+
+        if not self._user_has_permisson(user, org) and not user.is_superuser:
+            self.context.abort(
+                grpc.StatusCode.PERMISSION_DENIED, f"User: {user.pk} has no permission to update Org: {org.pk}"
+            )
+
+        updated_fields = self.get_updated_fields(data)
+
+        if updated_fields:
+            org_qs.update(**updated_fields, modified_by=user)
 
         return serializer.message
 
@@ -76,6 +87,17 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
             return User.objects.get(email=request.user_email)
         except User.DoesNotExist:
             self.context.abort(grpc.StatusCode.NOT_FOUND, f"User:{request.user_email} not found!")
+
+    def get_updated_fields(self, data):
+        return {key: value for key, value in data.items() if key not in ["id", "user_email"]}
+
+    def _user_has_permisson(self, user: User, org: Org) -> bool:
+        return (
+            user.org_admins.filter(pk=org.pk)
+            or user.org_viewers.filter(pk=org.pk)
+            or user.org_editors.filter(pk=org.pk)
+            or user.org_surveyors.filter(pk=org.pk)
+        )
 
     def get_orgs(self, user: User):
         admins = user.org_admins.filter(is_active=True)

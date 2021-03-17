@@ -13,6 +13,7 @@ class OrgServiceTest(RPCTransactionTestCase):
 
     WRONG_ID = -1
     WRONG_UUID = "31313-dasda-dasdasd-23123"
+    WRONG_EMAIL = "wrong@email.com"
 
     def setUp(self):
 
@@ -87,18 +88,20 @@ class OrgServiceTest(RPCTransactionTestCase):
         org_name = "TestCreateOrg"
         user = User.objects.first()
 
-        with self.assertRaises(ValidationError):
-            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_id=self.WRONG_ID))
+        with self.assertRaises(FakeRpcError):
+            self.stub.Create(
+                org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_email=self.WRONG_EMAIL)
+            )
 
         with self.assertRaises(ValidationError):
-            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_id=user.id))
+            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email))
 
-        self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_id=user.id))
+        self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_email=user.email))
 
         orgs = Org.objects.filter(name=org_name)
         org = orgs.first()
 
-        self.assertEquals(len(orgs), 1)
+        self.assertEquals(orgs.count(), 1)
 
         created_by = org.created_by
         modified_by = org.modified_by
@@ -136,15 +139,15 @@ class OrgServiceTest(RPCTransactionTestCase):
         is_active = org.is_active
         modified_by = org.modified_by
 
-        with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_ID} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_id=self.WRONG_ID))
+        with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_EMAIL} not found!"):
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_email=self.WRONG_EMAIL))
 
         weniuser = User.objects.get(username="weniuser")
 
         with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_ID} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=self.WRONG_ID, user_id=weniuser.id))
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=self.WRONG_ID, user_email=weniuser.email))
 
-        self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_id=weniuser.id))
+        self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_email=weniuser.email))
 
         destroyed_org = Org.objects.get(id=org.id)
 
@@ -159,10 +162,10 @@ class OrgServiceTest(RPCTransactionTestCase):
 
         permission_error_message = f"User: {user.id} has no permission to update Org: {org.id}"
 
-        with self.assertRaisesMessage(ValidationError, permission_error_message):
-            self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_id=user.id))
+        with self.assertRaisesMessage(FakeRpcError, permission_error_message):
+            self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_email=user.email))
 
-        with self.assertRaisesMessage(ValidationError, "User: 0 not found!"):
+        with self.assertRaisesMessage(FakeRpcError, "User: None not found!"):
             self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id))
 
         user.is_superuser = True
@@ -183,7 +186,7 @@ class OrgServiceTest(RPCTransactionTestCase):
             "is_suspended": True,
         }
 
-        self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_id=user.id, **update_fields))
+        self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_email=user.email, **update_fields))
 
         updated_org = Org.objects.get(pk=org.pk)
 

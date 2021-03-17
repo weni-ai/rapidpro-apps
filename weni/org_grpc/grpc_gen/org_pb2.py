@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n weni/org_grpc/grpc_gen/org.proto\x12\x03org\x1a\x1bgoogle/protobuf/empty.proto\"H\n\x03Org\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04uuid\x18\x03 \x01(\t\x12\x19\n\x05users\x18\x04 \x03(\x0b\x32\n.org.Users\"[\n\x05Users\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x12\n\nfirst_name\x18\x04 \x01(\t\x12\x11\n\tlast_name\x18\x05 \x01(\t\"$\n\x0eOrgListRequest\x12\x12\n\nuser_email\x18\x01 \x01(\t\"C\n\x10OrgCreateRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08timezone\x18\x02 \x01(\t\x12\x0f\n\x07user_id\x18\x03 \x01(\x05\"0\n\x11OrgDestroyRequest\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0f\n\x07user_id\x18\x02 \x01(\x05\"\x9f\x03\n\x10OrgUpdateRequest\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0f\n\x07user_id\x18\x02 \x01(\x05\x12\x11\n\x04name\x18\x03 \x01(\tH\x00\x88\x01\x01\x12\x15\n\x08timezone\x18\x04 \x01(\tH\x01\x88\x01\x01\x12\x18\n\x0b\x64\x61te_format\x18\x05 \x01(\tH\x02\x88\x01\x01\x12\x11\n\x04plan\x18\x06 \x01(\tH\x03\x88\x01\x01\x12\x15\n\x08plan_end\x18\x07 \x01(\tH\x04\x88\x01\x01\x12\x12\n\x05\x62rand\x18\x08 \x01(\tH\x05\x88\x01\x01\x12\x14\n\x07is_anon\x18\t \x01(\x08H\x06\x88\x01\x01\x12\x1a\n\ris_multi_user\x18\n \x01(\x08H\x07\x88\x01\x01\x12\x19\n\x0cis_multi_org\x18\x0b \x01(\x08H\x08\x88\x01\x01\x12\x19\n\x0cis_suspended\x18\x0c \x01(\x08H\t\x88\x01\x01\x42\x07\n\x05_nameB\x0b\n\t_timezoneB\x0e\n\x0c_date_formatB\x07\n\x05_planB\x0b\n\t_plan_endB\x08\n\x06_brandB\n\n\x08_is_anonB\x10\n\x0e_is_multi_userB\x0f\n\r_is_multi_orgB\x0f\n\r_is_suspended2\xde\x01\n\rOrgController\x12)\n\x04List\x12\x13.org.OrgListRequest\x1a\x08.org.Org\"\x00\x30\x01\x12+\n\x06\x43reate\x12\x15.org.OrgCreateRequest\x1a\x08.org.Org\"\x00\x12\x38\n\x06Update\x12\x15.org.OrgUpdateRequest\x1a\x15.org.OrgUpdateRequest\"\x00\x12;\n\x07\x44\x65stroy\x12\x16.org.OrgDestroyRequest\x1a\x16.google.protobuf.Empty\"\x00\x62\x06proto3'
+  serialized_pb=b'\n weni/org_grpc/grpc_gen/org.proto\x12\x03org\x1a\x1bgoogle/protobuf/empty.proto\"n\n\x03Org\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04uuid\x18\x03 \x01(\t\x12\x10\n\x08timezone\x18\x04 \x01(\t\x12\x13\n\x0b\x64\x61te_format\x18\x05 \x01(\t\x12\x18\n\x05users\x18\x06 \x03(\x0b\x32\t.org.User\"Z\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x12\n\nfirst_name\x18\x04 \x01(\t\x12\x11\n\tlast_name\x18\x05 \x01(\t\"$\n\x0eOrgListRequest\x12\x12\n\nuser_email\x18\x01 \x01(\t\"F\n\x10OrgCreateRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08timezone\x18\x02 \x01(\t\x12\x12\n\nuser_email\x18\x03 \x01(\t\"\"\n\x12OrgRetrieveRequest\x12\x0c\n\x04uuid\x18\x01 \x01(\t\"3\n\x11OrgDestroyRequest\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x12\n\nuser_email\x18\x02 \x01(\t\"\xa2\x03\n\x10OrgUpdateRequest\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x12\n\nuser_email\x18\x02 \x01(\t\x12\x11\n\x04name\x18\x03 \x01(\tH\x00\x88\x01\x01\x12\x15\n\x08timezone\x18\x04 \x01(\tH\x01\x88\x01\x01\x12\x18\n\x0b\x64\x61te_format\x18\x05 \x01(\tH\x02\x88\x01\x01\x12\x11\n\x04plan\x18\x06 \x01(\tH\x03\x88\x01\x01\x12\x15\n\x08plan_end\x18\x07 \x01(\tH\x04\x88\x01\x01\x12\x12\n\x05\x62rand\x18\x08 \x01(\tH\x05\x88\x01\x01\x12\x14\n\x07is_anon\x18\t \x01(\x08H\x06\x88\x01\x01\x12\x1a\n\ris_multi_user\x18\n \x01(\x08H\x07\x88\x01\x01\x12\x19\n\x0cis_multi_org\x18\x0b \x01(\x08H\x08\x88\x01\x01\x12\x19\n\x0cis_suspended\x18\x0c \x01(\x08H\t\x88\x01\x01\x42\x07\n\x05_nameB\x0b\n\t_timezoneB\x0e\n\x0c_date_formatB\x07\n\x05_planB\x0b\n\t_plan_endB\x08\n\x06_brandB\n\n\x08_is_anonB\x10\n\x0e_is_multi_userB\x0f\n\r_is_multi_orgB\x0f\n\r_is_suspended2\x8f\x02\n\rOrgController\x12)\n\x04List\x12\x13.org.OrgListRequest\x1a\x08.org.Org\"\x00\x30\x01\x12+\n\x06\x43reate\x12\x15.org.OrgCreateRequest\x1a\x08.org.Org\"\x00\x12/\n\x08Retrieve\x12\x17.org.OrgRetrieveRequest\x1a\x08.org.Org\"\x00\x12\x38\n\x06Update\x12\x15.org.OrgUpdateRequest\x1a\x15.org.OrgUpdateRequest\"\x00\x12;\n\x07\x44\x65stroy\x12\x16.org.OrgDestroyRequest\x1a\x16.google.protobuf.Empty\"\x00\x62\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,])
 
@@ -57,8 +57,22 @@ _ORG = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='users', full_name='org.Org.users', index=3,
-      number=4, type=11, cpp_type=10, label=3,
+      name='timezone', full_name='org.Org.timezone', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='date_format', full_name='org.Org.date_format', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='users', full_name='org.Org.users', index=5,
+      number=6, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -76,48 +90,48 @@ _ORG = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=70,
-  serialized_end=142,
+  serialized_end=180,
 )
 
 
-_USERS = _descriptor.Descriptor(
-  name='Users',
-  full_name='org.Users',
+_USER = _descriptor.Descriptor(
+  name='User',
+  full_name='org.User',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='id', full_name='org.Users.id', index=0,
+      name='id', full_name='org.User.id', index=0,
       number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='email', full_name='org.Users.email', index=1,
+      name='email', full_name='org.User.email', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='username', full_name='org.Users.username', index=2,
+      name='username', full_name='org.User.username', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='first_name', full_name='org.Users.first_name', index=3,
+      name='first_name', full_name='org.User.first_name', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='last_name', full_name='org.Users.last_name', index=4,
+      name='last_name', full_name='org.User.last_name', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -135,8 +149,8 @@ _USERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=144,
-  serialized_end=235,
+  serialized_start=182,
+  serialized_end=272,
 )
 
 
@@ -167,8 +181,8 @@ _ORGLISTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=237,
-  serialized_end=273,
+  serialized_start=274,
+  serialized_end=310,
 )
 
 
@@ -195,9 +209,9 @@ _ORGCREATEREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='user_id', full_name='org.OrgCreateRequest.user_id', index=2,
-      number=3, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='user_email', full_name='org.OrgCreateRequest.user_email', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -213,8 +227,40 @@ _ORGCREATEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=275,
-  serialized_end=342,
+  serialized_start=312,
+  serialized_end=382,
+)
+
+
+_ORGRETRIEVEREQUEST = _descriptor.Descriptor(
+  name='OrgRetrieveRequest',
+  full_name='org.OrgRetrieveRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='uuid', full_name='org.OrgRetrieveRequest.uuid', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=384,
+  serialized_end=418,
 )
 
 
@@ -234,9 +280,9 @@ _ORGDESTROYREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='user_id', full_name='org.OrgDestroyRequest.user_id', index=1,
-      number=2, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='user_email', full_name='org.OrgDestroyRequest.user_email', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -252,8 +298,8 @@ _ORGDESTROYREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=344,
-  serialized_end=392,
+  serialized_start=420,
+  serialized_end=471,
 )
 
 
@@ -273,9 +319,9 @@ _ORGUPDATEREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='user_id', full_name='org.OrgUpdateRequest.user_id', index=1,
-      number=2, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='user_email', full_name='org.OrgUpdateRequest.user_email', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -411,11 +457,11 @@ _ORGUPDATEREQUEST = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=395,
-  serialized_end=810,
+  serialized_start=474,
+  serialized_end=892,
 )
 
-_ORG.fields_by_name['users'].message_type = _USERS
+_ORG.fields_by_name['users'].message_type = _USER
 _ORGUPDATEREQUEST.oneofs_by_name['_name'].fields.append(
   _ORGUPDATEREQUEST.fields_by_name['name'])
 _ORGUPDATEREQUEST.fields_by_name['name'].containing_oneof = _ORGUPDATEREQUEST.oneofs_by_name['_name']
@@ -447,9 +493,10 @@ _ORGUPDATEREQUEST.oneofs_by_name['_is_suspended'].fields.append(
   _ORGUPDATEREQUEST.fields_by_name['is_suspended'])
 _ORGUPDATEREQUEST.fields_by_name['is_suspended'].containing_oneof = _ORGUPDATEREQUEST.oneofs_by_name['_is_suspended']
 DESCRIPTOR.message_types_by_name['Org'] = _ORG
-DESCRIPTOR.message_types_by_name['Users'] = _USERS
+DESCRIPTOR.message_types_by_name['User'] = _USER
 DESCRIPTOR.message_types_by_name['OrgListRequest'] = _ORGLISTREQUEST
 DESCRIPTOR.message_types_by_name['OrgCreateRequest'] = _ORGCREATEREQUEST
+DESCRIPTOR.message_types_by_name['OrgRetrieveRequest'] = _ORGRETRIEVEREQUEST
 DESCRIPTOR.message_types_by_name['OrgDestroyRequest'] = _ORGDESTROYREQUEST
 DESCRIPTOR.message_types_by_name['OrgUpdateRequest'] = _ORGUPDATEREQUEST
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -461,12 +508,12 @@ Org = _reflection.GeneratedProtocolMessageType('Org', (_message.Message,), {
   })
 _sym_db.RegisterMessage(Org)
 
-Users = _reflection.GeneratedProtocolMessageType('Users', (_message.Message,), {
-  'DESCRIPTOR' : _USERS,
+User = _reflection.GeneratedProtocolMessageType('User', (_message.Message,), {
+  'DESCRIPTOR' : _USER,
   '__module__' : 'weni.org_grpc.grpc_gen.org_pb2'
-  # @@protoc_insertion_point(class_scope:org.Users)
+  # @@protoc_insertion_point(class_scope:org.User)
   })
-_sym_db.RegisterMessage(Users)
+_sym_db.RegisterMessage(User)
 
 OrgListRequest = _reflection.GeneratedProtocolMessageType('OrgListRequest', (_message.Message,), {
   'DESCRIPTOR' : _ORGLISTREQUEST,
@@ -481,6 +528,13 @@ OrgCreateRequest = _reflection.GeneratedProtocolMessageType('OrgCreateRequest', 
   # @@protoc_insertion_point(class_scope:org.OrgCreateRequest)
   })
 _sym_db.RegisterMessage(OrgCreateRequest)
+
+OrgRetrieveRequest = _reflection.GeneratedProtocolMessageType('OrgRetrieveRequest', (_message.Message,), {
+  'DESCRIPTOR' : _ORGRETRIEVEREQUEST,
+  '__module__' : 'weni.org_grpc.grpc_gen.org_pb2'
+  # @@protoc_insertion_point(class_scope:org.OrgRetrieveRequest)
+  })
+_sym_db.RegisterMessage(OrgRetrieveRequest)
 
 OrgDestroyRequest = _reflection.GeneratedProtocolMessageType('OrgDestroyRequest', (_message.Message,), {
   'DESCRIPTOR' : _ORGDESTROYREQUEST,
@@ -505,8 +559,8 @@ _ORGCONTROLLER = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=813,
-  serialized_end=1035,
+  serialized_start=895,
+  serialized_end=1166,
   methods=[
   _descriptor.MethodDescriptor(
     name='List',
@@ -529,9 +583,19 @@ _ORGCONTROLLER = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
+    name='Retrieve',
+    full_name='org.OrgController.Retrieve',
+    index=2,
+    containing_service=None,
+    input_type=_ORGRETRIEVEREQUEST,
+    output_type=_ORG,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
     name='Update',
     full_name='org.OrgController.Update',
-    index=2,
+    index=3,
     containing_service=None,
     input_type=_ORGUPDATEREQUEST,
     output_type=_ORGUPDATEREQUEST,
@@ -541,7 +605,7 @@ _ORGCONTROLLER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='Destroy',
     full_name='org.OrgController.Destroy',
-    index=3,
+    index=4,
     containing_service=None,
     input_type=_ORGDESTROYREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
