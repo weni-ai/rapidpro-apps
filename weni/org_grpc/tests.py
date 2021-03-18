@@ -88,15 +88,27 @@ class OrgServiceTest(RPCTransactionTestCase):
         org_name = "TestCreateOrg"
         user = User.objects.first()
 
-        with self.assertRaises(FakeRpcError):
+        with self.assertRaisesMessage(ValidationError, '"Wrong/Zone" is not a valid choice.'):
             self.stub.Create(
-                org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_email=self.WRONG_EMAIL)
+                org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email, username="test")
             )
 
-        with self.assertRaises(ValidationError):
-            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email))
+        with self.assertRaisesMessage(
+            ValidationError, "{'username': [ErrorDetail(string='This field may not be blank.', code='blank')]}"
+        ):
+            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="America/Maceio", user_email=user.email))
 
-        self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_email=user.email))
+        self.stub.Create(
+            org_pb2.OrgCreateRequest(
+                name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com", username="newuser"
+            )
+        )
+
+        newuser_qs = User.objects.filter(username="newuser")
+
+        self.assertTrue(newuser_qs.exists())
+
+        newuser = newuser_qs.first()
 
         orgs = Org.objects.filter(name=org_name)
         org = orgs.first()
@@ -106,8 +118,16 @@ class OrgServiceTest(RPCTransactionTestCase):
         created_by = org.created_by
         modified_by = org.modified_by
 
-        self.assertEquals(created_by, user)
-        self.assertEquals(modified_by, user)
+        self.assertEquals(created_by, newuser)
+        self.assertEquals(modified_by, newuser)
+
+        self.stub.Create(
+            org_pb2.OrgCreateRequest(
+                name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com", username="newuser"
+            )
+        )
+
+        self.assertEqual(User.objects.filter(username="newuser").count(), 1)
 
     def test_retrieve_org(self):
         org = Org.objects.last()

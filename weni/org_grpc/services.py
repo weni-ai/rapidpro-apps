@@ -20,10 +20,11 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
             yield msg
 
     def Create(self, request, context):
-        user = self.get_user_object(request.user_email, "email")
 
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
+
+        user, created = User.objects.get_or_create(email=request.user_email, defaults={"username": request.username})
 
         org = Org.objects.create(name=request.name, timezone=request.timezone, created_by=user, modified_by=user)
 
