@@ -8,6 +8,7 @@ from weni.user_grpc.serializers import (
     UserPermissionProtoSerializer,
     UserProtoSerializer,
 )
+from weni.grpc_central.services import AbstractService
 
 from temba.orgs.models import Org
 
@@ -51,6 +52,7 @@ class UserPermissionService(AbstractUserService, mixins.RetrieveModelMixin, mixi
         serializer = UserPermissionProtoSerializer(permissions)
 
         return serializer.message
+
 
     def Remove(self, request, context):
         org = self.get_org_object(request.org_id)
@@ -102,12 +104,23 @@ class UserPermissionService(AbstractUserService, mixins.RetrieveModelMixin, mixi
         return permissions
 
 
-class UserService(AbstractUserService, mixins.RetrieveModelMixin):
+class UserService(generics.GenericService, AbstractService, mixins.RetrieveModelMixin):
 
     serializer_class = UserProtoSerializer
 
-    def get_user_object(self, email: str) -> User:
-        return self._get_object(User, email, query_parameter="email")
+    def UpdateUserLang(self, request, context):
+        
+        if not request.language:
+            self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Invalid argument: language")
+
+        user = self.get_user_object(request.email, "email")
+        user_settings = user.get_settings()
+        user_settings.language = request.language
+        user_settings.save()
+
+        serializer = UserProtoSerializer(user)
+
+        return serializer.message
 
     def get_object(self):
-        return self.get_user_object(self.request.email)
+        return self.get_user_object(self.request.email, "email")

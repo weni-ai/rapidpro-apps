@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\"weni/user_grpc/grpc_gen/user.proto\x12\x04user\"@\n\x1dUserPermissionRetrieveRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\x05\x12\x0e\n\x06org_id\x18\x02 \x01(\x05\"R\n\x1bUserPermissionUpdateRequest\x12\x0e\n\x06org_id\x18\x01 \x01(\x05\x12\x0f\n\x07user_id\x18\x02 \x01(\x05\x12\x12\n\npermission\x18\x03 \x01(\t\"U\n\nPermission\x12\x15\n\radministrator\x18\x01 \x01(\x08\x12\x0e\n\x06viewer\x18\x02 \x01(\x08\x12\x0e\n\x06\x65\x64itor\x18\x03 \x01(\x08\x12\x10\n\x08surveyor\x18\x04 \x01(\x08\"$\n\x13UserRetrieveRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\"\x98\x01\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x12\n\nfirst_name\x18\x04 \x01(\t\x12\x11\n\tlast_name\x18\x05 \x01(\t\x12\x13\n\x0b\x64\x61te_joined\x18\x06 \x01(\t\x12\x11\n\tis_active\x18\x07 \x01(\x08\x12\x14\n\x0cis_superuser\x18\x08 \x01(\x08\x32\xe1\x01\n\x18UserPermissionController\x12\x43\n\x08Retrieve\x12#.user.UserPermissionRetrieveRequest\x1a\x10.user.Permission\"\x00\x12?\n\x06Update\x12!.user.UserPermissionUpdateRequest\x1a\x10.user.Permission\"\x00\x12?\n\x06Remove\x12!.user.UserPermissionUpdateRequest\x1a\x10.user.Permission\"\x00\x32\x45\n\x0eUserController\x12\x33\n\x08Retrieve\x12\x19.user.UserRetrieveRequest\x1a\n.user.User\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\"weni/user_grpc/grpc_gen/user.proto\x12\x04user\"@\n\x1dUserPermissionRetrieveRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\x05\x12\x0e\n\x06org_id\x18\x02 \x01(\x05\"R\n\x1bUserPermissionUpdateRequest\x12\x0e\n\x06org_id\x18\x01 \x01(\x05\x12\x0f\n\x07user_id\x18\x02 \x01(\x05\x12\x12\n\npermission\x18\x03 \x01(\t\"U\n\nPermission\x12\x15\n\radministrator\x18\x01 \x01(\x08\x12\x0e\n\x06viewer\x18\x02 \x01(\x08\x12\x0e\n\x06\x65\x64itor\x18\x03 \x01(\x08\x12\x10\n\x08surveyor\x18\x04 \x01(\x08\"$\n\x13UserRetrieveRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\"\x98\x01\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x12\n\nfirst_name\x18\x04 \x01(\t\x12\x11\n\tlast_name\x18\x05 \x01(\t\x12\x13\n\x0b\x64\x61te_joined\x18\x06 \x01(\t\x12\x11\n\tis_active\x18\x07 \x01(\x08\x12\x14\n\x0cis_superuser\x18\x08 \x01(\x08\"8\n\x15UserUpdateLangRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\x10\n\x08language\x18\x02 \x01(\t2\xe1\x01\n\x18UserPermissionController\x12\x43\n\x08Retrieve\x12#.user.UserPermissionRetrieveRequest\x1a\x10.user.Permission\"\x00\x12?\n\x06Update\x12!.user.UserPermissionUpdateRequest\x1a\x10.user.Permission\"\x00\x12?\n\x06Remove\x12!.user.UserPermissionUpdateRequest\x1a\x10.user.Permission\"\x00\x32\x82\x01\n\x0eUserController\x12;\n\x0eUpdateUserLang\x12\x1b.user.UserUpdateLangRequest\x1a\n.user.User\"\x00\x12\x33\n\x08Retrieve\x12\x19.user.UserRetrieveRequest\x1a\n.user.User\"\x00\x62\x06proto3'
 )
 
 
@@ -275,11 +275,51 @@ _USER = _descriptor.Descriptor(
   serialized_end=472,
 )
 
+
+_USERUPDATELANGREQUEST = _descriptor.Descriptor(
+  name='UserUpdateLangRequest',
+  full_name='user.UserUpdateLangRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='email', full_name='user.UserUpdateLangRequest.email', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='language', full_name='user.UserUpdateLangRequest.language', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=474,
+  serialized_end=530,
+)
+
 DESCRIPTOR.message_types_by_name['UserPermissionRetrieveRequest'] = _USERPERMISSIONRETRIEVEREQUEST
 DESCRIPTOR.message_types_by_name['UserPermissionUpdateRequest'] = _USERPERMISSIONUPDATEREQUEST
 DESCRIPTOR.message_types_by_name['Permission'] = _PERMISSION
 DESCRIPTOR.message_types_by_name['UserRetrieveRequest'] = _USERRETRIEVEREQUEST
 DESCRIPTOR.message_types_by_name['User'] = _USER
+DESCRIPTOR.message_types_by_name['UserUpdateLangRequest'] = _USERUPDATELANGREQUEST
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 UserPermissionRetrieveRequest = _reflection.GeneratedProtocolMessageType('UserPermissionRetrieveRequest', (_message.Message,), {
@@ -317,6 +357,13 @@ User = _reflection.GeneratedProtocolMessageType('User', (_message.Message,), {
   })
 _sym_db.RegisterMessage(User)
 
+UserUpdateLangRequest = _reflection.GeneratedProtocolMessageType('UserUpdateLangRequest', (_message.Message,), {
+  'DESCRIPTOR' : _USERUPDATELANGREQUEST,
+  '__module__' : 'weni.user_grpc.grpc_gen.user_pb2'
+  # @@protoc_insertion_point(class_scope:user.UserUpdateLangRequest)
+  })
+_sym_db.RegisterMessage(UserUpdateLangRequest)
+
 
 
 _USERPERMISSIONCONTROLLER = _descriptor.ServiceDescriptor(
@@ -326,8 +373,8 @@ _USERPERMISSIONCONTROLLER = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=475,
-  serialized_end=700,
+  serialized_start=533,
+  serialized_end=758,
   methods=[
   _descriptor.MethodDescriptor(
     name='Retrieve',
@@ -372,13 +419,23 @@ _USERCONTROLLER = _descriptor.ServiceDescriptor(
   index=1,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=702,
-  serialized_end=771,
+  serialized_start=761,
+  serialized_end=891,
   methods=[
+  _descriptor.MethodDescriptor(
+    name='UpdateUserLang',
+    full_name='user.UserController.UpdateUserLang',
+    index=0,
+    containing_service=None,
+    input_type=_USERUPDATELANGREQUEST,
+    output_type=_USER,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
   _descriptor.MethodDescriptor(
     name='Retrieve',
     full_name='user.UserController.Retrieve',
-    index=0,
+    index=1,
     containing_service=None,
     input_type=_USERRETRIEVEREQUEST,
     output_type=_USER,

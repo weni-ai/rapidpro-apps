@@ -141,6 +141,11 @@ class UserControllerStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.UpdateUserLang = channel.unary_unary(
+                '/user.UserController/UpdateUserLang',
+                request_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserUpdateLangRequest.SerializeToString,
+                response_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.User.FromString,
+                )
         self.Retrieve = channel.unary_unary(
                 '/user.UserController/Retrieve',
                 request_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserRetrieveRequest.SerializeToString,
@@ -151,6 +156,12 @@ class UserControllerStub(object):
 class UserControllerServicer(object):
     """Missing associated documentation comment in .proto file."""
 
+    def UpdateUserLang(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Retrieve(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -160,6 +171,11 @@ class UserControllerServicer(object):
 
 def add_UserControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'UpdateUserLang': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateUserLang,
+                    request_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserUpdateLangRequest.FromString,
+                    response_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.User.SerializeToString,
+            ),
             'Retrieve': grpc.unary_unary_rpc_method_handler(
                     servicer.Retrieve,
                     request_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserRetrieveRequest.FromString,
@@ -174,6 +190,23 @@ def add_UserControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class UserController(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def UpdateUserLang(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/user.UserController/UpdateUserLang',
+            weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserUpdateLangRequest.SerializeToString,
+            weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.User.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def Retrieve(request,
