@@ -13,3 +13,6 @@ class ClassifierService(AbstractService, generics.GenericService):
 
         for message in serializer.message:
             yield message
+
+    def Create(self, request, context):
+        ...
