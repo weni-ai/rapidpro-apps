@@ -216,8 +216,8 @@ class BillingRequestSerializerTest(TestCase):
 class BillingServiceTest(RPCTransactionTestCase):
 
     def setUp(self):
-        self.stub = stubs.BillingStub(self.channel)
         super().setUp()
+        self.stub = stubs.BillingStub(self.channel)
 
     def test_total(self):
         ...

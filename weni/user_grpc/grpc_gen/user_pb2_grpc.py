@@ -15,17 +15,17 @@ class UserPermissionControllerStub(object):
             channel: A grpc.Channel.
         """
         self.Retrieve = channel.unary_unary(
-                '/user.UserPermissionController/Retrieve',
+                '/weni.rapidpro.user.UserPermissionController/Retrieve',
                 request_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserPermissionRetrieveRequest.SerializeToString,
                 response_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.Permission.FromString,
                 )
         self.Update = channel.unary_unary(
-                '/user.UserPermissionController/Update',
+                '/weni.rapidpro.user.UserPermissionController/Update',
                 request_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserPermissionUpdateRequest.SerializeToString,
                 response_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.Permission.FromString,
                 )
         self.Remove = channel.unary_unary(
-                '/user.UserPermissionController/Remove',
+                '/weni.rapidpro.user.UserPermissionController/Remove',
                 request_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserPermissionUpdateRequest.SerializeToString,
                 response_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.Permission.FromString,
                 )
@@ -72,7 +72,7 @@ def add_UserPermissionControllerServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'user.UserPermissionController', rpc_method_handlers)
+            'weni.rapidpro.user.UserPermissionController', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -91,7 +91,7 @@ class UserPermissionController(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/user.UserPermissionController/Retrieve',
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.user.UserPermissionController/Retrieve',
             weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserPermissionRetrieveRequest.SerializeToString,
             weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.Permission.FromString,
             options, channel_credentials,
@@ -108,7 +108,7 @@ class UserPermissionController(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/user.UserPermissionController/Update',
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.user.UserPermissionController/Update',
             weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserPermissionUpdateRequest.SerializeToString,
             weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.Permission.FromString,
             options, channel_credentials,
@@ -125,7 +125,7 @@ class UserPermissionController(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/user.UserPermissionController/Remove',
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.user.UserPermissionController/Remove',
             weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserPermissionUpdateRequest.SerializeToString,
             weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.Permission.FromString,
             options, channel_credentials,
@@ -142,8 +142,13 @@ class UserControllerStub(object):
             channel: A grpc.Channel.
         """
         self.Retrieve = channel.unary_unary(
-                '/user.UserController/Retrieve',
+                '/weni.rapidpro.user.UserController/Retrieve',
                 request_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserRetrieveRequest.SerializeToString,
+                response_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.User.FromString,
+                )
+        self.Update = channel.unary_unary(
+                '/weni.rapidpro.user.UserController/Update',
+                request_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UpdateUserLang.SerializeToString,
                 response_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.User.FromString,
                 )
 
@@ -157,6 +162,12 @@ class UserControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Update(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_UserControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -165,9 +176,14 @@ def add_UserControllerServicer_to_server(servicer, server):
                     request_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserRetrieveRequest.FromString,
                     response_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.User.SerializeToString,
             ),
+            'Update': grpc.unary_unary_rpc_method_handler(
+                    servicer.Update,
+                    request_deserializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UpdateUserLang.FromString,
+                    response_serializer=weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.User.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'user.UserController', rpc_method_handlers)
+            'weni.rapidpro.user.UserController', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -186,8 +202,25 @@ class UserController(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/user.UserController/Retrieve',
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.user.UserController/Retrieve',
             weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UserRetrieveRequest.SerializeToString,
+            weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.User.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Update(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.user.UserController/Update',
+            weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.UpdateUserLang.SerializeToString,
             weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2.User.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

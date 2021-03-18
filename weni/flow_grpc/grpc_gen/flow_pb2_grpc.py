@@ -15,7 +15,7 @@ class FlowControllerStub(object):
             channel: A grpc.Channel.
         """
         self.List = channel.unary_stream(
-                '/flow.FlowController/List',
+                '/weni.rapidpro.flow.FlowController/List',
                 request_serializer=weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.FlowListRequest.SerializeToString,
                 response_deserializer=weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.Flow.FromString,
                 )
@@ -40,7 +40,7 @@ def add_FlowControllerServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'flow.FlowController', rpc_method_handlers)
+            'weni.rapidpro.flow.FlowController', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -59,7 +59,7 @@ class FlowController(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/flow.FlowController/List',
+        return grpc.experimental.unary_stream(request, target, '/weni.rapidpro.flow.FlowController/List',
             weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.FlowListRequest.SerializeToString,
             weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.Flow.FromString,
             options, channel_credentials,

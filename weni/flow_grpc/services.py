@@ -6,9 +6,13 @@ from weni.grpc_central.services import AbstractService
 
 
 class FlowService(generics.GenericService, AbstractService):
-    def List(self, request, context):
+    def List(self, request, _):
         org = self.get_org_object(request.org_uuid, "uuid")
-        queryset = Flow.objects.filter(name__icontains=request.flow_name, org=org.id)
+        queryset = Flow.objects.filter(
+            name__icontains=request.flow_name,
+            org=org.id,
+            is_active=True,
+        ).exclude(is_archived=True)
 
         serializer = FlowProtoSerializer(queryset, many=True)
         for message in serializer.message:

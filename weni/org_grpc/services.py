@@ -24,10 +24,12 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
-        user, created = User.objects.get_or_create(email=request.user_email, defaults={"username": request.username})
+        user, created = User.objects.get_or_create(email=request.user_email,
+                                                   defaults={"username": request.user_email})
 
         org = Org.objects.create(name=request.name, timezone=request.timezone, created_by=user, modified_by=user)
         org.administrators.add(user)
+        org.initialize()
 
         org_serializer = OrgProtoSerializer(org)
 
@@ -40,7 +42,7 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         return serializer.message
 
     def Destroy(self, request, context):
-        org = self.get_org_object(request.id)
+        org = self.get_org_object(request.uuid, "uuid")
         user = self.get_user_object(request.user_email, "email")
 
         self.pre_destroy(org, user)
@@ -56,13 +58,13 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
 
         data = dict(serializer.validated_data)
 
-        org_qs = Org.objects.filter(pk=data.get("id"))
+        org_qs = Org.objects.filter(uuid=data.get("uuid"))
 
         org = org_qs.first()
 
         if not self._user_has_permisson(user, org) and not user.is_superuser:
             self.context.abort(
-                grpc.StatusCode.PERMISSION_DENIED, f"User: {user.pk} has no permission to update Org: {org.pk}"
+                grpc.StatusCode.PERMISSION_DENIED, f"User: {user.pk} has no permission to update Org: {org.uuid}"
             )
 
         updated_fields = self.get_updated_fields(data)
