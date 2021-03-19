@@ -42,7 +42,7 @@ class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
 
 class OrgUpdateProtoSerializer(proto_serializers.ModelProtoSerializer):
 
-    id = serializers.IntegerField()
+    uuid = serializers.UUIDField()
     user_email = serializers.EmailField()
     timezone = serializers.CharField(required=False)
     name = serializers.CharField(required=False)
@@ -57,7 +57,7 @@ class OrgUpdateProtoSerializer(proto_serializers.ModelProtoSerializer):
         model = Org
         proto_class = org_pb2.Org
         fields = [
-            "id",
+            "uuid",
             "user_email",
             "name",
             "timezone",
