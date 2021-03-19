@@ -1,4 +1,5 @@
 from django.conf.urls import include, url
+
 from weni.auth.views import check_user_legacy, org_choose
 
 urlpatterns = [
