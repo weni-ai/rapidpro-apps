@@ -15,12 +15,12 @@ class BillingStub(object):
             channel: A grpc.Channel.
         """
         self.Total = channel.unary_unary(
-                '/billing.Billing/Total',
+                '/weni.rapidpro.billing.Billing/Total',
                 request_serializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
                 response_deserializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingResponse.FromString,
                 )
         self.Detailed = channel.unary_stream(
-                '/billing.Billing/Detailed',
+                '/weni.rapidpro.billing.Billing/Detailed',
                 request_serializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
                 response_deserializer=weni_dot_billing_dot_grpc__gen_dot_billing__pb2.ActiveContactDetail.FromString,
                 )
@@ -57,7 +57,7 @@ def add_BillingServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'billing.Billing', rpc_method_handlers)
+            'weni.rapidpro.billing.Billing', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -76,7 +76,7 @@ class Billing(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/billing.Billing/Total',
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.billing.Billing/Total',
             weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
             weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingResponse.FromString,
             options, channel_credentials,
@@ -93,7 +93,7 @@ class Billing(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/billing.Billing/Detailed',
+        return grpc.experimental.unary_stream(request, target, '/weni.rapidpro.billing.Billing/Detailed',
             weni_dot_billing_dot_grpc__gen_dot_billing__pb2.BillingRequest.SerializeToString,
             weni_dot_billing_dot_grpc__gen_dot_billing__pb2.ActiveContactDetail.FromString,
             options, channel_credentials,
