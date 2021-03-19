@@ -2,12 +2,12 @@ import json
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.http import (Http404, HttpResponse, HttpResponseRedirect,
-                         JsonResponse)
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
 from temba.orgs.models import Org
+from mozilla_django_oidc.views import OIDCAuthenticationRequestView
 
 
 @csrf_exempt
@@ -46,22 +46,14 @@ def check_user_legacy(request, email: str):  # pragma: no cover
     return HttpResponse(status=404)
 
 
-def org_choose(request, organization: str):
-    """Changes user current Organization (like temba.orgs.org_choose)
+class WeniAuthenticationRequestView(OIDCAuthenticationRequestView):
+    def get(self, request, organization=None):
+        if organization:
+            org = get_object_or_404(Org, uuid=organization)
+            if org in self.request.user.get_user_orgs():
+                self.request.session["org_id"] = org.pk
+            else:
+                return Http404()
 
-    Args:
-        organization (str): Organization's uuid
+        return super().get(request)
 
-    Returns:
-        200 or 404
-    """
-    org = get_object_or_404(Org, uuid=organization)
-    if org in request.user.get_user_orgs():
-        request.session["org_id"] = org.pk
-
-        # redirects
-        redirect_url = settings.OIDC_OP_AUTH_ENDPOINT
-
-        return HttpResponseRedirect(redirect_url)
-    else:
-        return Http404()
