@@ -1,6 +1,7 @@
-import grpc
-
+from django.conf import settings
 from django.contrib.auth.models import User
+
+import grpc
 
 from django_grpc_framework import generics, mixins
 
@@ -108,12 +109,12 @@ class UserService(generics.GenericService, AbstractService, mixins.RetrieveModel
 
     serializer_class = UserProtoSerializer
 
-    def UpdateUserLang(self, request, context):
+    def Update(self, request, context):
         
-        if not request.language:
+        if request.language not in [language[0] for language in settings.LANGUAGES]:
             self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Invalid argument: language")
 
-        user = self.get_user_object(request.email, "email")
+        user = self.get_object()
         user_settings = user.get_settings()
         user_settings.language = request.language
         user_settings.save()
