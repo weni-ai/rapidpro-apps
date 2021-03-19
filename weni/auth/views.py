@@ -2,9 +2,12 @@ import json
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import (Http404, HttpResponse, HttpResponseRedirect,
+                         JsonResponse)
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
+
+from temba.orgs.models import Org
 
 
 @csrf_exempt
@@ -41,3 +44,24 @@ def check_user_legacy(request, email: str):  # pragma: no cover
         user.check_password(raw_password=body.get("password"))
         return JsonResponse({}) if user else Http404()
     return HttpResponse(status=404)
+
+
+def org_choose(request, organization: str):
+    """Changes user current Organization (like temba.orgs.org_choose)
+
+    Args:
+        organization (str): Organization's uuid
+
+    Returns:
+        200 or 404
+    """
+    org = get_object_or_404(Org, uuid=organization)
+    if org in request.user.get_user_orgs():
+        request.session["org_id"] = org.pk
+
+        # redirects
+        redirect_url = settings.OIDC_OP_AUTH_ENDPOINT
+
+        return HttpResponseRedirect(redirect_url)
+    else:
+        return Http404()
