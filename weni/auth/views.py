@@ -6,8 +6,8 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
-from temba.orgs.models import Org
 from mozilla_django_oidc.views import OIDCAuthenticationRequestView
+from temba.orgs.models import Org
 
 
 @csrf_exempt
@@ -56,4 +56,3 @@ class WeniAuthenticationRequestView(OIDCAuthenticationRequestView):
                 return Http404()
 
         return super().get(request)
-
