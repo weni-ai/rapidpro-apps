@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     syntax="proto3",
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
-    serialized_pb=b'\n"weni/user_grpc/grpc_gen/user.proto\x12\x12weni.rapidpro.user"B\n\x1dUserPermissionRetrieveRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\x05\x12\x10\n\x08org_uuid\x18\x02 \x01(\t"T\n\x1bUserPermissionUpdateRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\x05\x12\x12\n\npermission\x18\x03 \x01(\t"U\n\nPermission\x12\x15\n\radministrator\x18\x01 \x01(\x08\x12\x0e\n\x06viewer\x18\x02 \x01(\x08\x12\x0e\n\x06\x65\x64itor\x18\x03 \x01(\x08\x12\x10\n\x08surveyor\x18\x04 \x01(\x08"$\n\x13UserRetrieveRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t"1\n\x0eUpdateUserLang\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\x10\n\x08language\x18\x02 \x01(\t"\x98\x01\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x12\n\nfirst_name\x18\x04 \x01(\t\x12\x11\n\tlast_name\x18\x05 \x01(\t\x12\x13\n\x0b\x64\x61te_joined\x18\x06 \x01(\t\x12\x11\n\tis_active\x18\x07 \x01(\x08\x12\x14\n\x0cis_superuser\x18\x08 \x01(\x08\x32\xb5\x02\n\x18UserPermissionController\x12_\n\x08Retrieve\x12\x31.weni.rapidpro.user.UserPermissionRetrieveRequest\x1a\x1e.weni.rapidpro.user.Permission"\x00\x12[\n\x06Update\x12/.weni.rapidpro.user.UserPermissionUpdateRequest\x1a\x1e.weni.rapidpro.user.Permission"\x00\x12[\n\x06Remove\x12/.weni.rapidpro.user.UserPermissionUpdateRequest\x1a\x1e.weni.rapidpro.user.Permission"\x00\x32\xab\x01\n\x0eUserController\x12O\n\x08Retrieve\x12\'.weni.rapidpro.user.UserRetrieveRequest\x1a\x18.weni.rapidpro.user.User"\x00\x12H\n\x06Update\x12".weni.rapidpro.user.UpdateUserLang\x1a\x18.weni.rapidpro.user.User"\x00\x62\x06proto3',
+    serialized_pb=b'\n"weni/user_grpc/grpc_gen/user.proto\x12\x12weni.rapidpro.user"E\n\x1dUserPermissionRetrieveRequest\x12\x12\n\nuser_email\x18\x01 \x01(\t\x12\x10\n\x08org_uuid\x18\x02 \x01(\t"W\n\x1bUserPermissionUpdateRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\x12\x12\n\nuser_email\x18\x02 \x01(\t\x12\x12\n\npermission\x18\x03 \x01(\t"U\n\nPermission\x12\x15\n\radministrator\x18\x01 \x01(\x08\x12\x0e\n\x06viewer\x18\x02 \x01(\x08\x12\x0e\n\x06\x65\x64itor\x18\x03 \x01(\x08\x12\x10\n\x08surveyor\x18\x04 \x01(\x08"$\n\x13UserRetrieveRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t"1\n\x0eUpdateUserLang\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\x10\n\x08language\x18\x02 \x01(\t"\x98\x01\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x12\n\nfirst_name\x18\x04 \x01(\t\x12\x11\n\tlast_name\x18\x05 \x01(\t\x12\x13\n\x0b\x64\x61te_joined\x18\x06 \x01(\t\x12\x11\n\tis_active\x18\x07 \x01(\x08\x12\x14\n\x0cis_superuser\x18\x08 \x01(\x08\x32\xb5\x02\n\x18UserPermissionController\x12_\n\x08Retrieve\x12\x31.weni.rapidpro.user.UserPermissionRetrieveRequest\x1a\x1e.weni.rapidpro.user.Permission"\x00\x12[\n\x06Update\x12/.weni.rapidpro.user.UserPermissionUpdateRequest\x1a\x1e.weni.rapidpro.user.Permission"\x00\x12[\n\x06Remove\x12/.weni.rapidpro.user.UserPermissionUpdateRequest\x1a\x1e.weni.rapidpro.user.Permission"\x00\x32\xab\x01\n\x0eUserController\x12O\n\x08Retrieve\x12\'.weni.rapidpro.user.UserRetrieveRequest\x1a\x18.weni.rapidpro.user.User"\x00\x12H\n\x06Update\x12".weni.rapidpro.user.UpdateUserLang\x1a\x18.weni.rapidpro.user.User"\x00\x62\x06proto3',
 )
 
 
@@ -31,15 +31,15 @@ _USERPERMISSIONRETRIEVEREQUEST = _descriptor.Descriptor(
     create_key=_descriptor._internal_create_key,
     fields=[
         _descriptor.FieldDescriptor(
-            name="user_id",
-            full_name="weni.rapidpro.user.UserPermissionRetrieveRequest.user_id",
+            name="user_email",
+            full_name="weni.rapidpro.user.UserPermissionRetrieveRequest.user_email",
             index=0,
             number=1,
-            type=5,
-            cpp_type=1,
+            type=9,
+            cpp_type=9,
             label=1,
             has_default_value=False,
-            default_value=0,
+            default_value=b"".decode("utf-8"),
             message_type=None,
             enum_type=None,
             containing_type=None,
@@ -78,7 +78,7 @@ _USERPERMISSIONRETRIEVEREQUEST = _descriptor.Descriptor(
     extension_ranges=[],
     oneofs=[],
     serialized_start=58,
-    serialized_end=124,
+    serialized_end=127,
 )
 
 
@@ -110,15 +110,15 @@ _USERPERMISSIONUPDATEREQUEST = _descriptor.Descriptor(
             create_key=_descriptor._internal_create_key,
         ),
         _descriptor.FieldDescriptor(
-            name="user_id",
-            full_name="weni.rapidpro.user.UserPermissionUpdateRequest.user_id",
+            name="user_email",
+            full_name="weni.rapidpro.user.UserPermissionUpdateRequest.user_email",
             index=1,
             number=2,
-            type=5,
-            cpp_type=1,
+            type=9,
+            cpp_type=9,
             label=1,
             has_default_value=False,
-            default_value=0,
+            default_value=b"".decode("utf-8"),
             message_type=None,
             enum_type=None,
             containing_type=None,
@@ -156,8 +156,8 @@ _USERPERMISSIONUPDATEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=126,
-    serialized_end=210,
+    serialized_start=129,
+    serialized_end=216,
 )
 
 
@@ -254,8 +254,8 @@ _PERMISSION = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=212,
-    serialized_end=297,
+    serialized_start=218,
+    serialized_end=303,
 )
 
 
@@ -295,8 +295,8 @@ _USERRETRIEVEREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=299,
-    serialized_end=335,
+    serialized_start=305,
+    serialized_end=341,
 )
 
 
@@ -355,8 +355,8 @@ _UPDATEUSERLANG = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=337,
-    serialized_end=386,
+    serialized_start=343,
+    serialized_end=392,
 )
 
 
@@ -529,8 +529,8 @@ _USER = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=389,
-    serialized_end=541,
+    serialized_start=395,
+    serialized_end=547,
 )
 
 DESCRIPTOR.message_types_by_name["UserPermissionRetrieveRequest"] = _USERPERMISSIONRETRIEVEREQUEST
@@ -615,8 +615,8 @@ _USERPERMISSIONCONTROLLER = _descriptor.ServiceDescriptor(
     index=0,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
-    serialized_start=544,
-    serialized_end=853,
+    serialized_start=550,
+    serialized_end=859,
     methods=[
         _descriptor.MethodDescriptor(
             name="Retrieve",
@@ -662,8 +662,8 @@ _USERCONTROLLER = _descriptor.ServiceDescriptor(
     index=1,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
-    serialized_start=856,
-    serialized_end=1027,
+    serialized_start=862,
+    serialized_end=1033,
     methods=[
         _descriptor.MethodDescriptor(
             name="Retrieve",

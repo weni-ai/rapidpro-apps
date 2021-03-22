@@ -19,7 +19,7 @@ class UserPermissionService(
 ):
     def Retrieve(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
-        user = self.get_user_object(request.user_id)
+        user = self.get_user_object(request.user_email, "email")
 
         permissions = self.get_user_permissions(org, user)
 
@@ -29,7 +29,7 @@ class UserPermissionService(
 
     def Update(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
-        user = self.get_user_object(request.user_id)
+        user = self.get_user_object(request.user_email, "email")
 
         self.validate_permission(org, request.permission)
         self.set_user_permission(org, user, request.permission)
@@ -41,7 +41,7 @@ class UserPermissionService(
 
     def Remove(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
-        user = self.get_user_object(request.user_id)
+        user = self.get_user_object(request.user_email, "email")
 
         self.validate_permission(org, request.permission)
         self.remove_user_permission(org, user, request.permission)
