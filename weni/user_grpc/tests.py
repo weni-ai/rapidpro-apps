@@ -11,6 +11,7 @@ from temba.orgs.models import Org
 class UserServiceTest(RPCTransactionTestCase):
 
     WRONG_ID = -1
+    WRONG_UUID = "wrong-wrong-wrong-wrong-wrong."
 
     def setUp(self):
         User.objects.create_user(
@@ -30,15 +31,15 @@ class UserServiceTest(RPCTransactionTestCase):
         org = Org.objects.first()
         user = User.objects.first()
 
-        with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_ID} not found!"):
-            self.user_permission_retrieve_request(org_id=self.WRONG_ID, user_id=self.WRONG_ID)
+        with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_UUID} not found!"):
+            self.user_permission_retrieve_request(org_uuid=self.WRONG_UUID, user_id=self.WRONG_ID)
 
         with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_ID} not found!"):
-            self.user_permission_retrieve_request(org_id=org.id, user_id=self.WRONG_ID)
+            self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=self.WRONG_ID)
 
         org.administrators.add(user)
 
-        response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
         self.assertTrue(response.administrator)
         self.assertTrue(self.permission_is_unique_true(response, "administrator"))
@@ -46,7 +47,7 @@ class UserServiceTest(RPCTransactionTestCase):
         org.administrators.remove(user)
         org.viewers.add(user)
 
-        response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
         self.assertTrue(response.viewer)
         self.assertTrue(self.permission_is_unique_true(response, "viewer"))
@@ -54,7 +55,7 @@ class UserServiceTest(RPCTransactionTestCase):
         org.viewers.remove(user)
         org.editors.add(user)
 
-        response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
         self.assertTrue(response.editor)
         self.assertTrue(self.permission_is_unique_true(response, "editor"))
@@ -62,7 +63,7 @@ class UserServiceTest(RPCTransactionTestCase):
         org.editors.remove(user)
         org.surveyors.add(user)
 
-        response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
         self.assertTrue(response.surveyor)
         self.assertTrue(self.permission_is_unique_true(response, "surveyor"))
@@ -91,32 +92,32 @@ class UserServiceTest(RPCTransactionTestCase):
         user = User.objects.first()
 
         with self.assertRaisesMessage(FakeRpcError, "adm is not a valid permission!"):
-            self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="adm")
+            self.user_permission_update_request(org_uuid=str(org.uuid), user_id=user.id, permission="adm")
 
         update_response = self.user_permission_update_request(
-            org_id=org.id, user_id=user.id, permission="administrator"
+            org_uuid=str(org.uuid), user_id=user.id, permission="administrator"
         )
-        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        retrieve_response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
         self.assertEquals(update_response, retrieve_response)
 
         self.assertTrue(retrieve_response.administrator)
         self.assertTrue(self.permission_is_unique_true(retrieve_response, "administrator"))
 
-        self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="viewer")
-        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        self.user_permission_update_request(org_uuid=str(org.uuid), user_id=user.id, permission="viewer")
+        retrieve_response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
         self.assertTrue(retrieve_response.viewer)
         self.assertTrue(self.permission_is_unique_true(retrieve_response, "viewer"))
 
-        self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="editor")
-        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        self.user_permission_update_request(org_uuid=str(org.uuid), user_id=user.id, permission="editor")
+        retrieve_response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
         self.assertTrue(retrieve_response.editor)
         self.assertTrue(self.permission_is_unique_true(retrieve_response, "editor"))
 
-        self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="surveyor")
-        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        self.user_permission_update_request(org_uuid=str(org.uuid), user_id=user.id, permission="surveyor")
+        retrieve_response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
         self.assertTrue(retrieve_response.surveyor)
         self.assertTrue(self.permission_is_unique_true(retrieve_response, "surveyor"))
@@ -126,13 +127,13 @@ class UserServiceTest(RPCTransactionTestCase):
         user = User.objects.first()
 
         with self.assertRaisesMessage(FakeRpcError, "adm is not a valid permission!"):
-            self.user_permission_remove_request(org_id=org.id, user_id=user.id, permission="adm")
+            self.user_permission_remove_request(org_uuid=str(org.uuid), user_id=user.id, permission="adm")
 
-        self.user_permission_update_request(org_id=org.id, user_id=user.id, permission="viewer")
-        retrieve_response = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        self.user_permission_update_request(org_uuid=str(org.uuid), user_id=user.id, permission="viewer")
+        retrieve_response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
-        self.user_permission_remove_request(org_id=org.id, user_id=user.id, permission="viewer")
-        retrieve_response_removed = self.user_permission_retrieve_request(org_id=org.id, user_id=user.id)
+        self.user_permission_remove_request(org_uuid=str(org.uuid), user_id=user.id, permission="viewer")
+        retrieve_response_removed = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_id=user.id)
 
         self.assertFalse(retrieve_response_removed.viewer)
         self.assertNotEquals(retrieve_response.viewer, retrieve_response_removed.viewer)
