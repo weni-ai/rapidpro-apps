@@ -117,10 +117,15 @@ class OrgServiceTest(RPCTransactionTestCase):
 
         created_by = org.created_by
         modified_by = org.modified_by
+        administrators = org.administrators.all()
+        administrator = administrators.get(pk=newuser.pk)
 
         self.assertEquals(created_by, newuser)
         self.assertEquals(modified_by, newuser)
 
+        self.assertEquals(administrators.count(), 1)
+        self.assertEquals(administrator, newuser)
+        
         self.stub.Create(
             org_pb2.OrgCreateRequest(
                 name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com", username="newuser"
