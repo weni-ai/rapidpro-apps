@@ -48,11 +48,8 @@ def check_user_legacy(request, email: str):  # pragma: no cover
 
 class WeniAuthenticationRequestView(OIDCAuthenticationRequestView):
     def get(self, request, organization=None):
+        response = super().get(request)
         if organization:
             org = get_object_or_404(Org, uuid=organization)
-            if org in self.request.user.get_user_orgs():
-                self.request.session["org_id"] = org.pk
-            else:
-                return Http404()
-
-        return super().get(request)
+            self.request.session["org_id"] = org.pk
+        return response
