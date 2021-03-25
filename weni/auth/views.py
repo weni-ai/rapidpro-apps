@@ -6,6 +6,9 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
+from mozilla_django_oidc.views import OIDCAuthenticationRequestView
+from temba.orgs.models import Org
+
 
 @csrf_exempt
 def check_user_legacy(request, email: str):  # pragma: no cover
@@ -41,3 +44,12 @@ def check_user_legacy(request, email: str):  # pragma: no cover
         user.check_password(raw_password=body.get("password"))
         return JsonResponse({}) if user else Http404()
     return HttpResponse(status=404)
+
+
+class WeniAuthenticationRequestView(OIDCAuthenticationRequestView):
+    def get(self, request, organization=None):
+        response = super().get(request)
+        if organization:
+            org = get_object_or_404(Org, uuid=organization)
+            self.request.session["org_id"] = org.pk
+        return response
