@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import User
 
 from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
@@ -78,14 +79,7 @@ class UserServiceTest(RPCTransactionTestCase):
 
         response = self.user_retrieve_request(email=user.email)
 
-        self.assertEquals(response.id, user.id)
-        self.assertEquals(response.username, user.username)
-        self.assertEquals(response.email, user.email)
-        self.assertEquals(response.first_name, user.first_name)
-        self.assertEquals(response.last_name, user.last_name)
-        self.assertEquals(response.date_joined, user.date_joined.strftime("%Y-%m-%dT%H:%M:%S.%fZ"))
-        self.assertEquals(response.is_active, user.is_active)
-        self.assertEquals(response.is_superuser, user.is_superuser)
+        self.validate_response_user(response, user)
 
     def test_user_permission_update(self):
         org = Org.objects.first()
@@ -122,6 +116,27 @@ class UserServiceTest(RPCTransactionTestCase):
         self.assertTrue(retrieve_response.surveyor)
         self.assertTrue(self.permission_is_unique_true(retrieve_response, "surveyor"))
 
+    def test_user_language_update(self):
+        user = User.objects.first()
+
+        languages = [language[0] for language in settings.LANGUAGES]
+
+        with self.assertRaisesMessage(FakeRpcError, "Invalid argument: language"):
+            self.user_language_update_request(email=user.email, language="wrong")
+
+        with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_EMAIL} not found!"):
+            self.user_language_update_request(email=self.WRONG_EMAIL, language=languages[0])
+
+        for language in languages:
+            self.user_language_update_request(email=user.email, language=language)
+
+            user_language = User.objects.get(pk=user.pk).get_settings().language
+            self.assertEqual(user_language, language)
+
+        response = self.user_language_update_request(email=user.email, language=languages[0])
+
+        self.validate_response_user(response, user)
+
     def test_user_permission_remove(self):
         org = Org.objects.first()
         user = User.objects.first()
@@ -151,6 +166,17 @@ class UserServiceTest(RPCTransactionTestCase):
 
         return len(false_valeues) == 3 and permission not in false_valeues
 
+    def validate_response_user(self, response, user: User):
+
+        self.assertEquals(response.id, user.id)
+        self.assertEquals(response.username, user.username)
+        self.assertEquals(response.email, user.email)
+        self.assertEquals(response.first_name, user.first_name)
+        self.assertEquals(response.last_name, user.last_name)
+        self.assertEquals(response.date_joined, user.date_joined.strftime("%Y-%m-%dT%H:%M:%S.%fZ"))
+        self.assertEquals(response.is_active, user.is_active)
+        self.assertEquals(response.is_superuser, user.is_superuser)
+
     def user_permission_retrieve_request(self, **kwargs):
         return self.user_permission_stub.Retrieve(user_pb2.UserPermissionRetrieveRequest(**kwargs))
 
@@ -162,3 +188,6 @@ class UserServiceTest(RPCTransactionTestCase):
 
     def user_retrieve_request(self, **kwargs):
         return self.user_stub.Retrieve(user_pb2.UserRetrieveRequest(**kwargs))
+
+    def user_language_update_request(self, **kwargs):
+        return self.user_stub.Update(user_pb2.UpdateUserLang(**kwargs))
