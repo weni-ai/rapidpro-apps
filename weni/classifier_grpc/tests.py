@@ -51,5 +51,28 @@ class ClassifierServiceTest(RPCTransactionTestCase):
         self.assertEqual(message.classifier_type, LuisType.slug)
         self.assertEqual(message.uuid, str(classifier.uuid))
 
+        response = self.classifier_list_request(org_uuid=org_uuid, classifier_type=LuisType.slug)
+        messages = [message for message in response]
+
+        self.assertEqual(len(messages), 1)
+
+        message = messages[0]
+
+        self.assertEqual(message.name, "Test")
+        self.assertEqual(message.classifier_type, LuisType.slug)
+        self.assertEqual(message.uuid, str(classifier.uuid))
+
+        classifier = Classifier.create(org, self.admin, LuisType.slug, "Test2", {}, sync=False)
+
+        response = self.classifier_list_request(org_uuid=org_uuid, classifier_type=LuisType.slug)
+        messages = [message for message in response]
+
+        self.assertEqual(len(messages), 2)
+
+        response = self.classifier_list_request(org_uuid=org_uuid)
+        messages = [message for message in response]
+
+        self.assertEqual(len(messages), 3)
+
     def classifier_list_request(self, **kwargs):
         return self.stub.List(classifier_pb2.ClassifierListRequest(**kwargs))
