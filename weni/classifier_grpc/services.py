@@ -8,7 +8,11 @@ class ClassifierService(AbstractService, generics.GenericService):
     def List(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
 
-        classifiers = org.classifiers.all()
+        query = {
+            "classifier_type": request.classifier_type
+        } if request.classifier_type else {}
+
+        classifiers = org.classifiers.filter(**query)
         serializer = ClassifierProtoSerializer(classifiers, many=True)
 
         for message in serializer.message:

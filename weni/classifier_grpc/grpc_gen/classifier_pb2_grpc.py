@@ -15,10 +15,10 @@ class ClassifierControllerStub(object):
             channel: A grpc.Channel.
         """
         self.List = channel.unary_stream(
-            "/classifier.ClassifierController/List",
-            request_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.SerializeToString,
-            response_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
-        )
+                '/weni.rapidpro.classifier.ClassifierController/List',
+                request_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.SerializeToString,
+                response_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
+                )
 
 
 class ClassifierControllerServicer(object):
@@ -27,51 +27,40 @@ class ClassifierControllerServicer(object):
     def List(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
 
 def add_ClassifierControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
-        "List": grpc.unary_stream_rpc_method_handler(
-            servicer.List,
-            request_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.FromString,
-            response_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.SerializeToString,
-        ),
+            'List': grpc.unary_stream_rpc_method_handler(
+                    servicer.List,
+                    request_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.FromString,
+                    response_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.SerializeToString,
+            ),
     }
-    generic_handler = grpc.method_handlers_generic_handler("classifier.ClassifierController", rpc_method_handlers)
+    generic_handler = grpc.method_handlers_generic_handler(
+            'weni.rapidpro.classifier.ClassifierController', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
-# This class is part of an EXPERIMENTAL API.
+ # This class is part of an EXPERIMENTAL API.
 class ClassifierController(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def List(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_stream(
-            request,
+    def List(request,
             target,
-            "/classifier.ClassifierController/List",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/weni.rapidpro.classifier.ClassifierController/List',
             weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.SerializeToString,
             weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
