@@ -3,11 +3,10 @@ import json
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
-
+from django.views.generic.base import RedirectView
 from mozilla_django_oidc.views import OIDCAuthenticationRequestView
-from temba.orgs.models import Org
+from weni.auth.decorators import org_choose
 
 
 @csrf_exempt
@@ -47,9 +46,15 @@ def check_user_legacy(request, email: str):  # pragma: no cover
 
 
 class WeniAuthenticationRequestView(OIDCAuthenticationRequestView):
-    def get(self, request, organization=None):
+    @org_choose
+    def get(self, request):
         response = super().get(request)
-        if organization:
-            org = get_object_or_404(Org, uuid=organization)
-            self.request.session["org_id"] = org.pk
         return response
+
+
+class OrgHomeRedirectView(RedirectView):
+    pattern_name = "orgs.org_home"
+
+    @org_choose
+    def get(self, request):
+        return super().get(request)
