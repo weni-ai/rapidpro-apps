@@ -15,5 +15,5 @@ urlpatterns = [
     path(
         "weni/<uuid:organization>/flow/<uuid:uuid>/editor", FlowEditorRedirectView.as_view(), name="weni-flow-editor",
     ),
-    path("weni/<uuid:organization>", OrgHomeRedirectView.as_view(), name="weni-org-home"),
+    path("weni/<uuid:organization>/config", OrgHomeRedirectView.as_view(), name="weni-org-home"),
 ]
