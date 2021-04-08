@@ -58,3 +58,11 @@ class OrgHomeRedirectView(RedirectView):
     @org_choose
     def get(self, request):
         return super().get(request)
+
+
+class FlowEditorRedirectView(RedirectView):
+    pattern_name = "flows.flow_editor"
+
+    @org_choose
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
