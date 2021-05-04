@@ -15,12 +15,12 @@ class ClassifierControllerStub(object):
             channel: A grpc.Channel.
         """
         self.Create = channel.unary_unary(
-                '/classifier.ClassifierController/Create',
+                '/weni.rapidpro.classifier.ClassifierController/Create',
                 request_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierCreateRequest.SerializeToString,
                 response_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
                 )
         self.List = channel.unary_stream(
-                '/classifier.ClassifierController/List',
+                '/weni.rapidpro.classifier.ClassifierController/List',
                 request_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.SerializeToString,
                 response_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
                 )
@@ -56,7 +56,7 @@ def add_ClassifierControllerServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'classifier.ClassifierController', rpc_method_handlers)
+            'weni.rapidpro.classifier.ClassifierController', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -75,7 +75,7 @@ class ClassifierController(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/classifier.ClassifierController/Create',
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.classifier.ClassifierController/Create',
             weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierCreateRequest.SerializeToString,
             weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
             options, channel_credentials,
@@ -92,7 +92,7 @@ class ClassifierController(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/classifier.ClassifierController/List',
+        return grpc.experimental.unary_stream(request, target, '/weni.rapidpro.classifier.ClassifierController/List',
             weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.SerializeToString,
             weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
             options, channel_credentials,
