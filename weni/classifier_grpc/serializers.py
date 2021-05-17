@@ -26,7 +26,7 @@ class ClassifierProtoSerializer(proto_serializers.ModelProtoSerializer):
         data["user"] = user
         data["config"] = {}
 
-        return Classifier.create(**data, sync=False)
+        return Classifier.create(**data)
 
     class Meta:
         model = Classifier
