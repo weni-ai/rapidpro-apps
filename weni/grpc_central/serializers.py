@@ -24,12 +24,12 @@ class SerializerUtils:
         try:
             return model.objects.get(**query)
         except model.DoesNotExist:
-            cls.raises_not_fount(model.__name__, value)
+            cls.raises_not_found(model.__name__, value)
         except exceptions.ValidationError:
-            cls.raises_not_fount(model.__name__, value)
+            cls.raises_not_found(model.__name__, value)
 
     @classmethod
-    def raises_not_fount(cls, model_name, value):
+    def raises_not_found(cls, model_name, value):
         if not value:
             value = "None"            
         raise proto_serializers.ValidationError(f"{model_name}: {value} not found!")
