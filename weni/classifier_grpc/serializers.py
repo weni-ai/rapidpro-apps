@@ -15,8 +15,8 @@ class ClassifierProtoSerializer(proto_serializers.ModelProtoSerializer):
     user_email = serializers.EmailField(write_only=True)
 
     def create(self, validated_data: dict) -> Classifier:
-        user = SerializerUtils.get_user_object(validated_data["user_email"], "email")
-        org = SerializerUtils.get_org_object(validated_data["org_uuid"], "uuid")
+        user = SerializerUtils.get_user_object(email=validated_data["user_email"])
+        org = SerializerUtils.get_org_object(uuid=validated_data["org_uuid"])
 
         validated_data.pop("org_uuid")
         validated_data.pop("user_email")
