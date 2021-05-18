@@ -77,16 +77,14 @@ class ClassifierServiceTest(RPCTransactionTestCase):
     def test_create_classifier(self):
         org = Org.objects.first()
         user = self.admin
-        user_email = user.email
-        org_uuid = str(org.uuid)
 
         name = "Test Name"
         classifier_type = "Test Type"
 
         response = self.classifier_create_request(
             classifier_type=classifier_type,
-            user_email=user_email,
-            org_uuid=org_uuid,
+            user=user.email,
+            org=str(org.uuid),
             name=name
         )
 
