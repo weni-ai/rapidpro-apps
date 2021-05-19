@@ -24,7 +24,8 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
-        user, created = User.objects.get_or_create(email=request.user_email, defaults={"username": request.username})
+        user, created = User.objects.get_or_create(email=request.user_email,
+                                                   defaults={"username": request.user_email})
 
         org = Org.objects.create(name=request.name, timezone=request.timezone, created_by=user, modified_by=user)
         org.administrators.add(user)

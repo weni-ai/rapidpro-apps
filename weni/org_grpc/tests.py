@@ -90,21 +90,16 @@ class OrgServiceTest(RPCTransactionTestCase):
 
         with self.assertRaisesMessage(ValidationError, '"Wrong/Zone" is not a valid choice.'):
             self.stub.Create(
-                org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email, username="test")
+                org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email)
             )
-
-        with self.assertRaisesMessage(
-            ValidationError, "{'username': [ErrorDetail(string='This field may not be blank.', code='blank')]}"
-        ):
-            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="America/Maceio", user_email=user.email))
 
         self.stub.Create(
             org_pb2.OrgCreateRequest(
-                name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com", username="newuser"
+                name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com"
             )
         )
 
-        newuser_qs = User.objects.filter(username="newuser")
+        newuser_qs = User.objects.filter(email="newemail@email.com")
 
         self.assertTrue(newuser_qs.exists())
 
@@ -128,11 +123,11 @@ class OrgServiceTest(RPCTransactionTestCase):
         
         self.stub.Create(
             org_pb2.OrgCreateRequest(
-                name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com", username="newuser"
+                name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com"
             )
         )
 
-        self.assertEqual(User.objects.filter(username="newuser").count(), 1)
+        self.assertEqual(User.objects.filter(email="newemail@email.com").count(), 1)
 
     def test_retrieve_org(self):
         org = Org.objects.last()
