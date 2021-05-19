@@ -21,7 +21,7 @@ class ClassifierServiceTest(RPCTransactionTestCase):
 
         self.stub = classifier_pb2_grpc.ClassifierControllerStub(self.channel)
 
-    def test_list_orgs(self):
+    def test_list_classifier(self):
         org = Org.objects.first()
         org_uuid = str(org.uuid)
 
@@ -74,5 +74,25 @@ class ClassifierServiceTest(RPCTransactionTestCase):
 
         self.assertEqual(len(messages), 3)
 
+    def test_create_classifier(self):
+        org = Org.objects.first()
+        user = self.admin
+
+        name = "Test Name"
+        classifier_type = "Test Type"
+
+        response = self.classifier_create_request(
+            classifier_type=classifier_type,
+            user=user.email,
+            org=str(org.uuid),
+            name=name
+        )
+
+        self.assertEqual(response.name, name)
+        self.assertEqual(response.classifier_type, classifier_type)
+
     def classifier_list_request(self, **kwargs):
         return self.stub.List(classifier_pb2.ClassifierListRequest(**kwargs))
+
+    def classifier_create_request(self, **kwargs):
+        return self.stub.Create(classifier_pb2.ClassifierCreateRequest(**kwargs))
