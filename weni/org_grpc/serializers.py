@@ -32,12 +32,11 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
 class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
 
     user_email = serializers.EmailField()
-    username = serializers.CharField(required=True)
 
     class Meta:
         model = Org
         proto_class = org_pb2.Org
-        fields = ["name", "timezone", "user_email", "username"]
+        fields = ["name", "timezone", "user_email"]
 
 
 class OrgUpdateProtoSerializer(proto_serializers.ModelProtoSerializer):
