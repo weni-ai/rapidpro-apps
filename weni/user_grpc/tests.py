@@ -28,15 +28,49 @@ class UserServiceTest(RPCTransactionTestCase):
         self.user_permission_stub = user_pb2_grpc.UserPermissionControllerStub(self.channel)
         self.user_stub = user_pb2_grpc.UserControllerStub(self.channel)
 
+    def test_retrieve_permission_with_non_existent_user(self):
+        org = Org.objects.first()
+        email = "nonexistent@email.com"
+
+        response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_email=email)
+
+        self.assertTrue(User.objects.filter(email=email).exists())
+
+        self.assertFalse(response.administrator)
+        self.assertFalse(response.viewer)
+        self.assertFalse(response.editor)
+        self.assertFalse(response.surveyor)
+
+    def test_update_permission_with_non_existent_user(self):
+        org = Org.objects.first()
+        email = "nonexistent@email.com"
+
+        response = self.user_permission_update_request(org_uuid=str(org.uuid),
+                                                       user_email=email,
+                                                       permission="administrator")
+
+        self.assertTrue(User.objects.filter(email=email).exists())
+
+        self.assertTrue(response.administrator)
+        self.assertFalse(response.viewer)
+        self.assertFalse(response.editor)
+        self.assertFalse(response.surveyor)
+
+    def test_update_user_lang_with_non_existent_user(self):
+        email = "nonexistent@email.com"
+
+        langs = list(map(lambda lang: lang[0], settings.LANGUAGES))
+        _ = self.user_language_update_request(email=email, language=langs[0])
+
+        user = User.objects.get(email=email)
+        self.assertEquals(user.get_settings().language, langs[0])
+
     def test_user_permission_retrieve(self):
         org = Org.objects.first()
         user = User.objects.first()
 
         with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_UUID} not found!"):
             self.user_permission_retrieve_request(org_uuid=self.WRONG_UUID, user_email=self.WRONG_EMAIL)
-
-        with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_EMAIL} not found!"):
-            self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_email=self.WRONG_EMAIL)
 
         org.administrators.add(user)
 
@@ -71,11 +105,6 @@ class UserServiceTest(RPCTransactionTestCase):
 
     def test_user_retrieve(self):
         user = User.objects.first()
-
-        wrong_email = "wrong@email.com"
-
-        with self.assertRaisesMessage(FakeRpcError, f"User: {wrong_email} not found!"):
-            self.user_retrieve_request(email=wrong_email)
 
         response = self.user_retrieve_request(email=user.email)
 
@@ -123,9 +152,6 @@ class UserServiceTest(RPCTransactionTestCase):
 
         with self.assertRaisesMessage(FakeRpcError, "Invalid argument: language"):
             self.user_language_update_request(email=user.email, language="wrong")
-
-        with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_EMAIL} not found!"):
-            self.user_language_update_request(email=self.WRONG_EMAIL, language=languages[0])
 
         for language in languages:
             self.user_language_update_request(email=user.email, language=language)

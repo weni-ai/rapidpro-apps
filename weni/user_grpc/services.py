@@ -14,12 +14,21 @@ from weni.grpc_central.services import AbstractService
 from temba.orgs.models import Org
 
 
+def get_user(user_email: str) -> User:
+    # TODO: Remove this method, it is just a palliative solution
+
+    user, created = User.objects.get_or_create(
+        email=user_email, defaults={"username": user_email}
+    )
+    return user
+
+
 class UserPermissionService(
     AbstractService, generics.GenericService, mixins.RetrieveModelMixin, mixins.UpdateModelMixin
 ):
     def Retrieve(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
-        user = self.get_user_object(request.user_email, "email")
+        user = get_user(request.user_email)
 
         permissions = self.get_user_permissions(org, user)
 
@@ -29,7 +38,7 @@ class UserPermissionService(
 
     def Update(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
-        user = self.get_user_object(request.user_email, "email")
+        user = get_user(request.user_email)
 
         self.validate_permission(org, request.permission)
         self.set_user_permission(org, user, request.permission)
@@ -98,7 +107,7 @@ class UserService(generics.GenericService, AbstractService, mixins.RetrieveModel
         if request.language not in [language[0] for language in settings.LANGUAGES]:
             self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Invalid argument: language")
 
-        user = self.get_object()
+        user = get_user(request.email)
         user_settings = user.get_settings()
         user_settings.language = request.language
         user_settings.save()
@@ -108,4 +117,4 @@ class UserService(generics.GenericService, AbstractService, mixins.RetrieveModel
         return serializer.message
 
     def get_object(self):
-        return self.get_user_object(self.request.email, "email")
+        return get_user(self.request.email)
