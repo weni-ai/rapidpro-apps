@@ -9,8 +9,7 @@ from temba.api.v2.serializers import WriteSerializer
 class TemplateMessageSerializers(WriteSerializer):
 
     channel = relations.SlugRelatedField(
-        slug_field="uuid",
-        queryset=Channel.objects.filter(is_active=True)
+        slug_field="uuid", queryset=Channel.objects.filter(is_active=True)
     )
     content = serializers.CharField()
     name = serializers.CharField(write_only=True)
@@ -18,7 +17,7 @@ class TemplateMessageSerializers(WriteSerializer):
     country = serializers.CharField()
     variable_count = serializers.IntegerField()
     status = serializers.CharField()
-    namespace = serializers.CharField(required=True)
+    namespace = serializers.CharField(required=False, default="")
 
     fb_namespace = serializers.CharField(required=False, write_only=True)
 
@@ -28,21 +27,24 @@ class TemplateMessageSerializers(WriteSerializer):
 
         fb_namespace = validated_data.get("fb_namespace")
         channel = validated_data["channel"]
-        
+
         if fb_namespace:
             channel.config["fb_namespace"] = fb_namespace
             channel.save()
             validated_data.pop("fb_namespace")
-        
+
         validated_data["external_id"] = self.external_id
-        
+
         template_translation = TemplateTranslation.get_or_create(**validated_data)
-        
+
         return template_translation
 
     @property
     def external_id(self):
-        return "KcwEjeofLSDKWDm2i"
+        from django.utils.crypto import get_random_string
+        from string import digits
+
+        return get_random_string(16, digits)
 
     class Meta:
         model = TemplateTranslation
@@ -55,5 +57,5 @@ class TemplateMessageSerializers(WriteSerializer):
             "variable_count",
             "status",
             "fb_namespace",
-            "namespace"
+            "namespace",
         ]

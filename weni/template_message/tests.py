@@ -5,7 +5,6 @@ from rest_framework import status
 from temba.tests import TembaTest
 from temba.api.models import APIToken
 from temba.templates.models import TemplateTranslation
-from temba.channels.models import Channel
 
 
 class TembaPostRequestMixin:
@@ -14,7 +13,9 @@ class TembaPostRequestMixin:
 
     def request(self, data: dict = None):
         url = reverse(self.url_namespace)
-        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
+        token = APIToken.get_or_create(
+            self.org, self.admin, Group.objects.get(name="Administrators")
+        )
 
         return self.client.post(url, HTTP_AUTHORIZATION=f"Token {token.key}", data=data)
 
@@ -35,7 +36,6 @@ class CreateTemplateMessageTest(TembaPostRequestMixin, TembaTest):
             language="por",
             country="BR",
             status="A",
-            namespace="weni"
         )
 
     def test_ok(self):
@@ -51,7 +51,7 @@ class CreateTemplateMessageTest(TembaPostRequestMixin, TembaTest):
         self.assertEquals(template_translation.status, data["status"])
         self.assertEquals(template_translation.language, data["language"])
         self.assertEquals(template_translation.country, data["country"])
-        self.assertEquals(template_translation.namespace, data["namespace"])
+        self.assertEquals(len(template_translation.external_id), 16)
 
     def test_wrong_channel_uuid(self):
         data = self.request_data

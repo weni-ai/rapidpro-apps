@@ -1,17 +1,17 @@
-from temba.api.v2.views_base import BaseAPIView, WriteAPIMixin
+from django.urls import reverse
 
+from temba.api.v2.views_base import BaseAPIView, WriteAPIMixin
+from temba.templates.models import TemplateTranslation
 from weni.template_message.serializers import TemplateMessageSerializers
-from temba.templates.models import TemplateTranslation, Template
-from temba.channels.models import Channel
 
 
 class TemplateMessageView(WriteAPIMixin, BaseAPIView):
 
     """
     ## Create Template Message
-    
+
     A **POST** can be used to create a new template message
-    
+
     * **channel** - the channel UUID.
     * **content** - a text field, can contain multiple characters and words.
     * **name** - specific identifier for the template(welcome, schedule, etc)
@@ -25,9 +25,9 @@ class TemplateMessageView(WriteAPIMixin, BaseAPIView):
         * U - unsupported language
     * **fb_namespace** - namespace of Facebook(this field is not required)
     * **namespace** - ...
-    
+
     Example:
-        
+
         POST /api/v2/template_messages.json
         {
             "channel": "8b504687-a145-4737-b13d-ed179b39a1e8",
@@ -46,3 +46,13 @@ class TemplateMessageView(WriteAPIMixin, BaseAPIView):
     model = TemplateTranslation
     write_serializer_class = TemplateMessageSerializers
     serializer_class = TemplateMessageSerializers
+
+    @classmethod
+    def get_read_explorer(cls):
+        return {
+            "method": "POST",
+            "title": "Create Template Message",
+            "url": reverse("api.v2.template_messages"),
+            "slug": "template-message",
+            "params": [],
+        }
