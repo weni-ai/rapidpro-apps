@@ -5,7 +5,7 @@ from temba.templates.models import TemplateTranslation
 from weni.template_message.serializers import TemplateMessageSerializers
 
 
-class TemplateMessageView(WriteAPIMixin, BaseAPIView):
+class TemplateMessageEndpoint(WriteAPIMixin, BaseAPIView):
 
     """
     ## Create Template Message
@@ -48,7 +48,7 @@ class TemplateMessageView(WriteAPIMixin, BaseAPIView):
     serializer_class = TemplateMessageSerializers
 
     @classmethod
-    def get_read_explorer(cls):
+    def get_write_explorer(cls):
         return {
             "method": "POST",
             "title": "Create Template Message",

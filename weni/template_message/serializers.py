@@ -1,16 +1,15 @@
 from rest_framework import serializers
-from rest_framework import relations
 
 from temba.templates.models import TemplateTranslation
-from temba.channels.models import Channel
 from temba.api.v2.serializers import WriteSerializer
+from temba.channels.types.whatsapp.type import WhatsAppType
+from temba.channels.types.dialog360 import Dialog360Type
+from temba.api.v2 import fields
 
 
 class TemplateMessageSerializers(WriteSerializer):
 
-    channel = relations.SlugRelatedField(
-        slug_field="uuid", queryset=Channel.objects.filter(is_active=True)
-    )
+    channel = fields.ChannelField()
     content = serializers.CharField()
     name = serializers.CharField(write_only=True)
     language = serializers.CharField()
@@ -20,6 +19,12 @@ class TemplateMessageSerializers(WriteSerializer):
     namespace = serializers.CharField(required=False, default="")
 
     fb_namespace = serializers.CharField(required=False, write_only=True)
+
+    def validate_channel(self, channel):
+        if channel.channel_type not in [WhatsAppType.code, Dialog360Type.code]:
+            raise serializers.ValidationError("Template messages can be created only for WhatsApp channels")
+
+        return channel
 
     def save(self) -> TemplateTranslation:
 
