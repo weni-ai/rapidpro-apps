@@ -14,6 +14,11 @@ class ClassifierControllerStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.Create = channel.unary_unary(
+                '/weni.rapidpro.classifier.ClassifierController/Create',
+                request_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierCreateRequest.SerializeToString,
+                response_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
+                )
         self.List = channel.unary_stream(
                 '/weni.rapidpro.classifier.ClassifierController/List',
                 request_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.SerializeToString,
@@ -24,6 +29,12 @@ class ClassifierControllerStub(object):
 class ClassifierControllerServicer(object):
     """Missing associated documentation comment in .proto file."""
 
+    def Create(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def List(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -33,6 +44,11 @@ class ClassifierControllerServicer(object):
 
 def add_ClassifierControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'Create': grpc.unary_unary_rpc_method_handler(
+                    servicer.Create,
+                    request_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierCreateRequest.FromString,
+                    response_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.SerializeToString,
+            ),
             'List': grpc.unary_stream_rpc_method_handler(
                     servicer.List,
                     request_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.FromString,
@@ -47,6 +63,23 @@ def add_ClassifierControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class ClassifierController(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Create(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.classifier.ClassifierController/Create',
+            weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierCreateRequest.SerializeToString,
+            weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def List(request,

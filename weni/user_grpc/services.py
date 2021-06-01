@@ -1,6 +1,7 @@
-import grpc
-
+from django.conf import settings
 from django.contrib.auth.models import User
+
+import grpc
 
 from django_grpc_framework import generics, mixins
 
@@ -8,31 +9,26 @@ from weni.user_grpc.serializers import (
     UserPermissionProtoSerializer,
     UserProtoSerializer,
 )
+from weni.grpc_central.services import AbstractService
 
 from temba.orgs.models import Org
 
 
-class AbstractUserService(generics.GenericService):
-    def get_org_object(self, pk: int) -> Org:
-        return self._get_object(Org, pk)
+def get_user(user_email: str) -> User:
+    # TODO: Remove this method, it is just a palliative solution
 
-    def get_user_object(self, pk: int) -> User:
-        return self._get_object(User, pk)
-
-    def _get_object(self, model, value: str, query_parameter: str = "pk"):
-
-        query = {query_parameter: value}
-
-        try:
-            return model.objects.get(**query)
-        except model.DoesNotExist:
-            self.context.abort(grpc.StatusCode.NOT_FOUND, f"{model.__name__}: {value} not found!")
+    user, created = User.objects.get_or_create(
+        email=user_email, defaults={"username": user_email}
+    )
+    return user
 
 
-class UserPermissionService(AbstractUserService, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
+class UserPermissionService(
+    AbstractService, generics.GenericService, mixins.RetrieveModelMixin, mixins.UpdateModelMixin
+):
     def Retrieve(self, request, context):
-        org = self.get_org_object(request.org_id)
-        user = self.get_user_object(request.user_id)
+        org = self.get_org_object(request.org_uuid, "uuid")
+        user = get_user(request.user_email)
 
         permissions = self.get_user_permissions(org, user)
 
@@ -41,8 +37,8 @@ class UserPermissionService(AbstractUserService, mixins.RetrieveModelMixin, mixi
         return serializer.message
 
     def Update(self, request, context):
-        org = self.get_org_object(request.org_id)
-        user = self.get_user_object(request.user_id)
+        org = self.get_org_object(request.org_uuid, "uuid")
+        user = get_user(request.user_email)
 
         self.validate_permission(org, request.permission)
         self.set_user_permission(org, user, request.permission)
@@ -53,8 +49,8 @@ class UserPermissionService(AbstractUserService, mixins.RetrieveModelMixin, mixi
         return serializer.message
 
     def Remove(self, request, context):
-        org = self.get_org_object(request.org_id)
-        user = self.get_user_object(request.user_id)
+        org = self.get_org_object(request.org_uuid, "uuid")
+        user = self.get_user_object(request.user_email, "email")
 
         self.validate_permission(org, request.permission)
         self.remove_user_permission(org, user, request.permission)
@@ -102,12 +98,23 @@ class UserPermissionService(AbstractUserService, mixins.RetrieveModelMixin, mixi
         return permissions
 
 
-class UserService(AbstractUserService, mixins.RetrieveModelMixin):
+class UserService(generics.GenericService, AbstractService, mixins.RetrieveModelMixin):
 
     serializer_class = UserProtoSerializer
 
-    def get_user_object(self, email: str) -> User:
-        return self._get_object(User, email, query_parameter="email")
+    def Update(self, request, context):
+
+        if request.language not in [language[0] for language in settings.LANGUAGES]:
+            self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Invalid argument: language")
+
+        user = get_user(request.email)
+        user_settings = user.get_settings()
+        user_settings.language = request.language
+        user_settings.save()
+
+        serializer = UserProtoSerializer(user)
+
+        return serializer.message
 
     def get_object(self):
-        return self.get_user_object(self.request.email)
+        return get_user(self.request.email)

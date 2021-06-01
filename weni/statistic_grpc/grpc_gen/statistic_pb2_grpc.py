@@ -15,7 +15,7 @@ class OrgStatisticControllerStub(object):
             channel: A grpc.Channel.
         """
         self.Retrieve = channel.unary_unary(
-                '/statistic.OrgStatisticController/Retrieve',
+                '/weni.rapidpro.statistic.OrgStatisticController/Retrieve',
                 request_serializer=weni_dot_statistic__grpc_dot_grpc__gen_dot_statistic__pb2.OrgStatisticRetrieveRequest.SerializeToString,
                 response_deserializer=weni_dot_statistic__grpc_dot_grpc__gen_dot_statistic__pb2.OrgStatistic.FromString,
                 )
@@ -40,7 +40,7 @@ def add_OrgStatisticControllerServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'statistic.OrgStatisticController', rpc_method_handlers)
+            'weni.rapidpro.statistic.OrgStatisticController', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -59,7 +59,7 @@ class OrgStatisticController(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/statistic.OrgStatisticController/Retrieve',
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.statistic.OrgStatisticController/Retrieve',
             weni_dot_statistic__grpc_dot_grpc__gen_dot_statistic__pb2.OrgStatisticRetrieveRequest.SerializeToString,
             weni_dot_statistic__grpc_dot_grpc__gen_dot_statistic__pb2.OrgStatistic.FromString,
             options, channel_credentials,

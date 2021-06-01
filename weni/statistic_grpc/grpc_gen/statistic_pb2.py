@@ -15,11 +15,11 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='weni/statistic_grpc/grpc_gen/statistic.proto',
-  package='statistic',
+  package='weni.rapidpro.statistic',
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n,weni/statistic_grpc/grpc_gen/statistic.proto\x12\tstatistic\"/\n\x1bOrgStatisticRetrieveRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\"X\n\x0cOrgStatistic\x12\x14\n\x0c\x61\x63tive_flows\x18\x01 \x01(\x05\x12\x19\n\x11\x61\x63tive_classifier\x18\x02 \x01(\x05\x12\x17\n\x0f\x61\x63tive_contacts\x18\x03 \x01(\x05\x32g\n\x16OrgStatisticController\x12M\n\x08Retrieve\x12&.statistic.OrgStatisticRetrieveRequest\x1a\x17.statistic.OrgStatistic\"\x00\x62\x06proto3'
+  serialized_pb=b'\n,weni/statistic_grpc/grpc_gen/statistic.proto\x12\x17weni.rapidpro.statistic\"/\n\x1bOrgStatisticRetrieveRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\"Y\n\x0cOrgStatistic\x12\x14\n\x0c\x61\x63tive_flows\x18\x01 \x01(\x05\x12\x1a\n\x12\x61\x63tive_classifiers\x18\x02 \x01(\x05\x12\x17\n\x0f\x61\x63tive_contacts\x18\x03 \x01(\x05\x32\x83\x01\n\x16OrgStatisticController\x12i\n\x08Retrieve\x12\x34.weni.rapidpro.statistic.OrgStatisticRetrieveRequest\x1a%.weni.rapidpro.statistic.OrgStatistic\"\x00\x62\x06proto3'
 )
 
 
@@ -27,14 +27,14 @@ DESCRIPTOR = _descriptor.FileDescriptor(
 
 _ORGSTATISTICRETRIEVEREQUEST = _descriptor.Descriptor(
   name='OrgStatisticRetrieveRequest',
-  full_name='statistic.OrgStatisticRetrieveRequest',
+  full_name='weni.rapidpro.statistic.OrgStatisticRetrieveRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='org_uuid', full_name='statistic.OrgStatisticRetrieveRequest.org_uuid', index=0,
+      name='org_uuid', full_name='weni.rapidpro.statistic.OrgStatisticRetrieveRequest.org_uuid', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -52,35 +52,35 @@ _ORGSTATISTICRETRIEVEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=59,
-  serialized_end=106,
+  serialized_start=73,
+  serialized_end=120,
 )
 
 
 _ORGSTATISTIC = _descriptor.Descriptor(
   name='OrgStatistic',
-  full_name='statistic.OrgStatistic',
+  full_name='weni.rapidpro.statistic.OrgStatistic',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='active_flows', full_name='statistic.OrgStatistic.active_flows', index=0,
+      name='active_flows', full_name='weni.rapidpro.statistic.OrgStatistic.active_flows', index=0,
       number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='active_classifier', full_name='statistic.OrgStatistic.active_classifier', index=1,
+      name='active_classifiers', full_name='weni.rapidpro.statistic.OrgStatistic.active_classifiers', index=1,
       number=2, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='active_contacts', full_name='statistic.OrgStatistic.active_contacts', index=2,
+      name='active_contacts', full_name='weni.rapidpro.statistic.OrgStatistic.active_contacts', index=2,
       number=3, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -98,8 +98,8 @@ _ORGSTATISTIC = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=108,
-  serialized_end=196,
+  serialized_start=122,
+  serialized_end=211,
 )
 
 DESCRIPTOR.message_types_by_name['OrgStatisticRetrieveRequest'] = _ORGSTATISTICRETRIEVEREQUEST
@@ -109,14 +109,14 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 OrgStatisticRetrieveRequest = _reflection.GeneratedProtocolMessageType('OrgStatisticRetrieveRequest', (_message.Message,), {
   'DESCRIPTOR' : _ORGSTATISTICRETRIEVEREQUEST,
   '__module__' : 'weni.statistic_grpc.grpc_gen.statistic_pb2'
-  # @@protoc_insertion_point(class_scope:statistic.OrgStatisticRetrieveRequest)
+  # @@protoc_insertion_point(class_scope:weni.rapidpro.statistic.OrgStatisticRetrieveRequest)
   })
 _sym_db.RegisterMessage(OrgStatisticRetrieveRequest)
 
 OrgStatistic = _reflection.GeneratedProtocolMessageType('OrgStatistic', (_message.Message,), {
   'DESCRIPTOR' : _ORGSTATISTIC,
   '__module__' : 'weni.statistic_grpc.grpc_gen.statistic_pb2'
-  # @@protoc_insertion_point(class_scope:statistic.OrgStatistic)
+  # @@protoc_insertion_point(class_scope:weni.rapidpro.statistic.OrgStatistic)
   })
 _sym_db.RegisterMessage(OrgStatistic)
 
@@ -124,17 +124,17 @@ _sym_db.RegisterMessage(OrgStatistic)
 
 _ORGSTATISTICCONTROLLER = _descriptor.ServiceDescriptor(
   name='OrgStatisticController',
-  full_name='statistic.OrgStatisticController',
+  full_name='weni.rapidpro.statistic.OrgStatisticController',
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=198,
-  serialized_end=301,
+  serialized_start=214,
+  serialized_end=345,
   methods=[
   _descriptor.MethodDescriptor(
     name='Retrieve',
-    full_name='statistic.OrgStatisticController.Retrieve',
+    full_name='weni.rapidpro.statistic.OrgStatisticController.Retrieve',
     index=0,
     containing_service=None,
     input_type=_ORGSTATISTICRETRIEVEREQUEST,

@@ -90,21 +90,16 @@ class OrgServiceTest(RPCTransactionTestCase):
 
         with self.assertRaisesMessage(ValidationError, '"Wrong/Zone" is not a valid choice.'):
             self.stub.Create(
-                org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email, username="test")
+                org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email)
             )
-
-        with self.assertRaisesMessage(
-            ValidationError, "{'username': [ErrorDetail(string='This field may not be blank.', code='blank')]}"
-        ):
-            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="America/Maceio", user_email=user.email))
 
         self.stub.Create(
             org_pb2.OrgCreateRequest(
-                name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com", username="newuser"
+                name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com"
             )
         )
 
-        newuser_qs = User.objects.filter(username="newuser")
+        newuser_qs = User.objects.filter(email="newemail@email.com")
 
         self.assertTrue(newuser_qs.exists())
 
@@ -128,11 +123,11 @@ class OrgServiceTest(RPCTransactionTestCase):
         
         self.stub.Create(
             org_pb2.OrgCreateRequest(
-                name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com", username="newuser"
+                name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com"
             )
         )
 
-        self.assertEqual(User.objects.filter(username="newuser").count(), 1)
+        self.assertEqual(User.objects.filter(email="newemail@email.com").count(), 1)
 
     def test_retrieve_org(self):
         org = Org.objects.last()
@@ -165,14 +160,14 @@ class OrgServiceTest(RPCTransactionTestCase):
         modified_by = org.modified_by
 
         with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_EMAIL} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_email=self.WRONG_EMAIL))
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(uuid=str(org.uuid), user_email=self.WRONG_EMAIL))
 
         weniuser = User.objects.get(username="weniuser")
 
-        with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_ID} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(id=self.WRONG_ID, user_email=weniuser.email))
+        with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_UUID} not found!"):
+            self.stub.Destroy(org_pb2.OrgDestroyRequest(uuid=self.WRONG_UUID, user_email=weniuser.email))
 
-        self.stub.Destroy(org_pb2.OrgDestroyRequest(id=org.id, user_email=weniuser.email))
+        self.stub.Destroy(org_pb2.OrgDestroyRequest(uuid=str(org.uuid), user_email=weniuser.email))
 
         destroyed_org = Org.objects.get(id=org.id)
 
@@ -185,13 +180,13 @@ class OrgServiceTest(RPCTransactionTestCase):
         org = Org.objects.first()
         user = User.objects.first()
 
-        permission_error_message = f"User: {user.id} has no permission to update Org: {org.id}"
+        permission_error_message = f"User: {user.id} has no permission to update Org: {org.uuid}"
 
         with self.assertRaisesMessage(FakeRpcError, permission_error_message):
-            self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_email=user.email))
+            self.stub.Update(org_pb2.OrgUpdateRequest(uuid=str(org.uuid), user_email=user.email))
 
         with self.assertRaisesMessage(FakeRpcError, "User: None not found!"):
-            self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id))
+            self.stub.Update(org_pb2.OrgUpdateRequest(uuid=str(org.uuid)))
 
         user.is_superuser = True
         user.save()
@@ -211,7 +206,7 @@ class OrgServiceTest(RPCTransactionTestCase):
             "is_suspended": True,
         }
 
-        self.stub.Update(org_pb2.OrgUpdateRequest(id=org.id, user_email=user.email, **update_fields))
+        self.stub.Update(org_pb2.OrgUpdateRequest(uuid=str(org.uuid), user_email=user.email, **update_fields))
 
         updated_org = Org.objects.get(pk=org.pk)
 

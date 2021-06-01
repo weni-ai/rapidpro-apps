@@ -9,7 +9,7 @@ class OrgStatisticService(generics.GenericService, AbstractService):
         org = self.get_org_object(request.org_uuid, "uuid")
 
         response = {
-            "active_flows": org.flows.filter(is_active=True).count(),
+            "active_flows": org.flows.filter(is_active=True, is_archived=False).exclude(is_system=True).count(),
             "active_classifiers": org.classifiers.filter(is_active=True).count(),
             "active_contacts": org.contacts.filter(is_active=True).count(),
         }
