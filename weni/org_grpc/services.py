@@ -27,7 +27,14 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         user, created = User.objects.get_or_create(email=request.user_email,
                                                    defaults={"username": request.user_email})
 
-        org = Org.objects.create(name=request.name, timezone=request.timezone, created_by=user, modified_by=user)
+        org = Org.objects.create(
+            name=request.name,
+            timezone=request.timezone,
+            created_by=user,
+            modified_by=user,
+            plan="infinity"
+        )
+
         org.administrators.add(user)
         org.initialize()
 
