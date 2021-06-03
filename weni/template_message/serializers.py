@@ -16,7 +16,6 @@ class TemplateMessageSerializers(WriteSerializer):
     country = serializers.CharField()
     variable_count = serializers.IntegerField()
     status = serializers.CharField()
-    namespace = serializers.CharField(required=False, default="")
 
     fb_namespace = serializers.CharField(required=False, write_only=True)
 
