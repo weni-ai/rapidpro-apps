@@ -47,12 +47,3 @@ class TemplateMessageEndpoint(WriteAPIMixin, BaseAPIView):
     write_serializer_class = TemplateMessageSerializers
     serializer_class = TemplateMessageSerializers
 
-    @classmethod
-    def get_write_explorer(cls):
-        return {
-            "method": "POST",
-            "title": "Create Template Message",
-            "url": reverse("api.v2.template_messages"),
-            "slug": "template-message",
-            "params": [],
-        }
