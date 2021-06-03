@@ -1,5 +1,3 @@
-from django.urls import reverse
-
 from temba.api.v2.views_base import BaseAPIView, WriteAPIMixin
 from temba.templates.models import TemplateTranslation
 from weni.template_message.serializers import TemplateMessageSerializers
@@ -46,4 +44,3 @@ class TemplateMessageEndpoint(WriteAPIMixin, BaseAPIView):
     model = TemplateTranslation
     write_serializer_class = TemplateMessageSerializers
     serializer_class = TemplateMessageSerializers
-
