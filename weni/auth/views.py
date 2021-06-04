@@ -29,13 +29,12 @@ def check_user_legacy(request, email: str):  # pragma: no cover
         user = get_object_or_404(User, username=email)
         return JsonResponse(
             {
-                "id": user.pk,
                 "username": user.username,
                 "email": user.email,
                 "firstName": user.first_name,
                 "lastName": user.last_name,
                 "enabled": user.is_active,
-                "emailVerified": user.is_active,
+                "emailVerified": False,
                 "attributes": {},
                 "roles": [],
                 "groups": [],
