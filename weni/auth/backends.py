@@ -17,7 +17,7 @@ class WeniOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         return verified  # and is_admin # not checking for user roles from keycloak at this time
 
     def get_username(self, claims):
-        username = claims.get("preferred_username")
+        username = claims.get("email")
         if username:
             return username
         return super(WeniOIDCAuthenticationBackend, self).get_username(claims=claims)
@@ -28,11 +28,9 @@ class WeniOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         username = self.get_username(claims)
         user = self.UserModel.objects.create_user(email, username)
 
-        old_username = user.username
-        user.username = claims.get("preferred_username", old_username)
         user.first_name = claims.get("given_name", "")
         user.last_name = claims.get("family_name", "")
-        user.email = claims.get("email", "")
+
         user.save()
 
         org = Org.objects.create(
@@ -52,7 +50,7 @@ class WeniOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     def update_user(self, user, claims):
         user.first_name = claims.get("given_name", "")
         user.last_name = claims.get("family_name", "")
-        user.email = claims.get("email", "")
+
         user.save()
 
         return user
