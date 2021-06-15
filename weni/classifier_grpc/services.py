@@ -9,6 +9,7 @@ from weni.classifier_grpc.serializers import ClassifierProtoSerializer
 class ClassifierService(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
     generics.GenericService,
     AbstractService,
 ):
@@ -27,3 +28,10 @@ class ClassifierService(
 
         for message in serializer.message:
             yield message
+
+    def perform_destroy(self, classifier):
+        """
+        Override the default gRPC framework destroy method instead of destroying
+        the object performs a soft delete following rapidpro standards.
+        """
+        classifier.release()
