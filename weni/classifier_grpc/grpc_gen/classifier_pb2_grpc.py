@@ -24,6 +24,11 @@ class ClassifierControllerStub(object):
                 request_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.SerializeToString,
                 response_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
                 )
+        self.Retrieve = channel.unary_unary(
+                '/weni.rapidpro.classifier.ClassifierController/Retrieve',
+                request_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierRetrieveRequest.SerializeToString,
+                response_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
+                )
 
 
 class ClassifierControllerServicer(object):
@@ -41,6 +46,12 @@ class ClassifierControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Retrieve(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ClassifierControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -52,6 +63,11 @@ def add_ClassifierControllerServicer_to_server(servicer, server):
             'List': grpc.unary_stream_rpc_method_handler(
                     servicer.List,
                     request_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.FromString,
+                    response_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.SerializeToString,
+            ),
+            'Retrieve': grpc.unary_unary_rpc_method_handler(
+                    servicer.Retrieve,
+                    request_deserializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierRetrieveRequest.FromString,
                     response_serializer=weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.SerializeToString,
             ),
     }
@@ -94,6 +110,23 @@ class ClassifierController(object):
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/weni.rapidpro.classifier.ClassifierController/List',
             weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierListRequest.SerializeToString,
+            weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Retrieve(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weni.rapidpro.classifier.ClassifierController/Retrieve',
+            weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.ClassifierRetrieveRequest.SerializeToString,
             weni_dot_classifier__grpc_dot_grpc__gen_dot_classifier__pb2.Classifier.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

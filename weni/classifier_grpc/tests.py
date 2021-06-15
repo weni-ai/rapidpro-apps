@@ -9,7 +9,8 @@ from temba.classifiers.types.luis import LuisType
 from weni.classifier_grpc.grpc_gen import classifier_pb2, classifier_pb2_grpc
 
 
-class ClassifierServiceTest(RPCTransactionTestCase):
+class BaseClassifierServiceTest(RPCTransactionTestCase):
+
     def setUp(self):
         self.config = {"access_token": "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"}
 
@@ -22,6 +23,18 @@ class ClassifierServiceTest(RPCTransactionTestCase):
         super().setUp()
 
         self.stub = classifier_pb2_grpc.ClassifierControllerStub(self.channel)
+
+    def classifier_list_request(self, **kwargs):
+        return self.stub.List(classifier_pb2.ClassifierListRequest(**kwargs))
+
+    def classifier_create_request(self, **kwargs):
+        return self.stub.Create(classifier_pb2.ClassifierCreateRequest(**kwargs))
+
+    def classifier_retrieve_request(self, **kwargs):
+        return self.stub.Retrieve(classifier_pb2.ClassifierRetrieveRequest(**kwargs))
+
+
+class ClassifierServiceTest(BaseClassifierServiceTest):
 
     def test_list_classifier(self):
         org = Org.objects.first()
@@ -99,8 +112,23 @@ class ClassifierServiceTest(RPCTransactionTestCase):
         self.assertEqual(response.classifier_type, classifier_type)
         self.assertEqual(response.access_token, access_token)
 
-    def classifier_list_request(self, **kwargs):
-        return self.stub.List(classifier_pb2.ClassifierListRequest(**kwargs))
 
-    def classifier_create_request(self, **kwargs):
-        return self.stub.Create(classifier_pb2.ClassifierCreateRequest(**kwargs))
+class ClassifierServiceRetrieveTest(BaseClassifierServiceTest):
+
+    def setUp(self):
+        super().setUp()
+
+        org = Org.objects.first()
+        access_token = self.config["access_token"]
+
+        self.classifier_create_request(
+            classifier_type="Test Type",
+            user=self.admin.email,
+            org=str(org.uuid),
+            name="Test Name",
+            access_token=access_token
+        )
+
+    def test_ok(self):
+        classifier = Classifier.objects.first()
+        response = self.classifier_retrieve_request(uuid=str(classifier.uuid))

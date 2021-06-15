@@ -1,20 +1,26 @@
 from django_grpc_framework import generics
 from django_grpc_framework import mixins
 
+from temba.classifiers.models import Classifier
 from weni.grpc_central.services import AbstractService
 from weni.classifier_grpc.serializers import ClassifierProtoSerializer
 
 
-class ClassifierService(AbstractService, mixins.CreateModelMixin, generics.GenericService):
+class ClassifierService(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    generics.GenericService,
+    AbstractService,
+):
 
     serializer_class = ClassifierProtoSerializer
+    queryset = Classifier.objects.all()
+    lookup_field = "uuid"
 
     def List(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
 
-        query = {
-            "classifier_type": request.classifier_type
-        } if request.classifier_type else {}
+        query = {"classifier_type": request.classifier_type} if request.classifier_type else {}
 
         classifiers = org.classifiers.filter(**query)
         serializer = ClassifierProtoSerializer(classifiers, many=True)
