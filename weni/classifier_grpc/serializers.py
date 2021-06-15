@@ -9,6 +9,7 @@ from weni.grpc_central import serializers as weni_serializers
 class ClassifierProtoSerializer(proto_serializers.ModelProtoSerializer):
 
     uuid = serializers.UUIDField(read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
     classifier_type = serializers.CharField(required=True)
     name = serializers.CharField(required=True)
     access_token = weni_serializers.SerializerMethodCharField(required=True)
@@ -27,4 +28,4 @@ class ClassifierProtoSerializer(proto_serializers.ModelProtoSerializer):
     class Meta:
         model = Classifier
         proto_class = classifier_pb2.Classifier
-        fields = ["uuid", "classifier_type", "name", "access_token", "org", "user"]
+        fields = ["uuid", "is_active", "classifier_type", "name", "access_token", "org", "user"]

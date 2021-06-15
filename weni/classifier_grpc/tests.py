@@ -42,7 +42,7 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
 
         classifier = Classifier.create(org, self.admin, WitType.slug, "Booker", self.config, sync=False)
 
-        response = self.classifier_list_request(org_uuid=org_uuid)
+        response = self.classifier_list_request(org_uuid=org_uuid, is_active=True)
         messages = [message for message in response]
 
         self.assertEqual(len(messages), 1)
@@ -56,7 +56,7 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
 
         classifier = Classifier.create(org, self.admin, LuisType.slug, "Test", self.config, sync=False)
 
-        response = self.classifier_list_request(org_uuid=org_uuid)
+        response = self.classifier_list_request(org_uuid=org_uuid, is_active=True)
         messages = [message for message in response]
 
         self.assertEqual(len(messages), 2)
@@ -68,7 +68,7 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
         self.assertEqual(message.uuid, str(classifier.uuid))
         self.assertEqual(message.access_token, self.config["access_token"])
 
-        response = self.classifier_list_request(org_uuid=org_uuid, classifier_type=LuisType.slug)
+        response = self.classifier_list_request(org_uuid=org_uuid, is_active=True, classifier_type=LuisType.slug)
         messages = [message for message in response]
 
         self.assertEqual(len(messages), 1)
@@ -82,12 +82,12 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
 
         classifier = Classifier.create(org, self.admin, LuisType.slug, "Test2", self.config, sync=False)
 
-        response = self.classifier_list_request(org_uuid=org_uuid, classifier_type=LuisType.slug)
+        response = self.classifier_list_request(org_uuid=org_uuid, is_active=True, classifier_type=LuisType.slug)
         messages = [message for message in response]
 
         self.assertEqual(len(messages), 2)
 
-        response = self.classifier_list_request(org_uuid=org_uuid)
+        response = self.classifier_list_request(org_uuid=org_uuid, is_active=True)
         messages = [message for message in response]
 
         self.assertEqual(len(messages), 3)

@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.weni/classifier_grpc/grpc_gen/classifier.proto\x12\x18weni.rapidpro.classifier\"[\n\x15\x43lassifierListRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\x12\x1c\n\x0f\x63lassifier_type\x18\x02 \x01(\tH\x00\x88\x01\x01\x42\x12\n\x10_classifier_type\"W\n\nClassifier\x12\x0c\n\x04uuid\x18\x01 \x01(\t\x12\x17\n\x0f\x63lassifier_type\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x04 \x01(\t\"q\n\x17\x43lassifierCreateRequest\x12\x0b\n\x03org\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x17\n\x0f\x63lassifier_type\x18\x04 \x01(\t\x12\x0c\n\x04name\x18\x05 \x01(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x06 \x01(\t\")\n\x19\x43lassifierRetrieveRequest\x12\x0c\n\x04uuid\x18\x01 \x01(\t2\xc7\x02\n\x14\x43lassifierController\x12\x63\n\x06\x43reate\x12\x31.weni.rapidpro.classifier.ClassifierCreateRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x12\x61\n\x04List\x12/.weni.rapidpro.classifier.ClassifierListRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x30\x01\x12g\n\x08Retrieve\x12\x33.weni.rapidpro.classifier.ClassifierRetrieveRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x62\x06proto3'
+  serialized_pb=b'\n.weni/classifier_grpc/grpc_gen/classifier.proto\x12\x18weni.rapidpro.classifier\"n\n\x15\x43lassifierListRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\x12\x11\n\tis_active\x18\x02 \x01(\x08\x12\x1c\n\x0f\x63lassifier_type\x18\x03 \x01(\tH\x00\x88\x01\x01\x42\x12\n\x10_classifier_type\"j\n\nClassifier\x12\x0c\n\x04uuid\x18\x01 \x01(\t\x12\x17\n\x0f\x63lassifier_type\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x04 \x01(\t\x12\x11\n\tis_active\x18\x05 \x01(\x08\"q\n\x17\x43lassifierCreateRequest\x12\x0b\n\x03org\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x17\n\x0f\x63lassifier_type\x18\x04 \x01(\t\x12\x0c\n\x04name\x18\x05 \x01(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x06 \x01(\t\")\n\x19\x43lassifierRetrieveRequest\x12\x0c\n\x04uuid\x18\x01 \x01(\t2\xc7\x02\n\x14\x43lassifierController\x12\x63\n\x06\x43reate\x12\x31.weni.rapidpro.classifier.ClassifierCreateRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x12\x61\n\x04List\x12/.weni.rapidpro.classifier.ClassifierListRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x30\x01\x12g\n\x08Retrieve\x12\x33.weni.rapidpro.classifier.ClassifierRetrieveRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x62\x06proto3'
 )
 
 
@@ -41,8 +41,15 @@ _CLASSIFIERLISTREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='classifier_type', full_name='weni.rapidpro.classifier.ClassifierListRequest.classifier_type', index=1,
-      number=2, type=9, cpp_type=9, label=1,
+      name='is_active', full_name='weni.rapidpro.classifier.ClassifierListRequest.is_active', index=1,
+      number=2, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='classifier_type', full_name='weni.rapidpro.classifier.ClassifierListRequest.classifier_type', index=2,
+      number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -65,7 +72,7 @@ _CLASSIFIERLISTREQUEST = _descriptor.Descriptor(
     fields=[]),
   ],
   serialized_start=76,
-  serialized_end=167,
+  serialized_end=186,
 )
 
 
@@ -105,6 +112,13 @@ _CLASSIFIER = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='is_active', full_name='weni.rapidpro.classifier.Classifier.is_active', index=4,
+      number=5, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -117,8 +131,8 @@ _CLASSIFIER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=169,
-  serialized_end=256,
+  serialized_start=188,
+  serialized_end=294,
 )
 
 
@@ -177,8 +191,8 @@ _CLASSIFIERCREATEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=258,
-  serialized_end=371,
+  serialized_start=296,
+  serialized_end=409,
 )
 
 
@@ -209,8 +223,8 @@ _CLASSIFIERRETRIEVEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=373,
-  serialized_end=414,
+  serialized_start=411,
+  serialized_end=452,
 )
 
 _CLASSIFIERLISTREQUEST.oneofs_by_name['_classifier_type'].fields.append(
@@ -259,8 +273,8 @@ _CLASSIFIERCONTROLLER = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=417,
-  serialized_end=744,
+  serialized_start=455,
+  serialized_end=782,
   methods=[
   _descriptor.MethodDescriptor(
     name='Create',

@@ -22,7 +22,7 @@ class ClassifierService(
 
         query = {"classifier_type": request.classifier_type} if request.classifier_type else {}
 
-        classifiers = org.classifiers.filter(**query)
+        classifiers = org.classifiers.filter(**query, is_active=request.is_active)
         serializer = ClassifierProtoSerializer(classifiers, many=True)
 
         for message in serializer.message:
