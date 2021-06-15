@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 
 from django_grpc_framework import test as grpc_test
-# FakeRpcError
+
 from temba.orgs.models import Org
 from temba.classifiers.models import Classifier, Intent
 from temba.classifiers.types.wit import WitType
