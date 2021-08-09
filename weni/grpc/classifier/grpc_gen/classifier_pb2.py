@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.weni/grpc/classifier/grpc_gen/classifier.proto\x12\x18weni.rapidpro.classifier\x1a\x1bgoogle/protobuf/empty.proto\"n\n\x15\x43lassifierListRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\x12\x11\n\tis_active\x18\x02 \x01(\x08\x12\x1c\n\x0f\x63lassifier_type\x18\x03 \x01(\tH\x00\x88\x01\x01\x42\x12\n\x10_classifier_type\"j\n\nClassifier\x12\x0c\n\x04uuid\x18\x01 \x01(\t\x12\x17\n\x0f\x63lassifier_type\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x04 \x01(\t\x12\x11\n\tis_active\x18\x05 \x01(\x08\"q\n\x17\x43lassifierCreateRequest\x12\x0b\n\x03org\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x17\n\x0f\x63lassifier_type\x18\x04 \x01(\t\x12\x0c\n\x04name\x18\x05 \x01(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x06 \x01(\t\")\n\x19\x43lassifierRetrieveRequest\x12\x0c\n\x04uuid\x18\x01 \x01(\t\"(\n\x18\x43lassifierDestroyRequest\x12\x0c\n\x04uuid\x18\x01 \x01(\t2\xa0\x03\n\x14\x43lassifierController\x12\x63\n\x06\x43reate\x12\x31.weni.rapidpro.classifier.ClassifierCreateRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x12g\n\x08Retrieve\x12\x33.weni.rapidpro.classifier.ClassifierRetrieveRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x12W\n\x07\x44\x65stroy\x12\x32.weni.rapidpro.classifier.ClassifierDestroyRequest\x1a\x16.google.protobuf.Empty\"\x00\x12\x61\n\x04List\x12/.weni.rapidpro.classifier.ClassifierListRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x30\x01\x62\x06proto3'
+  serialized_pb=b'\n.weni/grpc/classifier/grpc_gen/classifier.proto\x12\x18weni.rapidpro.classifier\x1a\x1bgoogle/protobuf/empty.proto\"n\n\x15\x43lassifierListRequest\x12\x10\n\x08org_uuid\x18\x01 \x01(\t\x12\x11\n\tis_active\x18\x02 \x01(\x08\x12\x1c\n\x0f\x63lassifier_type\x18\x03 \x01(\tH\x00\x88\x01\x01\x42\x12\n\x10_classifier_type\"j\n\nClassifier\x12\x0c\n\x04uuid\x18\x01 \x01(\t\x12\x17\n\x0f\x63lassifier_type\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x04 \x01(\t\x12\x11\n\tis_active\x18\x05 \x01(\x08\"q\n\x17\x43lassifierCreateRequest\x12\x0b\n\x03org\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x17\n\x0f\x63lassifier_type\x18\x04 \x01(\t\x12\x0c\n\x04name\x18\x05 \x01(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x06 \x01(\t\")\n\x19\x43lassifierRetrieveRequest\x12\x0c\n\x04uuid\x18\x01 \x01(\t\"<\n\x18\x43lassifierDestroyRequest\x12\x0c\n\x04uuid\x18\x01 \x01(\t\x12\x12\n\nuser_email\x18\x02 \x01(\t2\xa0\x03\n\x14\x43lassifierController\x12\x63\n\x06\x43reate\x12\x31.weni.rapidpro.classifier.ClassifierCreateRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x12g\n\x08Retrieve\x12\x33.weni.rapidpro.classifier.ClassifierRetrieveRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x12W\n\x07\x44\x65stroy\x12\x32.weni.rapidpro.classifier.ClassifierDestroyRequest\x1a\x16.google.protobuf.Empty\"\x00\x12\x61\n\x04List\x12/.weni.rapidpro.classifier.ClassifierListRequest\x1a$.weni.rapidpro.classifier.Classifier\"\x00\x30\x01\x62\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,])
 
@@ -245,6 +245,13 @@ _CLASSIFIERDESTROYREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='user_email', full_name='weni.rapidpro.classifier.ClassifierDestroyRequest.user_email', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -258,7 +265,7 @@ _CLASSIFIERDESTROYREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=483,
-  serialized_end=523,
+  serialized_end=543,
 )
 
 _CLASSIFIERLISTREQUEST.oneofs_by_name['_classifier_type'].fields.append(
@@ -315,8 +322,8 @@ _CLASSIFIERCONTROLLER = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=526,
-  serialized_end=942,
+  serialized_start=546,
+  serialized_end=962,
   methods=[
   _descriptor.MethodDescriptor(
     name='Create',

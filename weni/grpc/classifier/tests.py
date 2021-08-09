@@ -159,7 +159,7 @@ class ClassifierServiceDestroyTest(BaseClassifierServiceTest):
         classifier = get_test_classifier(self)
         self.assertEqual(classifier.intents.count(), 1)
 
-        self.classifier_destroy_request(uuid=str(classifier.uuid))
+        self.classifier_destroy_request(uuid=str(classifier.uuid), user_email=self.admin.email)
 
         classifier = Classifier.objects.get(uuid=classifier.uuid)
         self.assertEqual(classifier.intents.count(), 0)
@@ -169,4 +169,4 @@ class ClassifierServiceDestroyTest(BaseClassifierServiceTest):
         invalid_uuid = "wrong-wrong-wrong-wrong"
 
         with self.assertRaises(grpc_test.FakeRpcError):
-            self.classifier_destroy_request(uuid=invalid_uuid)
+            self.classifier_destroy_request(uuid=invalid_uuid, user_email=self.admin.email)

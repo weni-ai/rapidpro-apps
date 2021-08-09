@@ -29,9 +29,7 @@ class ClassifierService(
         for message in serializer.message:
             yield message
 
-    def perform_destroy(self, classifier):
-        """
-        Override the default gRPC framework destroy method instead of destroying
-        the object performs a soft delete following rapidpro standards.
-        """
-        classifier.release()
+    def Destroy(self, request, context):
+        classifier = self._get_object(Classifier, request.uuid, "uuid")
+        user = self.get_user_object(request.user_email, "email")
+        classifier.release(user)
