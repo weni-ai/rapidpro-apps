@@ -1,6 +1,6 @@
-from weni.user_grpc.grpc_gen import user_pb2_grpc
+from weni.grpc.user.grpc_gen import user_pb2_grpc
 
-from weni.user_grpc.services import UserPermissionService, UserService
+from weni.grpc.user.services import UserPermissionService, UserService
 
 
 def grpc_handlers(server):

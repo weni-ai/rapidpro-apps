@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from weni.user_grpc.grpc_gen import user_pb2 as weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2
+from weni.grpc.user.grpc_gen import user_pb2 as weni_dot_user__grpc_dot_grpc__gen_dot_user__pb2
 
 
 class UserPermissionControllerStub(object):

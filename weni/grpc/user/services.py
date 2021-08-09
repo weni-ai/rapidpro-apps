@@ -5,11 +5,11 @@ import grpc
 
 from django_grpc_framework import generics, mixins
 
-from weni.user_grpc.serializers import (
+from weni.grpc.user.serializers import (
     UserPermissionProtoSerializer,
     UserProtoSerializer,
 )
-from weni.grpc_central.services import AbstractService
+from weni.grpc.core.services import AbstractService
 
 from temba.orgs.models import Org
 

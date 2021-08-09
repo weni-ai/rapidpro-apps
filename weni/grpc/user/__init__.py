@@ -1,3 +1,3 @@
-from weni.user_grpc import grpc_gen
+from weni.grpc.user import grpc_gen
 
-default_app_config = "weni.user_grpc.apps.UserGrpcConfig"
+default_app_config = "weni.grpc.user.apps.UserGrpcConfig"
