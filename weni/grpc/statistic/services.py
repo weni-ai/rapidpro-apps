@@ -1,7 +1,7 @@
 from django_grpc_framework import generics
 
-from weni.statistic_grpc.grpc_gen.statistic_pb2 import OrgStatistic
-from weni.grpc_central.services import AbstractService
+from weni.grpc.statistic.grpc_gen.statistic_pb2 import OrgStatistic
+from weni.grpc.core.services import AbstractService
 
 
 class OrgStatisticService(generics.GenericService, AbstractService):

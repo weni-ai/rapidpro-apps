@@ -9,7 +9,7 @@ from temba.classifiers.models import Classifier
 from temba.tests import mock_mailroom
 from temba.utils.management.commands.test_db import DisableTriggersOn
 
-from weni.statistic_grpc import grpc_gen
+from weni.grpc.statistic import grpc_gen
 
 
 class OrgStatisticServiceTest(test_grpc.RPCTransactionTestCase):

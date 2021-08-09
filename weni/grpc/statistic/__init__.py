@@ -1,3 +1,3 @@
-from weni.statistic_grpc import grpc_gen
+from weni.grpc.statistic import grpc_gen
 
-default_app_config = "weni.statistic_grpc.apps.StatisticGrpcConfig"
+default_app_config = "weni.grpc.statistic.apps.StatisticGrpcConfig"
