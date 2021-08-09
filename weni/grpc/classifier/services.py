@@ -2,8 +2,8 @@ from django_grpc_framework import generics
 from django_grpc_framework import mixins
 
 from temba.classifiers.models import Classifier
-from weni.grpc_central.services import AbstractService
-from weni.classifier_grpc.serializers import ClassifierProtoSerializer
+from weni.grpc.core.services import AbstractService
+from weni.grpc.classifier.serializers import ClassifierProtoSerializer
 
 
 class ClassifierService(

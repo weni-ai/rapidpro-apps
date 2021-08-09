@@ -1,3 +1,3 @@
-from weni.org_grpc import grpc_gen
+from weni.grpc.org import grpc_gen
 
-default_app_config = "weni.classifier_grpc.apps.ClassifierGrpcConfig"
+default_app_config = "weni.grpc.classifier.apps.ClassifierGrpcConfig"

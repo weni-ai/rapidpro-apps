@@ -1,5 +1,5 @@
-from weni.classifier_grpc.grpc_gen import classifier_pb2_grpc
-from weni.classifier_grpc.services import ClassifierService
+from weni.grpc.classifier.grpc_gen import classifier_pb2_grpc
+from weni.grpc.classifier.services import ClassifierService
 
 
 def grpc_handlers(server):
