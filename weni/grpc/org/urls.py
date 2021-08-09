@@ -1,5 +1,5 @@
-from weni.org_grpc.grpc_gen import org_pb2_grpc
-from weni.org_grpc.services import OrgService
+from weni.grpc.org.grpc_gen import org_pb2_grpc
+from weni.grpc.org.services import OrgService
 
 
 def grpc_handlers(server):

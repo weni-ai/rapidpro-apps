@@ -2,7 +2,7 @@ from django_grpc_framework import proto_serializers
 from rest_framework import serializers
 
 from temba.orgs.models import Org
-from weni.org_grpc.grpc_gen import org_pb2
+from weni.grpc.org.grpc_gen import org_pb2
 
 
 class SerializerUtils(object):

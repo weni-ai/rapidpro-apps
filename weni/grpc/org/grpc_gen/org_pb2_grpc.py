@@ -3,7 +3,7 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from weni.org_grpc.grpc_gen import org_pb2 as weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2
+from weni.grpc.org.grpc_gen import org_pb2 as weni_dot_org__grpc_dot_grpc__gen_dot_org__pb2
 
 
 class OrgControllerStub(object):
