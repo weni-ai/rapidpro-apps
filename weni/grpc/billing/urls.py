@@ -1,5 +1,5 @@
-from weni.billing.grpc_gen import billing_pb2_grpc
-from weni.billing.services import BillingService
+from weni.grpc.billing.grpc_gen import billing_pb2_grpc
+from weni.grpc.billing.services import BillingService
 
 
 def grpc_handlers(server):

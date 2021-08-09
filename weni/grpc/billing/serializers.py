@@ -2,7 +2,7 @@ from django.utils import timezone as tz
 from django_grpc_framework.proto_serializers import ProtoSerializer
 from rest_framework import serializers
 from temba.api.v2.fields import TranslatableField
-from weni.billing.grpc_gen import billing_pb2
+from weni.grpc.billing.grpc_gen import billing_pb2
 
 
 class BillingRequestSerializer(ProtoSerializer):
