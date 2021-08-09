@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from weni.flow_grpc.grpc_gen import flow_pb2 as weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2
+from weni.grpc.flow.grpc_gen import flow_pb2 as weni_dot_grpc_dot_flow_dot_grpc__gen_dot_flow__pb2
 
 
 class FlowControllerStub(object):
@@ -16,8 +16,8 @@ class FlowControllerStub(object):
         """
         self.List = channel.unary_stream(
                 '/weni.rapidpro.flow.FlowController/List',
-                request_serializer=weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.FlowListRequest.SerializeToString,
-                response_deserializer=weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.Flow.FromString,
+                request_serializer=weni_dot_grpc_dot_flow_dot_grpc__gen_dot_flow__pb2.FlowListRequest.SerializeToString,
+                response_deserializer=weni_dot_grpc_dot_flow_dot_grpc__gen_dot_flow__pb2.Flow.FromString,
                 )
 
 
@@ -35,8 +35,8 @@ def add_FlowControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'List': grpc.unary_stream_rpc_method_handler(
                     servicer.List,
-                    request_deserializer=weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.FlowListRequest.FromString,
-                    response_serializer=weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.Flow.SerializeToString,
+                    request_deserializer=weni_dot_grpc_dot_flow_dot_grpc__gen_dot_flow__pb2.FlowListRequest.FromString,
+                    response_serializer=weni_dot_grpc_dot_flow_dot_grpc__gen_dot_flow__pb2.Flow.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -60,7 +60,7 @@ class FlowController(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/weni.rapidpro.flow.FlowController/List',
-            weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.FlowListRequest.SerializeToString,
-            weni_dot_flow__grpc_dot_grpc__gen_dot_flow__pb2.Flow.FromString,
+            weni_dot_grpc_dot_flow_dot_grpc__gen_dot_flow__pb2.FlowListRequest.SerializeToString,
+            weni_dot_grpc_dot_flow_dot_grpc__gen_dot_flow__pb2.Flow.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
