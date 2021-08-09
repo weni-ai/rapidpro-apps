@@ -53,7 +53,7 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         user = self.get_user_object(request.user_email, "email")
 
         self.pre_destroy(org, user)
-        org.release()
+        org.release(user)
 
         return empty_pb2.Empty()
 
