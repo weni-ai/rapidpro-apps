@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class BillingAppConfig(AppConfig):
-    name = "weni.billing"
+    name = "weni.grpc.billing"
