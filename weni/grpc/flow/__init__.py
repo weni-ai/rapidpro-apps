@@ -1,1 +1,1 @@
-default_app_config = "weni.flow_grpc.apps.FlowGrpcConfig"
+default_app_config = "weni.grpc.flow.apps.FlowGrpcConfig"

@@ -1,8 +1,8 @@
 from django_grpc_framework import generics
 
 from temba.flows.models import Flow
-from weni.flow_grpc.serializers import FlowProtoSerializer
-from weni.grpc_central.services import AbstractService
+from weni.grpc.flow.serializers import FlowProtoSerializer
+from weni.grpc.core.services import AbstractService
 
 
 class FlowService(generics.GenericService, AbstractService):

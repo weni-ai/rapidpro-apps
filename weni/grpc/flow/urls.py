@@ -1,5 +1,5 @@
-from weni.flow_grpc.grpc_gen import flow_pb2_grpc
-from weni.flow_grpc.services import FlowService
+from weni.grpc.flow.grpc_gen import flow_pb2_grpc
+from weni.grpc.flow.services import FlowService
 
 
 def grpc_handlers(server):

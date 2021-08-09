@@ -1,4 +1,4 @@
-from weni.flow_grpc.grpc_gen import flow_pb2
+from weni.grpc.flow.grpc_gen import flow_pb2
 
 from django_grpc_framework import proto_serializers
 
