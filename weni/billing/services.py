@@ -6,19 +6,23 @@ from weni.billing.serializers import BillingRequestSerializer, ActiveContactDeta
 
 class BillingService(generics.GenericService):
     def Total(self, request, context):
-        serializer = BillingRequestSerializer(message=request)
-        if serializer.is_valid():
-            org_uuid = serializer.validated_data["org_uuid"]
-            before = serializer.validated_data["before"]
-            after = serializer.validated_data["after"]
-            total_count = Query.total(org_uuid, before, after)
-            return BillingResponse(active_contacts=total_count)
+        serializer = BillingRequestSerializer(
+            data=dict(org_uuid=request.org_uuid, before=request.before.ToDatetime(), after=request.after.ToDatetime())
+        )
+        serializer.is_valid(raise_exception=True)
+        org_uuid = serializer.validated_data["org_uuid"]
+        before = serializer.validated_data["before"]
+        after = serializer.validated_data["after"]
+        total_count = Query.total(org_uuid, before, after)
+        return BillingResponse(active_contacts=total_count)
 
     def Detailed(self, request, context):
-        serializer = BillingRequestSerializer(message=request)
-        if serializer.is_valid():
-            org_uuid = serializer.validated_data["org_uuid"]
-            before = serializer.validated_data["before"]
-            after = serializer.validated_data["after"]
-            results = Query.detailed(org_uuid, before, after)
-            return ActiveContactDetailSerializer(results, many=True).message
+        serializer = BillingRequestSerializer(
+            data=dict(org_uuid=request.org_uuid, before=request.before.ToDatetime(), after=request.after.ToDatetime())
+        )
+        serializer.is_valid(raise_exception=True)
+        org_uuid = serializer.validated_data["org_uuid"]
+        before = serializer.validated_data["before"]
+        after = serializer.validated_data["after"]
+        results = Query.detailed(org_uuid, before, after)
+        return ActiveContactDetailSerializer(results, many=True).message
