@@ -1,0 +1,1 @@
+from weni.grpc.classifier.grpc_gen import classifier_pb2, classifier_pb2_grpc
