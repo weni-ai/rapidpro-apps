@@ -18,6 +18,7 @@ class TemplateMessageSerializers(WriteSerializer):
     status = serializers.CharField()
 
     fb_namespace = serializers.CharField(required=False, write_only=True)
+    namespace = serializers.CharField(required=True)
 
     def validate_channel(self, channel):
         if channel.channel_type not in [WhatsAppType.code, Dialog360Type.code]:
@@ -26,7 +27,6 @@ class TemplateMessageSerializers(WriteSerializer):
         return channel
 
     def save(self) -> TemplateTranslation:
-
         validated_data = self.validated_data
 
         fb_namespace = validated_data.get("fb_namespace")

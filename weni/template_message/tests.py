@@ -5,6 +5,12 @@ from temba.tests import TembaTest
 from temba.api.models import APIToken
 from temba.templates.models import TemplateTranslation
 from temba.channels.models import Channel
+from temba.channels.types.whatsapp.type import (
+    CONFIG_FB_ACCESS_TOKEN,
+    CONFIG_FB_BUSINESS_ID,
+    CONFIG_FB_NAMESPACE,
+    CONFIG_FB_TEMPLATE_LIST_DOMAIN,
+)
 
 
 class TembaPostRequestMixin:
@@ -24,22 +30,26 @@ class CreateTemplateMessageTest(TembaPostRequestMixin, TembaTest):
 
     def setUp(self):
         super().setUp()
-
-        self.wa_channel = Channel.create(
-            self.org,
-            self.admin,
-            "RW",
+        self.wa_channel = self.create_channel(
             "WA",
-            name="channel",
-            address="1234",
+            "WhatsApp: 1235",
+            "1235",
             config={
-                "fb_namespace": "foo_namespace",
+                Channel.CONFIG_BASE_URL: "https://nyaruka.com/whatsapp",
+                Channel.CONFIG_USERNAME: "temba",
+                Channel.CONFIG_PASSWORD: "tembapasswd",
+                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
+                CONFIG_FB_BUSINESS_ID: "1234",
+                CONFIG_FB_ACCESS_TOKEN: "token123",
+                CONFIG_FB_NAMESPACE: "my-custom-app",
+                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "graph.facebook.com",
             },
         )
 
         self.request_data = dict(
             channel=str(self.wa_channel.uuid),
             fb_namespace="36ffbf5c_482f_4943_a0cd_be1412349e74",
+            namespace="36ffbf5c_482f_4943_a0cd_be1412349e74",
             content="Contect test text",
             variable_count=1,
             name="test_name",
@@ -98,15 +108,20 @@ class CreateTemplateMessageTest(TembaPostRequestMixin, TembaTest):
         self.assertEquals(TemplateTranslation.objects.count(), 0)
 
     def test_create_template_with_token_from_another_org(self):
-        another_channel = Channel.create(
-            self.org2,
-            self.admin2,
-            "RW",
+        another_channel = self.create_channel(
             "WA",
-            name="another",
-            address="1234",
+            "WhatsApp: 1235",
+            "1235",
+            org=self.org2,
             config={
-                "fb_namespace": "foo_namespace",
+                Channel.CONFIG_BASE_URL: "https://nyaruka.com/whatsapp",
+                Channel.CONFIG_USERNAME: "temba",
+                Channel.CONFIG_PASSWORD: "tembapasswd",
+                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
+                CONFIG_FB_BUSINESS_ID: "1234",
+                CONFIG_FB_ACCESS_TOKEN: "token123",
+                CONFIG_FB_NAMESPACE: "my-custom-app",
+                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "graph.facebook.com",
             },
         )
 
