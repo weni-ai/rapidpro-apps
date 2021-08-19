@@ -133,3 +133,5 @@ ansible/site.retry
 
 # gRPC
 *.proto
+*_pb2.py
+*_pb2_grpc.py
