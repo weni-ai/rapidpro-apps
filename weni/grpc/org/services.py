@@ -4,11 +4,16 @@ from django_grpc_framework import generics, mixins
 from google.protobuf import empty_pb2
 
 from temba.orgs.models import Org
+from weni.grpc.org.grpc_gen.org_pb2 import OrgUpdateRequest
 from weni.grpc.org.serializers import OrgCreateProtoSerializer, OrgProtoSerializer, OrgUpdateProtoSerializer
 from weni.grpc.core.services import AbstractService
 
 
 class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin):
+
+    queryset = Org.objects
+    lookup_field = "uuid"
+
     def List(self, request, context):
 
         user = self.get_user(request)
@@ -58,26 +63,20 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         return empty_pb2.Empty()
 
     def Update(self, request, context):
-        user = self.get_user_object(request.user_email, "email")
+        org = self.get_object()
 
-        serializer = OrgUpdateProtoSerializer(message=request)
+        serializer = OrgUpdateProtoSerializer(org, message=request)
         serializer.is_valid(raise_exception=True)
 
         data = dict(serializer.validated_data)
+        modified_by = data.get("modified_by", None)
 
-        org_qs = Org.objects.filter(uuid=data.get("uuid"))
-
-        org = org_qs.first()
-
-        if not self._user_has_permisson(user, org) and not user.is_superuser:
+        if modified_by and not self._user_has_permisson(modified_by, org) and not modified_by.is_superuser:
             self.context.abort(
-                grpc.StatusCode.PERMISSION_DENIED, f"User: {user.pk} has no permission to update Org: {org.uuid}"
+                grpc.StatusCode.PERMISSION_DENIED, f"User: {modified_by.pk} has no permission to update Org: {org.uuid}"
             )
 
-        updated_fields = self.get_updated_fields(data)
-
-        if updated_fields:
-            org_qs.update(**updated_fields, modified_by=user)
+        serializer.save()
 
         return serializer.message
 
@@ -98,9 +97,6 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
             return User.objects.get(email=request.user_email)
         except User.DoesNotExist:
             self.context.abort(grpc.StatusCode.NOT_FOUND, f"User:{request.user_email} not found!")
-
-    def get_updated_fields(self, data):
-        return {key: value for key, value in data.items() if key not in ["id", "user_email"]}
 
     def _user_has_permisson(self, user: User, org: Org) -> bool:
         return (
