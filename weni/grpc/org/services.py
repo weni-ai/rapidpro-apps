@@ -4,7 +4,6 @@ from django_grpc_framework import generics, mixins
 from google.protobuf import empty_pb2
 
 from temba.orgs.models import Org
-from weni.grpc.org.grpc_gen.org_pb2 import OrgUpdateRequest
 from weni.grpc.org.serializers import OrgCreateProtoSerializer, OrgProtoSerializer, OrgUpdateProtoSerializer
 from weni.grpc.core.services import AbstractService
 
