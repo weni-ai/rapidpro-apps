@@ -117,7 +117,7 @@ class OrgServiceTest(RPCTransactionTestCase):
 
         self.assertEquals(created_by, newuser)
         self.assertEquals(modified_by, newuser)
-        # self.assertFalse(org.uses_topups)
+        self.assertFalse(org.uses_topups)
 
         self.assertEquals(administrators.count(), 1)
         self.assertEquals(administrator, newuser)
