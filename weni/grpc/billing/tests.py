@@ -7,7 +7,7 @@ from google.protobuf.timestamp_pb2 import Timestamp as TimestampMessage
 from rest_framework.exceptions import ErrorDetail
 from temba.orgs.models import Org
 from temba.tests import TembaTest
-from weni.grpc.billing.grpc_gen import billing_pb2 as pb2, billing_pb2_grpc as stubs
+from weni.protobuf.flows import billing_pb2 as pb2, billing_pb2_grpc as stubs
 from weni.grpc.billing.queries import ActiveContactsQuery
 from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer
 from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase

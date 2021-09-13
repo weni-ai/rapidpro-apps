@@ -1,6 +1,6 @@
 from django_grpc_framework import generics
 
-from weni.grpc.statistic.grpc_gen.statistic_pb2 import OrgStatistic
+from weni.protobuf.flows.statistic_pb2 import OrgStatistic
 from weni.grpc.core.services import AbstractService
 
 

@@ -1,4 +1,4 @@
-from weni.grpc.statistic.grpc_gen import statistic_pb2_grpc
+from weni.protobuf.flows import statistic_pb2_grpc
 from weni.grpc.statistic.services import OrgStatisticService
 
 

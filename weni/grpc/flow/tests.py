@@ -5,7 +5,7 @@ from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
 from temba.orgs.models import Org
 from temba.flows.models import Flow
 
-from weni.grpc.flow.grpc_gen import flow_pb2, flow_pb2_grpc
+from weni.protobuf.flows import flow_pb2, flow_pb2_grpc
 
 
 class FlowServiceTest(RPCTransactionTestCase):

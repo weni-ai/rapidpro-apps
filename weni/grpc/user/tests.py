@@ -3,8 +3,8 @@ from django.contrib.auth.models import User
 
 from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
 
-from weni.grpc.user.grpc_gen import user_pb2
-from weni.grpc.user.grpc_gen import user_pb2_grpc
+from weni.protobuf.flows import user_pb2
+from weni.protobuf.flows import user_pb2_grpc
 
 from temba.orgs.models import Org
 

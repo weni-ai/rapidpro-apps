@@ -1,4 +1,4 @@
-from weni.grpc.billing.grpc_gen import billing_pb2_grpc
+from weni.protobuf.flows import billing_pb2_grpc
 from weni.grpc.billing.services import BillingService
 
 

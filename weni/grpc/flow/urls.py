@@ -1,4 +1,4 @@
-from weni.grpc.flow.grpc_gen import flow_pb2_grpc
+from weni.protobuf.flows import flow_pb2_grpc
 from weni.grpc.flow.services import FlowService
 
 

@@ -2,7 +2,7 @@ from django_grpc_framework import proto_serializers
 from rest_framework import serializers
 
 from temba.classifiers.models import Classifier
-from weni.grpc.classifier.grpc_gen import classifier_pb2
+from weni.protobuf.flows import classifier_pb2
 from weni.grpc.core import serializers as weni_serializers
 
 

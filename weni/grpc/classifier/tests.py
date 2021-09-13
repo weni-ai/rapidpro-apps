@@ -6,7 +6,7 @@ from temba.orgs.models import Org
 from temba.classifiers.models import Classifier, Intent
 from temba.classifiers.types.wit import WitType
 from temba.classifiers.types.luis import LuisType
-from weni.grpc.classifier.grpc_gen import classifier_pb2, classifier_pb2_grpc
+from weni.protobuf.flows import classifier_pb2, classifier_pb2_grpc
 
 
 def get_test_classifier(test: grpc_test.RPCTransactionTestCase) -> Classifier:
