@@ -6,9 +6,7 @@ from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContac
 
 class BillingService(generics.GenericService):
     def Total(self, request, context):
-        serializer = BillingRequestSerializer(
-            data=dict(org_uuid=request.org_uuid, before=request.before.ToDatetime(), after=request.after.ToDatetime())
-        )
+        serializer = BillingRequestSerializer(message=request)
         serializer.is_valid(raise_exception=True)
         org_uuid = serializer.validated_data["org_uuid"]
         before = serializer.validated_data["before"]
@@ -17,9 +15,7 @@ class BillingService(generics.GenericService):
         return BillingResponse(active_contacts=total_count)
 
     def Detailed(self, request, context):
-        serializer = BillingRequestSerializer(
-            data=dict(org_uuid=request.org_uuid, before=request.before.ToDatetime(), after=request.after.ToDatetime())
-        )
+        serializer = BillingRequestSerializer(message=request)
         serializer.is_valid(raise_exception=True)
         org_uuid = serializer.validated_data["org_uuid"]
         before = serializer.validated_data["before"]
