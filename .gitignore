@@ -135,3 +135,6 @@ ansible/site.retry
 *.proto
 *_pb2.py
 *_pb2_grpc.py
+
+# pyenv
+.python-version
