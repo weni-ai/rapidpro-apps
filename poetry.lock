@@ -1207,7 +1207,7 @@ requests = ">=2.4.2"
 
 [[package]]
 name = "weni-protobuffers"
-version = "1.0.0"
+version = "1.0.2"
 description = "Protocol Buffers for Weni Platform"
 category = "main"
 optional = false
@@ -1263,8 +1263,8 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 
 [metadata]
 lock-version = "1.1"
-python-versions = "3.6"
-content-hash = "429ea45f940f67380980e2adea50cc42762e9d42965d8b6dd2f4de105cd88c48"
+python-versions = "^3.6"
+content-hash = "caa3ff7a6256f6789cd6cb2e500232d89f31aed3d0c78edf1fc872afbbb702f0"
 
 [metadata.files]
 amqp = [
@@ -1886,8 +1886,8 @@ vonage = [
     {file = "vonage-2.5.2.tar.gz", hash = "sha256:da9f9ebc14de1778b745bbfab5558f4f4b13706d0e3d624d70245b605588a11f"},
 ]
 weni-protobuffers = [
-    {file = "weni-protobuffers-1.0.0.tar.gz", hash = "sha256:b7f3ae57aada8f6aee628f6598a72d5102f48d876289793fc27b1321373a72ff"},
-    {file = "weni_protobuffers-1.0.0-py3-none-any.whl", hash = "sha256:a53615ee2f6caf5e9af1476f75cdafa83d8a746fb2371170e8b5bccdfeb6b7dc"},
+    {file = "weni-protobuffers-1.0.2.tar.gz", hash = "sha256:a8795af02123bb807c5d986ca9ee175482a06d240dcf498f57de62d27504dc29"},
+    {file = "weni_protobuffers-1.0.2-py3-none-any.whl", hash = "sha256:a02f82fd304bc61755fa7b5822938d9a9ad248a955abfbbd7e1a28c3b6b15f52"},
 ]
 wrapt = [
     {file = "wrapt-1.12.1.tar.gz", hash = "sha256:b62ffa81fb85f4332a4f609cab4ac40709470da05643a082ec1eb88e6d9b97d7"},

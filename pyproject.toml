@@ -9,11 +9,11 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "3.6"
+python = "^3.6"
 mozilla-django-oidc = "^2.0.0"
 djangogrpcframework = "^0.2.1"
-weni-protobuffers = "^1.0.0"
 temba = {git = "https://github.com/Ilhasoft/rapidpro.git", rev = "main"}
+weni-protobuffers = "^1.0.1"
 
 [tool.poetry.dev-dependencies]
 grpcio-tools = "^1.39.0"
