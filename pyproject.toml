@@ -12,7 +12,6 @@ packages = [
 python = "^3.6"
 mozilla-django-oidc = "^2.0.0"
 djangogrpcframework = "^0.2.1"
-temba = {git = "https://github.com/Ilhasoft/rapidpro.git", rev = "main"}
 weni-protobuffers = "^1.0.1"
 
 [tool.poetry.dev-dependencies]
