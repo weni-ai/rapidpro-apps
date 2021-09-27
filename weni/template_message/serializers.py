@@ -13,7 +13,7 @@ class TemplateMessageSerializers(WriteSerializer):
     content = serializers.CharField()
     name = serializers.CharField(write_only=True)
     language = serializers.CharField()
-    country = serializers.CharField()
+    country = serializers.CharField(default=None)
     variable_count = serializers.IntegerField()
     status = serializers.CharField()
 

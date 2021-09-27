@@ -133,3 +133,11 @@ class CreateTemplateMessageTest(TembaPostRequestMixin, TembaTest):
 
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("channel", response_data)
+
+    def test_create_template_without_country(self):
+        data = self.request_data.copy()
+        data.pop("country")
+
+        self.request(data)
+        template_translation = TemplateTranslation.objects.first()
+        self.assertIsNone(template_translation.country.code)
