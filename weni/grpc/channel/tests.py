@@ -20,7 +20,7 @@ class WeniWebChatCreateServiceTest(RPCTransactionTestCase):
         request_data = dict(name="fake wwc", user=self.user.email, base_url="https://dash.weni.ai")
         response = self.channel_create_request(**request_data)
 
-        channel = Channel.objects.get(name=response.name)
+        channel = Channel.objects.get(uuid=response.uuid)
         self.assertEqual(channel.created_by, self.user)
         self.assertEqual(channel.config[CONFIG_BASE_URL], request_data["base_url"])
 

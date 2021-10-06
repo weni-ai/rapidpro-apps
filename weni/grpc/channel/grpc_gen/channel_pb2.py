@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     syntax="proto3",
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
-    serialized_pb=b'\n(weni/grpc/channel/grpc_gen/channel.proto\x12\x15weni.rapidpro.channel"H\n\x18WeniWebChatCreateRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x10\n\x08\x62\x61se_url\x18\x03 \x01(\t"\x1b\n\x0bWeniWebChat\x12\x0c\n\x04name\x18\x01 \x01(\t2x\n\x15WeniWebChatController\x12_\n\x06\x43reate\x12/.weni.rapidpro.channel.WeniWebChatCreateRequest\x1a".weni.rapidpro.channel.WeniWebChat"\x00\x62\x06proto3',
+    serialized_pb=b'\n(weni/grpc/channel/grpc_gen/channel.proto\x12\x15weni.rapidpro.channel"H\n\x18WeniWebChatCreateRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x10\n\x08\x62\x61se_url\x18\x03 \x01(\t"\x1b\n\x0bWeniWebChat\x12\x0c\n\x04uuid\x18\x01 \x01(\t2x\n\x15WeniWebChatController\x12_\n\x06\x43reate\x12/.weni.rapidpro.channel.WeniWebChatCreateRequest\x1a".weni.rapidpro.channel.WeniWebChat"\x00\x62\x06proto3',
 )
 
 
@@ -110,8 +110,8 @@ _WENIWEBCHAT = _descriptor.Descriptor(
     create_key=_descriptor._internal_create_key,
     fields=[
         _descriptor.FieldDescriptor(
-            name="name",
-            full_name="weni.rapidpro.channel.WeniWebChat.name",
+            name="uuid",
+            full_name="weni.rapidpro.channel.WeniWebChat.uuid",
             index=0,
             number=1,
             type=9,

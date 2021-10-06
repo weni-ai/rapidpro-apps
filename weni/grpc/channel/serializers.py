@@ -14,6 +14,7 @@ class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
     user = weni_serializers.UserEmailRelatedField(write_only=True)
     name = serializers.CharField()
     base_url = serializers.URLField(validators=[URLValidator(), validate_external_url], write_only=True)
+    uuid = serializers.UUIDField(read_only=True)
 
     def create(self, validated_data):
         user = validated_data["user"]
@@ -30,4 +31,4 @@ class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
 
     class Meta:
         proto_class = channel_pb2.WeniWebChat
-        fields = ["user", "name", "base_url"]
+        fields = ["user", "name", "base_url", "uuid"]
