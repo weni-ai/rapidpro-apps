@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from django_grpc_framework import proto_serializers
 
-from weni.grpc.user.grpc_gen import user_pb2
+from weni.protobuf.flows import user_pb2
 
 
 class UserPermissionProtoSerializer(proto_serializers.ProtoSerializer):

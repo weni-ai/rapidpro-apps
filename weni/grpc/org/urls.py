@@ -1,4 +1,4 @@
-from weni.grpc.org.grpc_gen import org_pb2_grpc
+from weni.protobuf.flows import org_pb2_grpc
 from weni.grpc.org.services import OrgService
 
 

@@ -1,4 +1,4 @@
-from weni.grpc.classifier.grpc_gen import classifier_pb2_grpc
+from weni.protobuf.flows import classifier_pb2_grpc
 from weni.grpc.classifier.services import ClassifierService
 
 

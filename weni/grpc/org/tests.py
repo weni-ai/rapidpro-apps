@@ -5,7 +5,7 @@ from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
 from rest_framework.exceptions import ValidationError
 
 from temba.orgs.models import Org
-from weni.grpc.org.grpc_gen import org_pb2, org_pb2_grpc
+from weni.protobuf.flows import org_pb2, org_pb2_grpc
 from weni.grpc.org.serializers import SerializerUtils
 
 

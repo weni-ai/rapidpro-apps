@@ -1,4 +1,4 @@
-from weni.grpc.user.grpc_gen import user_pb2_grpc
+from weni.protobuf.flows import user_pb2_grpc
 
 from weni.grpc.user.services import UserPermissionService, UserService
 

@@ -1,5 +1,5 @@
 from django_grpc_framework import generics
-from weni.grpc.billing.grpc_gen.billing_pb2 import BillingResponse
+from weni.protobuf.flows.billing_pb2 import BillingResponse
 from weni.grpc.billing.queries import ActiveContactsQuery as Query
 from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer
 

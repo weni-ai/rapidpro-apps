@@ -9,7 +9,7 @@ from temba.classifiers.models import Classifier
 from temba.tests import mock_mailroom
 from temba.utils.management.commands.test_db import DisableTriggersOn
 
-from weni.grpc.statistic import grpc_gen
+from weni.protobuf.flows import statistic_pb2, statistic_pb2_grpc
 
 
 class OrgStatisticServiceTest(test_grpc.RPCTransactionTestCase):
@@ -30,7 +30,7 @@ class OrgStatisticServiceTest(test_grpc.RPCTransactionTestCase):
 
         super().setUp()
 
-        self.stub = grpc_gen.statistic_pb2_grpc.OrgStatisticControllerStub(test_grpc.Channel())
+        self.stub = statistic_pb2_grpc.OrgStatisticControllerStub(test_grpc.Channel())
 
     @mock_mailroom
     def test_retrieve_statistic(self, mr_mocks):
@@ -77,4 +77,4 @@ class OrgStatisticServiceTest(test_grpc.RPCTransactionTestCase):
         obj.save(update_fields=["is_active"])
 
     def org_statistic_list_request(self, **kwargs):
-        return self.stub.Retrieve(grpc_gen.statistic_pb2.OrgStatisticRetrieveRequest(**kwargs))
+        return self.stub.Retrieve(statistic_pb2.OrgStatisticRetrieveRequest(**kwargs))
