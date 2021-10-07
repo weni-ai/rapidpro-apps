@@ -3,7 +3,7 @@ from django_grpc_framework.test import RPCTransactionTestCase
 
 from temba.channels.models import Channel
 from temba.channels.types.weniwebchat.type import CONFIG_BASE_URL
-from weni.grpc.channel.grpc_gen import channel_pb2, channel_pb2_grpc
+from weni.protobuf.flows import channel_pb2, channel_pb2_grpc
 
 
 User = get_user_model()

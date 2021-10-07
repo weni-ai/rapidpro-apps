@@ -6,7 +6,7 @@ from temba.channels.models import Channel
 from temba.utils.fields import validate_external_url
 from temba.channels.types.weniwebchat.type import CONFIG_BASE_URL
 from weni.grpc.core import serializers as weni_serializers
-from weni.grpc.channel.grpc_gen import channel_pb2
+from weni.protobuf.flows import channel_pb2
 
 
 class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
