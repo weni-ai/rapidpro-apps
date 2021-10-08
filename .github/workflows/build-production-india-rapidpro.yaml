@@ -2,7 +2,7 @@ name: Build Production India Rapidpro
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*-india'
       - '!v*.*.*-staging*'
       - '!v*.*.*-develop*'
 jobs:
