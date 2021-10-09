@@ -58,7 +58,7 @@ COPY ./docker/pip-freeze.txt /tmp/dep/
 COPY ./docker/nginx.site.conf /tmp/
 RUN pip install --no-cache-dir -r /tmp/dep/requirements.txt \ 
     -r /tmp/dep/pip-freeze.txt && \
-    pip install -e git+$RAPIDPRO_APPS_GIT_URL@$RAPIDPRO_APPS_GIT_BRANCH#egg=rapidpro_apps   
+    pip install weni-rp-apps
 
 RUN cp /tmp/nginx.site.conf /etc/nginx/sites-available/$PROJECT.conf \
  && ln -s /etc/nginx/sites-available/$PROJECT.conf /etc/nginx/sites-enabled/$PROJECT.conf
