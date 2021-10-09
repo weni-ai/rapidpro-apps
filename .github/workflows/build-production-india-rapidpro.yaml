@@ -1,8 +1,6 @@
 name: Build Production India Rapidpro
 on:
   push:
-    branches:
-      - release/prod-india
     tags:
       - 'v*.*.*-india'
       - '!v*.*.*-staging*'
