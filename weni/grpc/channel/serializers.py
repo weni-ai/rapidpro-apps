@@ -6,11 +6,12 @@ from temba.channels.models import Channel
 from temba.utils.fields import validate_external_url
 from temba.channels.types.weniwebchat.type import CONFIG_BASE_URL
 from weni.grpc.core import serializers as weni_serializers
-from weni.grpc.channel.grpc_gen import channel_pb2
+from weni.protobuf.flows import channel_pb2
 
 
 class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
 
+    org = weni_serializers.OrgUUIDRelatedField(write_only=True)
     user = weni_serializers.UserEmailRelatedField(write_only=True)
     name = serializers.CharField()
     base_url = serializers.URLField(validators=[URLValidator(), validate_external_url], write_only=True)
@@ -23,7 +24,7 @@ class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
         config = {CONFIG_BASE_URL: validated_data["base_url"]}
 
         return Channel.create(
-            user.get_org(), user, None, self._get_channel_type(), config=config, name=name, address=name
+            validated_data["org"], validated_data["user"], None, self._get_channel_type(), config=config, name=name, address=name
         )
 
     def _get_channel_type(self):
