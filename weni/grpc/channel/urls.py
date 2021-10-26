@@ -1,4 +1,4 @@
-from weni.grpc.channel.grpc_gen import channel_pb2_grpc
+from weni.protobuf.flows import channel_pb2_grpc
 from weni.grpc.channel import services
 
 
