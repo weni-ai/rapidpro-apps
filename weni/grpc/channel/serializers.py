@@ -1,6 +1,7 @@
 from django_grpc_framework import proto_serializers
 from rest_framework import serializers
 from django.core.validators import URLValidator
+from google.protobuf.empty_pb2 import Empty
 
 from temba.channels.models import Channel
 from temba.utils.fields import validate_external_url
@@ -24,7 +25,13 @@ class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
         config = {CONFIG_BASE_URL: validated_data["base_url"]}
 
         return Channel.create(
-            validated_data["org"], validated_data["user"], None, self._get_channel_type(), config=config, name=name, address=name
+            validated_data["org"],
+            validated_data["user"],
+            None,
+            self._get_channel_type(),
+            config=config,
+            name=name,
+            address=name,
         )
 
     def _get_channel_type(self):
@@ -33,3 +40,12 @@ class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
     class Meta:
         proto_class = channel_pb2.WeniWebChat
         fields = ["user", "name", "base_url", "uuid"]
+
+
+class ChannelProtoSerializer(proto_serializers.ProtoSerializer):
+
+    user = weni_serializers.UserEmailRelatedField(write_only=True, required=True)
+
+    class Meta:
+        proto_class = Empty
+        fields = ["user"]
