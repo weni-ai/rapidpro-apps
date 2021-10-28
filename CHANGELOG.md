@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [1.0.3] - 2021-10-28
+### Changed
+- `weni-protobuffers` updated to 1.2.1
+
+### Added
+- Channel release endpoint (#76)
+
 ## [1.0.2] - 2021-10-26
 ### Changed
 - `weni-protobuffers` updated to 1.2.0
