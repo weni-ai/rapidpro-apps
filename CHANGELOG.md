@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.4] - 2021-11-04
+### Fixed
+- Removed sync=False on create classifier
+
 ## [1.0.3] - 2021-10-28
 ### Changed
 - `weni-protobuffers` updated to 1.2.1
