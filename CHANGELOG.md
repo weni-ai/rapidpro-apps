@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.5] - 2021-11-12
+### Added
+- Generic endpoint to create channels by ChannelType code
+
 ## [1.0.4] - 2021-11-04
 ### Fixed
 - Removed sync=False on create classifier
