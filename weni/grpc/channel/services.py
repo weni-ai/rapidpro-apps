@@ -56,8 +56,11 @@ class ChannelService(generics.DestroyService):
         url = self.create_channel(user, org, data, channel_type)
         regex = "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
         channe_uuid = re.findall(regex, url)[0]
+        channel = Channel.objects.get(uuid=channe_uuid)
 
-        return channel_pb2.Channel(uuid=channe_uuid)
+        return channel_pb2.Channel(
+            uuid=channe_uuid, name=channel.name, address=channel.address, config=json.dumps(channel.config)
+        )
 
     def create_channel(self, user: User, org: Org, data: dict, channel_type) -> str:
         factory = RequestFactory()
