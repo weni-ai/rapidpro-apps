@@ -79,9 +79,9 @@ class CreateChannelServiceTest(gRPCClient, RPCTransactionTestCase):
         response = self.channel_create_request(
             user=self.user.email, org=str(self.org.uuid), data=data, channeltype_code="WWC"
         )
-
         channel = Channel.objects.get(uuid=response.uuid)
-        self.assertEqual(channel.name, "test")
+        self.assertEqual(channel.address, response.address)
+        self.assertEqual(channel.name, response.name)
         self.assertEqual(channel.config.get("base_url"), "https://weni.ai")
         self.assertEqual(channel.org, self.org)
         self.assertEqual(channel.created_by, self.user)
