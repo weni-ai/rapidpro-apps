@@ -25,7 +25,9 @@ class WeniWebChatService(mixins.CreateModelMixin, mixins.DestroyModelMixin, gene
     serializer_class = WeniWebChatProtoSerializer
 
 
-class ChannelService(generics.DestroyService):
+class ChannelService(
+    mixins.RetrieveModelMixin, mixins.DestroyModelMixin, generics.GenericService
+):
 
     queryset = Channel.objects
     lookup_field = "uuid"
