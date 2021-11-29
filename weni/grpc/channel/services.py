@@ -26,12 +26,23 @@ class WeniWebChatService(mixins.CreateModelMixin, mixins.DestroyModelMixin, gene
 
 
 class ChannelService(
-    mixins.RetrieveModelMixin, mixins.DestroyModelMixin, generics.GenericService
+    mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.DestroyModelMixin, generics.GenericService
 ):
 
     queryset = Channel.objects
     lookup_field = "uuid"
     serializer_class = ChannelProtoSerializer
+
+    def filter_queryset(self, queryset):
+        request = self.request
+
+        if getattr(request, "channel_type", ""):
+            queryset = queryset.filter(channel_type=request.channel_type)
+
+        if getattr(request, "org", ""):
+            queryset = queryset.filter(org__uuid=request.org)
+
+        return queryset
 
     def perform_destroy(self, instance):
         serializer = self.get_serializer(message=self.request)

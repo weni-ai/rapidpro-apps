@@ -56,4 +56,4 @@ class ChannelProtoSerializer(proto_serializers.ModelProtoSerializer):
         model = Channel
         proto_class = channel_pb2.Channel
         fields = ("user", "uuid", "name", "address", "config")
-        read_only_fields = ('uuid', 'name', "address", "config")
+        read_only_fields = ("uuid", "name", "address", "config")
