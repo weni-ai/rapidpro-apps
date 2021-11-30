@@ -1,3 +1,5 @@
+import json
+
 from django_grpc_framework import proto_serializers
 from rest_framework import serializers
 from django.core.validators import URLValidator
@@ -42,10 +44,16 @@ class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
         fields = ["user", "name", "base_url", "uuid"]
 
 
-class ChannelProtoSerializer(proto_serializers.ProtoSerializer):
+class ChannelProtoSerializer(proto_serializers.ModelProtoSerializer):
 
     user = weni_serializers.UserEmailRelatedField(write_only=True, required=True)
+    config = serializers.SerializerMethodField()
+
+    def get_config(self, instance):
+        return json.dumps(instance.config)
 
     class Meta:
-        proto_class = Empty
-        fields = ["user"]
+        model = Channel
+        proto_class = channel_pb2.Channel
+        fields = ("user", "uuid", "name", "address", "config")
+        read_only_fields = ("uuid", "name", "address", "config")
