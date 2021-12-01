@@ -2,6 +2,7 @@ import json
 import re
 
 from django.http import Http404, HttpResponseBadRequest
+from django.http.response import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.contrib.messages.middleware import MessageMiddleware
@@ -67,6 +68,10 @@ class ChannelService(
             raise Http404(f"No channels found with '{request.channeltype_code}' code")
 
         url = self.create_channel(user, org, data, channel_type)
+
+        if url is None or "/users/login/?next=" in url:
+            return HttpResponseBadRequest()
+
         regex = "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
         channe_uuid = re.findall(regex, url)[0]
         channel = Channel.objects.get(uuid=channe_uuid)
@@ -87,4 +92,6 @@ class ChannelService(
         user._org = org
         request.user = user
         response = MessageMiddleware(channel_type.claim_view.as_view(channel_type=channel_type))(request)
-        return response.url
+
+        if isinstance(response, HttpResponseRedirect):
+            return response.url
