@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [1.0.6] - 2021-12-01
+### Added
+- Retrieve and List endpoints to Channel service
+- Return HttpResponseBadRequest on invalid request data
+- New fields to channel generic endpoint
+
 ## [1.0.5] - 2021-11-12
 ### Added
 - Generic endpoint to create channels by ChannelType code
