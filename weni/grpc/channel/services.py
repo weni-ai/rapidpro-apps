@@ -9,6 +9,7 @@ from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.auth.models import User
 from django_grpc_framework import generics, mixins
 from django.test import RequestFactory
+import grpc
 
 from temba.channels.types.weniwebchat.type import WeniWebChatType
 from temba.channels.models import Channel
@@ -57,7 +58,7 @@ class ChannelService(
         try:
             data = json.loads(request.data)
         except json.decoder.JSONDecodeError:
-            raise HttpResponseBadRequest("Can't decode the `data` field")
+            self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Can't decode the `data` field")
 
         user = get_object_or_404(User, email=request.user)
         org = get_object_or_404(Org, uuid=request.org)
@@ -69,8 +70,13 @@ class ChannelService(
 
         url = self.create_channel(user, org, data, channel_type)
 
-        if url is None or "/users/login/?next=" in url:
-            return HttpResponseBadRequest()
+        if url is None:
+            self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Bad Request")
+
+        if "/users/login/?next=" in url:
+            self.context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT, f"User: {user.email} do not have permission in Org: {org.uuid}"
+            )
 
         regex = "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
         channe_uuid = re.findall(regex, url)[0]
