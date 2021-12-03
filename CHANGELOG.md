@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.7] - 2021-12-03
+### Fixed
+- Adjust exceptions of channel service
+
 ## [1.0.6] - 2021-12-01
 ### Added
 - Retrieve and List endpoints to Channel service
