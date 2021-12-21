@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.8] - 2021-12-21
+### Fixed
+- Adjust BillingService return and exceptions
+
 ## [1.0.7] - 2021-12-03
 ### Fixed
 - Adjust exceptions of channel service
