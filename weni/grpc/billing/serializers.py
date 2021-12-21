@@ -1,6 +1,8 @@
+import grpc
 from django.utils import timezone as tz
 from django_grpc_framework.proto_serializers import ProtoSerializer
 from rest_framework import serializers
+
 from temba.api.v2.fields import TranslatableField
 from weni.protobuf.flows import billing_pb2
 
@@ -12,12 +14,14 @@ class BillingRequestSerializer(ProtoSerializer):
 
     def validate(self, data):
         if data["after"] > data["before"]:
-            raise serializers.ValidationError('"after" should be earlier then "before"')
+            self.context.get("grpc_context").abort(
+                grpc.StatusCode.INVALID_ARGUMENT, '"after" should be earlier then "before"'
+            )
         return data
 
     def validate_after(self, value):
         if value > tz.now():
-            raise serializers.ValidationError("Cannot search after this date.")
+            self.context.get("grpc_context").abort(grpc.StatusCode.INVALID_ARGUMENT, "Cannot search after this date.")
         return value
 
     class Meta:
