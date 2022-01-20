@@ -5,10 +5,11 @@ from rest_framework import serializers
 
 from temba.api.v2.fields import TranslatableField
 from weni.protobuf.flows import billing_pb2
+from weni.grpc.core import serializers as weni_serializers
 
 
 class BillingRequestSerializer(ProtoSerializer):
-    org_uuid = serializers.UUIDField()
+    org = weni_serializers.OrgUUIDRelatedField(write_only=True)
     before = serializers.DateTimeField()
     after = serializers.DateTimeField()
 
