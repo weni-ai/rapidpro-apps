@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [1.0.9] - 2022-01-20
+### Fixed
+- Refactors the billing query
+- Refactor some billing endpoint nomenclatures and validate organization
+
 ## [1.0.8] - 2021-12-21
 ### Fixed
 - Adjust BillingService return and exceptions
