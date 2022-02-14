@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.10] - 2022-02-14
+### Fixed
+- Checks if the user is already authenticated to avoid unnecessary authentication
+
 ## [1.0.9] - 2022-01-20
 ### Fixed
 - Refactors the billing query
