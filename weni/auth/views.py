@@ -57,7 +57,7 @@ class WeniAuthenticationRequestView(OIDCAuthenticationRequestView):
         if request.user.is_authenticated:
             redirect_field_name = self.get_settings("OIDC_REDIRECT_FIELD_NAME", "next")
             next_url = get_next_url(request, redirect_field_name)
-            return HttpResponseRedirect(next_url or "/")
+            return HttpResponseRedirect(next_url or settings.LOGIN_REDIRECT_URL)
         else:
             return super().get(request)
 
