@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.11] - 2022-02-18
+### Fixed
+- Redirect to /msg/inbox/ if authenticate without next param
+
 ## [1.0.10] - 2022-02-14
 ### Fixed
 - Checks if the user is already authenticated to avoid unnecessary authentication
