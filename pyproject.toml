@@ -12,12 +12,12 @@ packages = [
 python = "^3.6"
 mozilla-django-oidc = "^2.0.0"
 djangogrpcframework = "^0.2.1"
-weni-protobuffers = "^1.1.0"
 django-environ = "^0.7.0"
 elastic-apm = "^6.4.0"
 flower = "^0.9"
 django-templates-macros = "^0.2"
 django-csp = "^3.7"
+weni-protobuffers = "1.2.7"
 
 [tool.poetry.dev-dependencies]
 grpcio-tools = "^1.39.0"
