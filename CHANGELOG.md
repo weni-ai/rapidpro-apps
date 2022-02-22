@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [1.0.12] - 2022-02-21
+### Fixed
+- Lock weni-protobuffers version to 1.2.7
+- Reverts unnecessary billing commits
+
 ## [1.0.11] - 2022-02-18
 ### Fixed
 - Redirect to /msg/inbox/ if authenticate without next param
