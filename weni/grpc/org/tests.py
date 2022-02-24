@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from django.contrib.auth.models import User
+from django.conf import settings
 from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
 from rest_framework.exceptions import ValidationError
 
@@ -89,14 +90,10 @@ class OrgServiceTest(RPCTransactionTestCase):
         user = User.objects.first()
 
         with self.assertRaisesMessage(ValidationError, '"Wrong/Zone" is not a valid choice.'):
-            self.stub.Create(
-                org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email)
-            )
+            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email))
 
         self.stub.Create(
-            org_pb2.OrgCreateRequest(
-                name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com"
-            )
+            org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com")
         )
 
         newuser_qs = User.objects.filter(email="newemail@email.com")
@@ -123,9 +120,7 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEquals(administrator, newuser)
 
         self.stub.Create(
-            org_pb2.OrgCreateRequest(
-                name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com"
-            )
+            org_pb2.OrgCreateRequest(name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com")
         )
 
         self.assertEqual(User.objects.filter(email="newemail@email.com").count(), 1)
@@ -195,7 +190,7 @@ class OrgServiceTest(RPCTransactionTestCase):
             "name": "NewOrgName",
             "timezone": "America/Maceio",
             "date_format": "M",
-            "plan": "test",
+            "plan": settings.INFINITY_PLAN,
             "plan_end": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "brand": "push.ia",
             "is_anon": True,
@@ -217,13 +212,10 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEquals(update_fields.get("date_format"), updated_org.date_format)
         self.assertNotEquals(org.date_format, updated_org.date_format)
 
-        self.assertEquals(update_fields.get("plan"), updated_org.plan)
+        self.assertEquals(updated_org.plan, settings.INFINITY_PLAN)
         self.assertNotEquals(org.plan, updated_org.plan)
-
-        self.assertEquals(
-            update_fields.get("plan_end"), updated_org.plan_end.strftime("%Y-%m-%d %H:%M:%S"),
-        )
-        self.assertNotEquals(org.plan_end, updated_org.plan_end)
+        self.assertFalse(updated_org.uses_topups)
+        self.assertEquals(updated_org.plan_end, None)
 
         self.assertEquals(update_fields.get("brand"), updated_org.brand)
         self.assertNotEquals(org.brand, updated_org.brand)
