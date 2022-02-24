@@ -1,5 +1,6 @@
 import grpc
 from django.contrib.auth.models import User
+from django.conf import settings
 from django_grpc_framework import generics, mixins
 from google.protobuf import empty_pb2
 
@@ -28,15 +29,10 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
-        user, created = User.objects.get_or_create(email=request.user_email,
-                                                   defaults={"username": request.user_email})
+        user, created = User.objects.get_or_create(email=request.user_email, defaults={"username": request.user_email})
 
         org = Org.objects.create(
-            name=request.name,
-            timezone=request.timezone,
-            created_by=user,
-            modified_by=user,
-            plan="infinity"
+            name=request.name, timezone=request.timezone, created_by=user, modified_by=user, plan="infinity"
         )
 
         org.administrators.add(user)
@@ -69,14 +65,22 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
 
         data = dict(serializer.validated_data)
         modified_by = data.get("modified_by", None)
+        plan = data.get("plan", None)
 
         if modified_by and not self._user_has_permisson(modified_by, org) and not modified_by.is_superuser:
             self.context.abort(
-                grpc.StatusCode.PERMISSION_DENIED, f"User: {modified_by.pk} has no permission to update Org: {org.uuid}"
+                grpc.StatusCode.PERMISSION_DENIED,
+                f"User: {modified_by.pk} has no permission to update Org: {org.uuid}",
             )
 
-        serializer.save()
+        if plan is not None and plan == settings.INFINITY_PLAN:
+            org.uses_topups = False
+            org.plan_end = None
 
+            serializer.save(plan_end=None)
+            return serializer.message
+
+        serializer.save()
         return serializer.message
 
     def pre_destroy(self, org: Org, user: User):
