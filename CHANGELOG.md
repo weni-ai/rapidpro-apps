@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.13] - 2022-02-25
+### Feature
+- Add the infinity plan when updating an org
+
 ## [1.0.12] - 2022-02-21
 ### Fixed
 - Lock weni-protobuffers version to 1.2.7
