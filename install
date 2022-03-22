@@ -21,10 +21,10 @@ echo "\nUnpacking package\n"
 tar -xvf $(find dist/ -name *${poetry_version}.tar.gz) "${package_name}/setup.py" --strip-components=1
 
 echo "\nInstalling package\n"
-python setup.py install develop
+python setup.py develop
 
 
-if ! pip freeze | grep -q weni-rp-apps; then
+if ! pip freeze | grep -q weni_rp_apps; then
     echo -e "\nThere was a problem during the installation\n"
 else
     echo -e "\nPackage installed successfully\n"
