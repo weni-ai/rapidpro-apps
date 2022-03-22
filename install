@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# This script installs the package locally on your rapidpro,
+# so before running make sure it is inside your virtualenv
+
+GREEN=`tput setaf 2`
+
+if ! echo $PWD | grep -q $RAPIDPRO_APPS_PATH; then
+    echo "You need to be in $RAPIDPRO_APPS_PATH/ to be able to execute this command!"
+    exit 1
+fi
+
+
+poetry_version=$(poetry version -s)
+package_name="weni-rp-apps-${poetry_version}"
+
+echo -e "\nBuilding package\n"
+poetry build
+
+echo "\nUnpacking package\n"
+tar -xvf $(find dist/ -name *${poetry_version}.tar.gz) "${package_name}/setup.py" --strip-components=1
+
+echo "\nInstalling package\n"
+python setup.py install develop
+
+
+if ! pip freeze | grep -q weni-rp-apps; then
+    echo -e "\nThere was a problem during the installation\n"
+else
+    echo -e "\nPackage installed successfully\n"
+fi
