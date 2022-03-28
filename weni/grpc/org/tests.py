@@ -176,7 +176,7 @@ class OrgServiceTest(RPCTransactionTestCase):
 
     def test_update_org(self):
         org = Org.objects.first()
-        user = User.objects.first()
+        user = User.objects.get(username="weniuser")
 
         permission_error_message = f"User: {user.id} has no permission to update Org: {org.uuid}"
 
@@ -199,11 +199,14 @@ class OrgServiceTest(RPCTransactionTestCase):
             "is_multi_user": True,
             "is_multi_org": True,
             "is_suspended": True,
+            "is_active": True
         }
 
         self.stub.Update(org_pb2.OrgUpdateRequest(uuid=str(org.uuid), modified_by=user.email, **update_fields))
 
         updated_org = Org.objects.get(pk=org.pk)
+
+        self.assertEquals(update_fields.get("is_active"), updated_org.is_active)
 
         self.assertEquals(update_fields.get("name"), updated_org.name)
         self.assertNotEquals(org.name, updated_org.name)
