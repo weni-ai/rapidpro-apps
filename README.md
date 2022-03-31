@@ -1,26 +1,34 @@
 # RapidPro Apps
 This package aims to add new apps to Rapidpro without the need to directly change the code, thus avoiding conflicts
 
-# Installing
-```sh
-$ pip install weni-rp-apps
-```
-
-
-# How to contribute
+## How to contribute
 First, clone this repository
 ```sh
 $ git clone https://github.com/Ilhasoft/rapidpro-apps.git
 ```
 
-## Setting variables
-You need configure the following envireoment variable
+<br>
+
+## Install using pip
+<details>
+<summary>Click to expand</summary><br>
+
+```sh
+$ pip install weni-rp-apps
+```
+
+</details>
+
+## Local Installation
+
+<details>
+<summary>Click to expand</summary><br>
+
+You need configure the following envireoment variable `Necessary for some installations methods`
 - `RAPIDPRO_APPS_PATH` - indicates the path where the repository was cloned
 ```sh
 $ export RAPIDPRO_APPS_PATH="<path>"
 ```
-
-## Installing the package locally
 **OBS**: from now on it is **very important** that it is inside your virtualenv  
 
 After **activating your virtualenv** enter the weni-rp-apps directory
@@ -34,9 +42,30 @@ $ ./install
 
 If an error occurs during the installation, the following error will be raised: `There was a problem during the installation`. On the other hand if everything goes well you will receive the following message `Package installed successfully`.  
 
-Done. Now you can go back to rapidpro and help us "Unleash Human Potential"
+</details>
+  
+## Local Installation - Manual
+<details>
+<summary>Click to expand</summary><br>
+  
+```sh
+poetry build
+```
 
-# Configuring in rapidpro
+```sh
+cd dist/
+tar -xvf weni-rp-apps-1.0.13.tar.gz # Look at specific version
+```
+
+```sh
+cd weni-rp-apps-1.0.13/ # Look at specific version
+python setup.py develop
+```
+</details>
+  
+<br>
+
+## Setting variables
 Add the desired apps to you INSTALLED_APPS setting:
 
 **settings.py**
@@ -45,6 +74,10 @@ Add the desired apps to you INSTALLED_APPS setting:
 
 INSTALLED_APPS += ("weni.<app_name>", ...)
 ```
+
+
+Done. Now you can go back to rapidpro and help us "Unleash Human Potential"
+
 ## APPs available
 
 - [Channel Stats](channel_stats/README.md)
