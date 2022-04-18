@@ -60,7 +60,7 @@ class OrgServiceTest(RPCTransactionTestCase):
         weni_org.is_active = False
         weni_org.save(update_fields=["is_active"])
 
-        self.assertEquals(self.get_orgs_count(user), 1)
+        self.assertEquals(self.get_orgs_count(user), 0)
 
         weni_org.is_active = True
         weni_org.save(update_fields=["is_active"])
@@ -145,8 +145,6 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEqual(response.uuid, org_uuid)
         self.assertEqual(org_timezone, response.timezone)
         self.assertEqual(org.date_format, response.date_format)
-        self.assertEqual(response.is_active, org.is_active)
-        
 
         self.assertEqual(user.id, response_user.id)
         self.assertEqual(user.email, response_user.email)

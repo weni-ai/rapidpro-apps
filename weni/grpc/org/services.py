@@ -110,9 +110,9 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         )
 
     def get_orgs(self, user: User):
-        admins = user.org_admins.all()
-        viewers = user.org_viewers.all()
-        editors = user.org_editors.all()
-        surveyors = user.org_surveyors.all()
+        admins = user.org_admins.filter(is_active=True)
+        viewers = user.org_viewers.filter(is_active=True)
+        editors = user.org_editors.filter(is_active=True)
+        surveyors = user.org_surveyors.filter(is_active=True)
 
         return admins.union(viewers, editors, surveyors)

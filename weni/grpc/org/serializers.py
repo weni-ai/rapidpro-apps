@@ -27,7 +27,7 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
     class Meta:
         model = Org
         proto_class = org_pb2.Org
-        fields = ["id", "name", "uuid", "timezone", "date_format", "users", "is_active"]
+        fields = ["id", "name", "uuid", "timezone", "date_format", "users"]
 
 
 class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
