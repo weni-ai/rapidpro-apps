@@ -64,5 +64,4 @@ class OrgUpdateProtoSerializer(proto_serializers.ModelProtoSerializer):
             "is_multi_user",
             "is_multi_org",
             "is_suspended",
-            "is_active"
         ]
