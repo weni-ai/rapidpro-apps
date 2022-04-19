@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.15] - 2022-04-18
+### update
+- weni-protobuffers version to 1.2.12
+
 ## [1.0.14] - 2022-04-05
 ### update
 - weni-protobuffers version to 1.2.10
