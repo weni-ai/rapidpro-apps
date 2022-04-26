@@ -21,8 +21,21 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
     timezone = serializers.CharField()
 
     def get_users(self, org: Org):
-        users = org.administrators.union(org.viewers.all(), org.editors.all(), org.surveyors.all())
-        return list(users.values("id", "email", "username", "first_name", "last_name"))
+        values = ["id", "email", "username", "first_name", "last_name"]
+
+        administrators = list(org.administrators.all().values(*values))
+        viewers = list(org.viewers.all().values(*values))
+        editors = list(org.editors.all().values(*values))
+        surveyors = list(org.surveyors.all().values(*values))
+
+        administrators = [dict(x, **{"permission_type":"administrator"}) for x in administrators]
+        viewers = [dict(x, **{"permission_type":"viewer"}) for x in viewers]
+        editors = [dict(x, **{"permission_type":"editor"}) for x in editors]
+        surveyors = [dict(x, **{"permission_type":"surveyor"}) for x in surveyors]
+
+        users = administrators + viewers + editors + surveyors
+
+        return users
 
     class Meta:
         model = Org
