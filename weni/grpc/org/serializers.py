@@ -20,20 +20,6 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
     users = serializers.SerializerMethodField()
     timezone = serializers.CharField()
 
-    def add_permission_to_user(self, user, permission, last_users):
-        for x in last_users:
-            if "permission_type" in x:
-                x['permission_type'].append(permission)
-                return x
-        return dict(user, **{"permission_type":[permission]})
-
-    def remove_dupes(self, mylist):
-        newlist = [mylist[0]]
-        for e in mylist:
-            if e not in newlist:
-                newlist.append(e)
-        return newlist
-
     def get_users(self, org: Org):
         values = ["id", "email", "username", "first_name", "last_name"]
 
@@ -42,12 +28,14 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
         editors = list(org.editors.all().values(*values))
         surveyors = list(org.surveyors.all().values(*values))
 
-        users = [self.add_permission_to_user(x, "administrator", list()) for x in administrators]
-        users += [self.add_permission_to_user(x, "viewer", users) for x in viewers]
-        users += [self.add_permission_to_user(x, "editor", users) for x in editors]
-        users += [self.add_permission_to_user(x, "surveyor", users) for x in surveyors]
-    
-        return self.remove_dupes(users)
+        administrators = [dict(x, **{"permission_type":"administrator"}) for x in administrators]
+        viewers = [dict(x, **{"permission_type":"viewer"}) for x in viewers]
+        editors = [dict(x, **{"permission_type":"editor"}) for x in editors]
+        surveyors = [dict(x, **{"permission_type":"surveyor"}) for x in surveyors]
+
+        users = administrators + viewers + editors + surveyors
+
+        return users
 
     class Meta:
         model = Org
