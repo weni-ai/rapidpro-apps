@@ -162,7 +162,7 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEqual(user.email, response_user.email)
         self.assertEqual(user.username, response_user.username)
 
-        self.assertEqual(response_user.permission_type, randon_permission)
+        self.assertEqual(response_user.permission_type[0], randon_permission)
 
     def test_destroy_org(self):
         org = Org.objects.last()
