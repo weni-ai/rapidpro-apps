@@ -31,3 +31,16 @@ class BillingService(generics.GenericService):
 
         for message in ActiveContactDetailSerializer(results, many=True).message:
             yield message
+
+    def IncomingMessage(self, request, context):
+        serializer = self.get_serializer(message=request)
+        serializer.is_valid(raise_exception=True)
+
+        org = serializer.validated_data["org"]
+        contact_id = serializer.validated_data["contact_id"]
+        before = serializer.validated_data["before"]
+        after = serializer.validated_data["after"]
+
+        result = MessageQuery.incoming_message(str(org.uuid), contact_id, before, after)
+
+        return result

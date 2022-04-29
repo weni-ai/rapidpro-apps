@@ -224,3 +224,31 @@ class BillingServiceTest(RPCTransactionTestCase):
 
     def test_detailed(self):
         ...
+
+    def test_incoming_message(self):
+        org = Org.objects.create(
+            name="Weni",
+            timezone=tz.pytz.timezone("America/Sao_Paulo"),
+            brand=settings.DEFAULT_BRAND,
+            created_by=self.user,
+            modified_by=self.user,
+        )
+
+        contact = self.create_contact(f"Contact 11", phone=f"+553124826911")
+        self.create_incoming_msgs(
+            contact,
+            2
+        )
+
+        msg = self.create_message(before=tz.now() - tz.timedelta(hours=12), after=tz.now())
+
+        before = tz.now()
+        after = tz.now() - tz.timedelta(minutes=1)
+
+        response = self.billing_incoming_msg(uuid=org.uuid, contact.id, before, after)
+
+        self.assertEqual(response.id, msg.id)
+
+
+    def billing_incoming_msg(self, **kwargs):
+        return self.stub.IncomingMessage(pb2.IncomingMessageRequest(**kwargs))
