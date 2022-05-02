@@ -32,7 +32,6 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
         editors = list(org.editors.all().values(*values))
         surveyors = list(org.surveyors.all().values(*values))
 
-
         administrators = list(map(lambda user: self.set_user_permission(user, "administrator"), administrators))
         viewers = list(map(lambda user: self.set_user_permission(user, "viewer"), viewers))
         editors = list(map(lambda user: self.set_user_permission(user, "editor"), editors))
