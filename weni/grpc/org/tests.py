@@ -132,15 +132,15 @@ class OrgServiceTest(RPCTransactionTestCase):
 
         permission_types = ("administrator", "viewer", "editor", "surveyor")
 
-        randon_permission = random.choice(permission_types)
+        random_permission = random.choice(permission_types)
 
-        if randon_permission == "administrator":
+        if random_permission == "administrator":
             org.administrators.add(user)
-        if randon_permission == "viewer":
+        if random_permission == "viewer":
             org.viewers.add(user)
-        if randon_permission == "editor":
+        if random_permission == "editor":
             org.editors.add(user)
-        if randon_permission == "surveyor":
+        if random_permission == "surveyor":
             org.surveyors.add(user)
 
         org_uuid = str(org.uuid)
@@ -162,7 +162,7 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEqual(user.email, response_user.email)
         self.assertEqual(user.username, response_user.username)
 
-        self.assertEqual(response_user.permission_type, randon_permission)
+        self.assertEqual(response_user.permission_type, random_permission)
 
     def test_destroy_org(self):
         org = Org.objects.last()
