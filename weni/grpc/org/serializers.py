@@ -20,6 +20,10 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
     users = serializers.SerializerMethodField()
     timezone = serializers.CharField()
 
+    def set_user_permission(self, user: dict, permission: str) -> dict:
+        user["permission_type"] = permission
+        return user
+
     def get_users(self, org: Org):
         values = ["id", "email", "username", "first_name", "last_name"]
 
@@ -28,10 +32,11 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
         editors = list(org.editors.all().values(*values))
         surveyors = list(org.surveyors.all().values(*values))
 
-        administrators = [dict(x, **{"permission_type":"administrator"}) for x in administrators]
-        viewers = [dict(x, **{"permission_type":"viewer"}) for x in viewers]
-        editors = [dict(x, **{"permission_type":"editor"}) for x in editors]
-        surveyors = [dict(x, **{"permission_type":"surveyor"}) for x in surveyors]
+
+        administrators = list(map(lambda user: self.set_user_permission(user, "administrator"), administrators))
+        viewers = list(map(lambda user: self.set_user_permission(user, "viewer"), viewers))
+        editors = list(map(lambda user: self.set_user_permission(user, "editor"), editors))
+        surveyors = list(map(lambda user: self.set_user_permission(user, "surveyor"), surveyors))
 
         users = administrators + viewers + editors + surveyors
 
