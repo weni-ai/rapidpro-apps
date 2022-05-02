@@ -472,7 +472,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "weni-protobuffers"
-version = "1.2.12"
+version = "1.2.13"
 description = "Protocol Buffers for Weni Platform"
 category = "main"
 optional = false
@@ -497,7 +497,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "7d6e57564e7ea339f013870ba19c714ab289c746385f179a368c4f811d097e9c"
+content-hash = "aaef909fcb93c86df8a4ab26c320b6a36ce0becd33c79b8dca50e42630699439"
 
 [metadata.files]
 amqp = [
@@ -862,8 +862,8 @@ vine = [
     {file = "vine-1.3.0.tar.gz", hash = "sha256:133ee6d7a9016f177ddeaf191c1f58421a1dcc6ee9a42c58b34bed40e1d2cd87"},
 ]
 weni-protobuffers = [
-    {file = "weni-protobuffers-1.2.12.tar.gz", hash = "sha256:51e2e91b20d63651663ced0826c7c7903bd800de3672c679bb8941e71b431093"},
-    {file = "weni_protobuffers-1.2.12-py3-none-any.whl", hash = "sha256:a90e524a2e4f93fc9ee374704f9f466e610aaed16fe90f17002d7e2a13ee9d71"},
+    {file = "weni-protobuffers-1.2.13.tar.gz", hash = "sha256:d4c550091441103eb4f9d40a9ba13f8af11eef58f7eb9d6de4fcf37af2b24260"},
+    {file = "weni_protobuffers-1.2.13-py3-none-any.whl", hash = "sha256:65df7182660f2594ab29aab7eba468415e0344d25f102c41496846db7f1ebea8"},
 ]
 zipp = [
     {file = "zipp-3.6.0-py3-none-any.whl", hash = "sha256:9fe5ea21568a0a70e50f273397638d39b03353731e6cbbb3fd8502a33fec40bc"},
