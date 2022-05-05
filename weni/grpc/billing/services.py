@@ -33,14 +33,16 @@ class BillingService(generics.GenericService):
             yield message
 
     def IncomingMessage(self, request, context):
-        serializer = self.get_serializer(message=request)
+        serializer = IncomingMessageRequestSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
-        org = serializer.validated_data["org"]
-        contact_id = serializer.validated_data["contact_id"]
+        org_uuid = serializer.validated_data["org_uuid"]
+        contact_uuid = serializer.validated_data["contact_uuid"]
         before = serializer.validated_data["before"]
         after = serializer.validated_data["after"]
 
-        result = MessageQuery.incoming_message(str(org.uuid), contact_id, before, after)
+        msg = IncomingMessageQuery.incoming_message(org_uuid, contact_uuid, before, after)
 
-        return result
+        msg_serializer = IncomingMsgSerializer(org)
+
+        return msg_serializer.message

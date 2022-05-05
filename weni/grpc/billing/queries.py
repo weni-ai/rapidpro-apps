@@ -67,8 +67,15 @@ class ActiveContactsQuery:
 
 class IncomingMessageQuery:
     @classmethod
-    def incoming_message(cls, org_uuid: str, id_contact: int, before: datetime, after: datetime):
+    def incoming_message(cls, org_uuid: str, contact_uuid: str, before: datetime, after: datetime):
         org = Org.objects.get(uuid=org_uuid)
-        msg = Msg.objects.filter(contact_urn__contact__pk=OuterRef("pk"), created_on__lte=before, created_on__gte=after, direction="I", contact_id=id_contact).exclude(status="F").order_by("-created_on").values("uuid", "text", "created_on", "direction").last()
+        contact = Contact.objects.get(uuid=contact_uuid)
+        msg = (
+            Msg.objects.filter(contact_urn__contact__pk=OuterRef("pk"), created_on__lte=before, created_on__gte=after, org=org, direction="I", contact=contact)
+            .exclude(status="F")
+            .order_by("-created_on")
+            .values("uuid", "text", "created_on", "direction")
+            .last()
+        )
 
         return msg
