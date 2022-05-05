@@ -67,7 +67,7 @@ class ActiveContactsQuery:
 
 class IncomingMessageQuery:
     @classmethod
-    def last_incoming_message(cls, org_uuid: str, contact_uuid: str, before: datetime, after: datetime):
+    def last_incoming_message(cls, org_uuid: str, contact_uuid: str, before: datetime, after: datetime) -> Msg:
         org = Org.objects.get(uuid=org_uuid)
         contact = Contact.objects.get(uuid=contact_uuid)
         msg = (
