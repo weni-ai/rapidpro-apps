@@ -2,6 +2,7 @@ from django_grpc_framework import generics
 
 from weni.protobuf.flows.billing_pb2 import TotalResponse
 from weni.grpc.billing.queries import ActiveContactsQuery as Query
+from weni.grpc.billing.queries import IncomingMessageQuery
 from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer
 
 
