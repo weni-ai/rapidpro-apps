@@ -42,7 +42,7 @@ class BillingService(generics.GenericService):
         before = serializer.validated_data["before"]
         after = serializer.validated_data["after"]
 
-        msg = IncomingMessageQuery.incoming_message(org_uuid, contact_uuid, before, after)
+        msg = IncomingMessageQuery.last_incoming_message(org_uuid, contact_uuid, before, after)
 
         msg_serializer = IncomingMsgSerializer(org)
 
