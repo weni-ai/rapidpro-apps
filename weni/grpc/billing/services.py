@@ -2,8 +2,8 @@ from django_grpc_framework import generics
 
 from weni.protobuf.flows.billing_pb2 import TotalResponse
 from weni.grpc.billing.queries import ActiveContactsQuery as Query
-from weni.grpc.billing.queries import IncomingMessageQuery
-from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer, IncomingMsgSerializer, IncomingMessageRequestSerializer
+from weni.grpc.billing.queries import MessageDetailQuery
+from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer, MsgDetailSerializer, MessageDetailRequestSerializer
 
 
 class BillingService(generics.GenericService):
@@ -33,8 +33,8 @@ class BillingService(generics.GenericService):
         for message in ActiveContactDetailSerializer(results, many=True).message:
             yield message
 
-    def IncomingMessage(self, request, context):
-        serializer = IncomingMessageRequestSerializer(message=request)
+    def MessageDetail(self, request, context):
+        serializer = MessageDetailRequestSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
         org_uuid = serializer.validated_data["org_uuid"]
@@ -42,8 +42,8 @@ class BillingService(generics.GenericService):
         before = serializer.validated_data["before"]
         after = serializer.validated_data["after"]
 
-        msg = IncomingMessageQuery.incoming_message(org_uuid, contact_uuid, before, after)
+        msg = MessageDetailQuery.incoming_message(org_uuid, contact_uuid, before, after)
 
-        msg_serializer = IncomingMsgSerializer(msg)
+        msg_serializer = MsgDetailSerializer(msg)
 
         return msg_serializer.message

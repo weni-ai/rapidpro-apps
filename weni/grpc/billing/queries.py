@@ -66,7 +66,7 @@ class ActiveContactsQuery:
         )
 
 
-class IncomingMessageQuery:
+class MessageDetailQuery:
     @classmethod
     def incoming_message(cls, org_uuid: str, contact_uuid: str, before: datetime, after: datetime):
         org = Org.objects.get(uuid=org_uuid)

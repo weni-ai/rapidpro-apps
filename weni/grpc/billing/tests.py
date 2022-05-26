@@ -228,7 +228,7 @@ class BillingServiceTest(RPCTransactionTestCase, TembaTest):
     def test_detailed(self):
         ...
 
-    def test_incoming_message(self):
+    def test_message_detail(self):
         user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
         org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
 
@@ -245,7 +245,7 @@ class BillingServiceTest(RPCTransactionTestCase, TembaTest):
         before = tz.now()
         after = tz.now() - tz.timedelta(minutes=1)
 
-        result = self.billing_incoming_msg(org_uuid=str(org.uuid), contact_uuid=str(contact.uuid), before=str(before), after=str(after))
+        result = self.billing_detail_msg(org_uuid=str(org.uuid), contact_uuid=str(contact.uuid), before=str(before), after=str(after))
 
         self.assertEqual(str(msg.uuid), result.uuid)
         self.assertEqual(msg.text, result.text)
@@ -254,5 +254,5 @@ class BillingServiceTest(RPCTransactionTestCase, TembaTest):
         self.assertEqual(channel.channel_type, result.channel_type)
 
 
-    def billing_incoming_msg(self, **kwargs):
-        return self.stub.IncomingMessage(pb2.IncomingMessageRequest(**kwargs))
+    def billing_detail_msg(self, **kwargs):
+        return self.stub.MessageDetail(pb2.MessageDetailRequest(**kwargs))
