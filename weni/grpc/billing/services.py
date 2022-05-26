@@ -3,7 +3,7 @@ from django_grpc_framework import generics
 from weni.protobuf.flows.billing_pb2 import TotalResponse
 from weni.grpc.billing.queries import ActiveContactsQuery as Query
 from weni.grpc.billing.queries import IncomingMessageQuery
-from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer
+from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer, IncomingMsgSerializer, IncomingMessageRequestSerializer
 
 
 class BillingService(generics.GenericService):
@@ -42,8 +42,8 @@ class BillingService(generics.GenericService):
         before = serializer.validated_data["before"]
         after = serializer.validated_data["after"]
 
-        msg = IncomingMessageQuery.last_incoming_message(org_uuid, contact_uuid, before, after)
+        msg = IncomingMessageQuery.incoming_message(org_uuid, contact_uuid, before, after)
 
-        msg_serializer = IncomingMsgSerializer(org)
+        msg_serializer = IncomingMsgSerializer(msg)
 
         return msg_serializer.message

@@ -1,8 +1,9 @@
 from datetime import datetime
 
 from django.db import connection
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Subquery, Q
 from temba.contacts.models import Contact
+from temba.channels.models import Channel
 from temba.msgs.models import Msg
 from temba.orgs.models import Org
 
@@ -67,15 +68,23 @@ class ActiveContactsQuery:
 
 class IncomingMessageQuery:
     @classmethod
-    def last_incoming_message(cls, org_uuid: str, contact_uuid: str, before: datetime, after: datetime) -> Msg:
+    def incoming_message(cls, org_uuid: str, contact_uuid: str, before: datetime, after: datetime):
         org = Org.objects.get(uuid=org_uuid)
         contact = Contact.objects.get(uuid=contact_uuid)
+
+
         msg = (
-            Msg.objects.filter(contact_urn__contact__pk=OuterRef("pk"), created_on__lte=before, created_on__gte=after, org=org, direction="I", contact=contact)
+            Msg.objects.filter(created_on__lte=before, created_on__gte=after, org=org, contact=contact)
+            .filter(Q(direction="I") | Q(direction="O"))
             .exclude(status="F")
             .order_by("-created_on")
-            .values("uuid", "text", "created_on", "direction")
+            .values("uuid", "text", "created_on", "direction", "channel")
             .last()
         )
+        
+        channel = Channel.objects.get(id=msg['channel'])
+
+        msg['channel_id'] = channel.id
+        msg['channel_type'] = channel.channel_type
 
         return msg
