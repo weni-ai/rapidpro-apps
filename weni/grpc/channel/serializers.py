@@ -62,7 +62,7 @@ class ChannelProtoSerializer(proto_serializers.ModelProtoSerializer):
 
 class ChannelWACSerializer(proto_serializers.ModelProtoSerializer):
     user = weni_serializers.UserEmailRelatedField(required=True, write_only=True)
-    org  = weni_serializers.OrgUUIDRelatedField(required=True, write_only=True)
+    org = weni_serializers.OrgUUIDRelatedField(required=True, write_only=True)
     phone_number_id = serializers.CharField(required=True, write_only=True)
     uuid = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)

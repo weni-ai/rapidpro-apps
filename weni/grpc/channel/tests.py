@@ -63,21 +63,26 @@ class CreateWACServiceTest(gRPCClient, RPCTransactionTestCase):
         self.config = {
             "wa_number": "5561995743921",
             "wa_verified_name": "Weni Test",
-            "wa_waba_id": "2433443436435435",   
+            "wa_waba_id": "2433443436435435",
             "wa_currency": "USD",
             "wa_business_id": "3443243234254322",
             "wa_message_template_namespace": "6b186dea_ds6d_44s2_b9xd_de87a12212e5",
         }
 
         super().setUp()
-    
+
     @patch("temba.channels.types.whatsapp_cloud.type.WhatsAppCloudType.activate")
     def test_create_whatsapp_cloud_channel(self, mock):
         mock.return_value = None
 
         phone_number_id = "5426423432"
 
-        channel = self.channel_create_whatsapp_cloud_request(org=str(self.org.uuid), user=self.user.email, phone_number_id=phone_number_id, config=json.dumps(self.config))
+        channel = self.channel_create_whatsapp_cloud_request(
+            org=str(self.org.uuid),
+            user=self.user.email,
+            phone_number_id=phone_number_id,
+            config=json.dumps(self.config),
+        )
 
         self.assertTrue(hasattr(channel, "uuid"))
         self.assertEqual(channel.name, self.config.get("wa_verified_name"))
@@ -90,11 +95,20 @@ class CreateWACServiceTest(gRPCClient, RPCTransactionTestCase):
 
         phone_number_id = "5426423432"
 
-        self.channel_create_whatsapp_cloud_request(org=str(self.org.uuid), user=self.user.email, phone_number_id=phone_number_id, config=json.dumps(self.config))
-        
+        self.channel_create_whatsapp_cloud_request(
+            org=str(self.org.uuid),
+            user=self.user.email,
+            phone_number_id=phone_number_id,
+            config=json.dumps(self.config),
+        )
 
-        with self.assertRaises(serializers.ValidationError): 
-            self.channel_create_whatsapp_cloud_request(org=str(self.org.uuid), user=self.user.email, phone_number_id=phone_number_id, config=json.dumps(self.config))
+        with self.assertRaises(serializers.ValidationError):
+            self.channel_create_whatsapp_cloud_request(
+                org=str(self.org.uuid),
+                user=self.user.email,
+                phone_number_id=phone_number_id,
+                config=json.dumps(self.config),
+            )
 
 
 class CreateChannelServiceTest(gRPCClient, RPCTransactionTestCase):
