@@ -1,7 +1,9 @@
 import json
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django_grpc_framework.test import RPCTransactionTestCase
+from rest_framework import serializers
 
 from temba.channels.models import Channel
 from temba.orgs.models import Org, OrgRole
@@ -13,6 +15,10 @@ User = get_user_model()
 
 
 class gRPCClient:
+    def channel_create_whatsapp_cloud_request(self, **kwargs):
+        stub = channel_pb2_grpc.ChannelControllerStub(self.channel)
+        return stub.CreateWAC(channel_pb2.ChannelWACCreateRequest(**kwargs))
+
     def channel_create_request(self, **kwargs):
         stub = channel_pb2_grpc.ChannelControllerStub(self.channel)
         return stub.Create(channel_pb2.ChannelCreateRequest(**kwargs))
@@ -44,6 +50,51 @@ class ReleaseChannelServiceTest(gRPCClient, RPCTransactionTestCase):
     def test_released_channel_is_active_equal_to_false(self):
         self.channel_relesase_request(uuid=self.channel_obj.uuid, user=self.user.email)
         self.assertFalse(Channel.objects.get(id=self.channel_obj.id).is_active)
+
+
+class CreateWACServiceTest(gRPCClient, RPCTransactionTestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
+        self.org = Org.objects.create(
+            name="Weni", timezone="America/Sao_Paulo", created_by=self.user, modified_by=self.user
+        )
+        self.org.add_user(self.user, OrgRole.ADMINISTRATOR)
+
+        self.config = {
+            "wa_number": "5561995743921",
+            "wa_verified_name": "Weni Test",
+            "wa_waba_id": "2433443436435435",   
+            "wa_currency": "USD",
+            "wa_business_id": "3443243234254322",
+            "wa_message_template_namespace": "6b186dea_ds6d_44s2_b9xd_de87a12212e5",
+        }
+
+        super().setUp()
+    
+    @patch("temba.channels.types.whatsapp_cloud.type.WhatsAppCloudType.activate")
+    def test_create_whatsapp_cloud_channel(self, mock):
+        mock.return_value = None
+
+        phone_number_id = "5426423432"
+
+        channel = self.channel_create_whatsapp_cloud_request(org=str(self.org.uuid), user=self.user.email, phone_number_id=phone_number_id, config=json.dumps(self.config))
+
+        self.assertTrue(hasattr(channel, "uuid"))
+        self.assertEqual(channel.name, self.config.get("wa_verified_name"))
+        self.assertEqual(json.loads(channel.config), self.config)
+        self.assertEqual(channel.address, phone_number_id)
+
+    @patch("temba.channels.types.whatsapp_cloud.type.WhatsAppCloudType.activate")
+    def test_create_whatsapp_cloud_channel_invalid_address(self, mock):
+        mock.return_value = None
+
+        phone_number_id = "5426423432"
+
+        self.channel_create_whatsapp_cloud_request(org=str(self.org.uuid), user=self.user.email, phone_number_id=phone_number_id, config=json.dumps(self.config))
+        
+
+        with self.assertRaises(serializers.ValidationError): 
+            self.channel_create_whatsapp_cloud_request(org=str(self.org.uuid), user=self.user.email, phone_number_id=phone_number_id, config=json.dumps(self.config))
 
 
 class CreateChannelServiceTest(gRPCClient, RPCTransactionTestCase):
