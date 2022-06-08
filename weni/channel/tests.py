@@ -44,26 +44,22 @@ class TembaRequestMixin(ABC):
 class ChannelTestCase(TembaTest, TembaRequestMixin):
     
     def setUp(self):
+        self.user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
+        self.org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=self.user, modified_by=self.user)
+
+        self.channel = self.create_channel(channel_type="WA", name="channel_test", address="address_test", org=self.org)
+
         super().setUp()
 
     def test_list(self):
-        user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
-
-        channel = self.create_channel(channel_type="WA", name="channel_test", address="address_test", org=org)
-
         channel_request = self.request_get()
 
-        self.assertEqual(channel_request.data['results'][0]['name'], channel.name)
+        self.assertEqual(channel_request.data['results'][0]['name'], self.channel.name)
 
     def test_create(self):
-
-        user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
-
         payload = {
-            "user": str(user.id),
-            "org": str(org.uuid),
+            "user": str(self.user.id),
+            "org": str(self.org.uuid),
             "data": "",
             "channeltype_code": ""
         }
@@ -72,14 +68,9 @@ class ChannelTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(create_request.status_code, 200)
 
     def test_retrieve(self):
-        user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        channel_request = self.request_get(uuid=self.channel.uuid)
 
-        channel = self.create_channel(channel_type="WA", name="channel_test", address="address_test", org=org)
-
-        channel_request = self.request_get(uuid=channel.uuid)
-
-        self.assertEqual(channel_request.data['results'][0]['name'], channel.name)
+        self.assertEqual(channel_request.data['results'][0]['name'], self.channel.name)
 
     def get_url_namespace(self):
         return "api.v2.channel"
