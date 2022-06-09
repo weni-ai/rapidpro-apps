@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [1.0.19] - 2022-06-09
+- Add more details to Message endpoint
+
 ## [1.0.18] - 2022-06-08
 - Add Channel Cloud Whatsapp
 
