@@ -1,4 +1,5 @@
 from datetime import datetime
+import random
 
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -129,7 +130,18 @@ class OrgServiceTest(RPCTransactionTestCase):
         org = Org.objects.last()
         user = User.objects.last()
 
-        org.administrators.add(user)
+        permission_types = ("administrator", "viewer", "editor", "surveyor")
+
+        random_permission = random.choice(permission_types)
+
+        if random_permission == "administrator":
+            org.administrators.add(user)
+        if random_permission == "viewer":
+            org.viewers.add(user)
+        if random_permission == "editor":
+            org.editors.add(user)
+        if random_permission == "surveyor":
+            org.surveyors.add(user)
 
         org_uuid = str(org.uuid)
         org_timezone = str(org.timezone)
@@ -149,6 +161,8 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEqual(user.id, response_user.id)
         self.assertEqual(user.email, response_user.email)
         self.assertEqual(user.username, response_user.username)
+
+        self.assertEqual(response_user.permission_type, random_permission)
 
     def test_destroy_org(self):
         org = Org.objects.last()

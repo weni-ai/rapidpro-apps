@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [1.0.18] - 2022-06-08
+- Add Channel Cloud Whatsapp
+
+## [1.0.17] - 2022-05-02
+- Added permission_type of users to org object
+
 ## [1.0.16] - 2022-04-19
 ### Revert
 - "Refactors the billing query"
