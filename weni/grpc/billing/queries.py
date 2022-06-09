@@ -52,7 +52,10 @@ class ActiveContactsQuery:
                 channel__uuid=Subquery(msg.values("channel__uuid")[:1]),
                 channel__name=Subquery(msg.values("channel__name")[:1]),
             )
-            .filter(org=org, msg__uuid__isnull=False,)
+            .filter(
+                org=org,
+                msg__uuid__isnull=False,
+            )
             .values(
                 "uuid",
                 "name",
@@ -61,7 +64,7 @@ class ActiveContactsQuery:
                 "msg__sent_on",
                 "msg__direction",
                 "channel__uuid",
-                "channel__name"
+                "channel__name",
             )
         )
 
@@ -72,7 +75,6 @@ class MessageDetailQuery:
         org = Org.objects.get(uuid=org_uuid)
         contact = Contact.objects.get(uuid=contact_uuid)
 
-
         msg = (
             Msg.objects.filter(created_on__lte=before, created_on__gte=after, org=org, contact=contact)
             .filter(Q(direction="I") | Q(direction="O"))
@@ -81,10 +83,10 @@ class MessageDetailQuery:
             .values("uuid", "text", "created_on", "direction", "channel")
             .last()
         )
-        
-        channel = Channel.objects.get(id=msg['channel'])
 
-        msg['channel_id'] = channel.id
-        msg['channel_type'] = channel.channel_type
+        channel = Channel.objects.get(id=msg["channel"])
+
+        msg["channel_id"] = channel.id
+        msg["channel_type"] = channel.channel_type
 
         return msg

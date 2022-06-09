@@ -85,7 +85,6 @@ class MessageDetailRequestSerializer(ProtoSerializer):
         proto_class = billing_pb2.MessageDetailRequest
 
 
-
 class MsgDetailSerializer(ProtoSerializer):
     uuid = serializers.UUIDField()
     text = serializers.CharField()

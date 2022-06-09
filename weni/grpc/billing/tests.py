@@ -217,7 +217,6 @@ class BillingRequestSerializerTest(TestCase):
 
 
 class BillingServiceTest(RPCTransactionTestCase, TembaTest):
-
     def setUp(self):
         super().setUp()
         self.stub = stubs.BillingControllerStub(self.channel)
@@ -232,7 +231,6 @@ class BillingServiceTest(RPCTransactionTestCase, TembaTest):
         user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
         org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
 
-
         contact = self.create_contact(f"Contact 1", phone=f"+553124826922")
         contact.org = org
         contact.save(update_fields=["org"])
@@ -240,19 +238,20 @@ class BillingServiceTest(RPCTransactionTestCase, TembaTest):
         channel = self.create_channel(channel_type="WA", name="channel_test", address="address_test", org=org)
 
         msg = self.create_incoming_msg(contact=contact, text="incoming message test", channel=channel)
-        msg1 = self.create_outgoing_msg(contact=contact, text="incoming message test", channel=channel) 
+        msg1 = self.create_outgoing_msg(contact=contact, text="incoming message test", channel=channel)
 
         before = tz.now()
         after = tz.now() - tz.timedelta(minutes=1)
 
-        result = self.billing_detail_msg(org_uuid=str(org.uuid), contact_uuid=str(contact.uuid), before=str(before), after=str(after))
+        result = self.billing_detail_msg(
+            org_uuid=str(org.uuid), contact_uuid=str(contact.uuid), before=str(before), after=str(after)
+        )
 
         self.assertEqual(str(msg.uuid), result.uuid)
         self.assertEqual(msg.text, result.text)
         self.assertEqual(msg.direction, result.direction)
         self.assertEqual(channel.id, result.channel_id)
         self.assertEqual(channel.channel_type, result.channel_type)
-
 
     def billing_detail_msg(self, **kwargs):
         return self.stub.MessageDetail(pb2.MessageDetailRequest(**kwargs))
