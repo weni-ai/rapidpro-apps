@@ -73,3 +73,25 @@ class ActiveContactDetailSerializer(ProtoSerializer):
 
     class Meta:
         proto_class = billing_pb2.ActiveContactDetail
+
+
+class MessageDetailRequestSerializer(ProtoSerializer):
+    org_uuid = serializers.UUIDField()
+    contact_uuid = serializers.CharField()
+    before = serializers.DateTimeField()
+    after = serializers.DateTimeField()
+
+    class Meta:
+        proto_class = billing_pb2.MessageDetailRequest
+
+
+class MsgDetailSerializer(ProtoSerializer):
+    uuid = serializers.UUIDField()
+    text = serializers.CharField()
+    created_on = serializers.CharField()
+    direction = serializers.CharField()
+    channel_id = serializers.IntegerField()
+    channel_type = serializers.CharField()
+
+    class Meta:
+        proto_class = billing_pb2.MsgDetail
