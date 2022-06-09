@@ -83,7 +83,7 @@ class ChannelWACSerializer(proto_serializers.ModelProtoSerializer):
         return json.dumps(instance)
 
     def create(self, validated_data):
-        channel_type = Channel.get_type_from_code(channel_type)
+        channel_type = Channel.get_type_from_code("WAC")
         schemes = channel_type.schemes
 
         org = validated_data.get("org")
