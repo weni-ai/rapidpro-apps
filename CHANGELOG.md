@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [1.0.2-] - 2022-06-15
+- Fix exception when has not msg on message detail
+
 ## [1.0.19] - 2022-06-09
 - Add more details to Message endpoint
 
