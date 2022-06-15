@@ -84,6 +84,9 @@ class MessageDetailQuery:
             .last()
         )
 
+        if not msg:
+            return None
+
         channel = Channel.objects.get(id=msg["channel"])
 
         msg["channel_id"] = channel.id
