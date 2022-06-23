@@ -92,6 +92,7 @@ class MsgDetailSerializer(ProtoSerializer):
     direction = serializers.CharField()
     channel_id = serializers.IntegerField()
     channel_type = serializers.CharField()
+    is_valid = serializers.BooleanField()
 
     class Meta:
         proto_class = billing_pb2.MsgDetail

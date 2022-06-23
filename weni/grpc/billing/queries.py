@@ -85,11 +85,12 @@ class MessageDetailQuery:
         )
 
         if not msg:
-            return None
+            return dict(uuid = "", text = "", created_on = "", direction = "", channel_id = 0, channel_type = "", is_valid = False)
 
         channel = Channel.objects.get(id=msg["channel"])
 
         msg["channel_id"] = channel.id
         msg["channel_type"] = channel.channel_type
+        msg["is_valid"] = True
 
         return msg

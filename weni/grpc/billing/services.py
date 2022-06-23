@@ -50,9 +50,6 @@ class BillingService(generics.GenericService):
 
         msg = MessageDetailQuery.incoming_message(org_uuid, contact_uuid, before, after)
 
-        if not msg:
-            return empty_pb2.Empty()
-
         msg_serializer = MsgDetailSerializer(msg)
         return msg_serializer.message
         

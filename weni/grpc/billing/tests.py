@@ -253,6 +253,7 @@ class BillingServiceTest(RPCTransactionTestCase, TembaTest):
         self.assertEqual(msg.direction, result.direction)
         self.assertEqual(channel.id, result.channel_id)
         self.assertEqual(channel.channel_type, result.channel_type)
+        self.assertEqual(True, result.is_valid)
 
     def test_message_detail_fail(self):
         user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
@@ -273,7 +274,7 @@ class BillingServiceTest(RPCTransactionTestCase, TembaTest):
             org_uuid=str(org.uuid), contact_uuid=str(contact.uuid), before=str(before), after=str(after)
         )
 
-        self.assertEqual(type(result), empty_pb2.Empty)
+        self.assertEqual(result.is_valid, False)
 
     def billing_detail_msg(self, **kwargs):
         return self.stub.MessageDetail(pb2.MessageDetailRequest(**kwargs))
