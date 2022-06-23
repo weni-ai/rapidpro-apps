@@ -1,32 +1,11 @@
-import json
-import re
-
-from django.http.response import HttpResponseRedirect
-from django.db.models import Count, Prefetch, Q
-from django.urls import reverse
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from django.test import RequestFactory
-from django.contrib.sessions.middleware import SessionMiddleware
-from django.contrib.messages.middleware import MessageMiddleware
-from django.contrib.auth.models import User
 
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework import viewsets
-from rest_framework import generics
-from rest_framework import mixins
-from rest_framework import exceptions
 from rest_framework import status
 
-
-from temba.contacts.models import Contact, ContactGroup
-from temba.orgs.models import Org
-from temba.flows.models import FlowRun
-from temba.utils import str_to_bool
 from temba.channels.models import Channel
-from temba.channels.types import TYPES
 
 from .serializers import ChannelSerializer, CreateChannelSerializer, ChannelWACSerializer
 
