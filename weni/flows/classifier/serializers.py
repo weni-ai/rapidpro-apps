@@ -5,11 +5,6 @@ from weni.protobuf.flows import classifier_pb2
 from weni.grpc.core import serializers as weni_serializers
 
 
-#class ClassifierListSerializer(serializers.Serializer):
-#    org = weni_serializers.OrgUUIDRelatedField(required=True)
-#    is_active = serializers.BooleanField(required=True)
-#    classifier_type = serializers.CharField()
-
 class ClassifierSerializer(serializers.Serializer):
 
     uuid = serializers.UUIDField(read_only=True)
