@@ -1,6 +1,13 @@
 ## [Unreleased]
 
-## [1.0.2-] - 2022-06-15
+## [1.0.21] - 2022-06-15
+- Add channel_id field to response in billing Detailed endpoint
+- Adjust the python version to have compatibility with the new package;
+- Add a new package named pre-commit;
+- Creates a file named .pre-commit-config.yaml to configure the pre commit;
+- Adjust readme with the new feature.
+
+## [1.0.20] - 2022-06-15
 - Fix exception when has not msg on message detail
 
 ## [1.0.19] - 2022-06-09
