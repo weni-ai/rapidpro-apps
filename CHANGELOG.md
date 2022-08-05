@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [1.0.22] - 2022-06-15
+- Fix pipy package dependencies
+
 ## [1.0.21] - 2022-06-15
 - Add channel_id field to response in billing Detailed endpoint
 - Adjust the python version to have compatibility with the new package;
