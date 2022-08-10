@@ -23,4 +23,4 @@ class FlowSerializer(serializers.ModelSerializer):
 
         org.import_app(sample_flows, org.created_by)
 
-        return org.flows.last()
+        return org.flows.order_by("created_on").last()
