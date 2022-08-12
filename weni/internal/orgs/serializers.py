@@ -14,7 +14,8 @@ class TemplateOrgSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Org
-        fields = ("user_email", "name", "timezone")
+        fields = ("user_email", "name", "timezone", "uuid")
+        read_only_fields = ("uuid",)
 
     def validate(self, attrs):
         attrs = dict(attrs)
