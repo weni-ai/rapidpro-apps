@@ -8,9 +8,9 @@ from rest_framework import status
 from temba.channels.models import Channel
 
 from .serializers import ChannelSerializer, CreateChannelSerializer, ChannelWACSerializer
+from weni.internal.views import InternalGenericViewSet
 
-
-class ChannelEndpoint(viewsets.ModelViewSet):
+class ChannelEndpoint(InternalGenericViewSet):
     serializer_class = ChannelSerializer
     lookup_field = "uuid"
 
