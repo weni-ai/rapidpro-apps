@@ -1,25 +1,24 @@
-from django.db.models import Count, Prefetch, Q
-from django.urls import reverse
-from django.http import JsonResponse
-from rest_framework.renderers import JSONRenderer
-from rest_framework.response import Response
-
 from rest_framework import viewsets
 from rest_framework import generics
 from rest_framework import mixins
-
-from temba.api.v2.views_base import BaseAPIView, ListAPIMixin
-from temba.contacts.models import Contact, ContactGroup
-from temba.orgs.models import Org
-from temba.flows.models import FlowRun
-from temba.utils import str_to_bool
+from rest_framework.renderers import JSONRenderer
+from rest_framework.response import Response
 from rest_framework import status
 
 from django.contrib.auth.models import User
+from django.db.models import Count, Prefetch, Q
+from django.urls import reverse
+from django.http import JsonResponse
+
+from temba.api.v2.views_base import BaseAPIView, ListAPIMixin
+from temba.contacts.models import Contact, ContactGroup
+from temba.classifiers.models import Classifier
+from temba.orgs.models import Org
+from temba.flows.models import FlowRun
+from temba.utils import str_to_bool
 
 from .serializers import ClassifierSerializer, ClassifierDeleteSerializer
-from temba.classifiers.models import Classifier
-
+from weni.internal.views import InternalGenericViewSet
 
 
 class ClassifierEndpoint(viewsets.ModelViewSet):
