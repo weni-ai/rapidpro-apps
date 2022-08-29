@@ -87,10 +87,13 @@ class ChannelWACSerializer(proto_serializers.ModelProtoSerializer):
         schemes = channel_type.schemes
 
         org = validated_data.get("org")
-        name = validated_data.get("name")
         phone_number_id = validated_data.get("phone_number_id")
         config = validated_data.get("config", {})
         user = validated_data.get("user")
+
+        number = config.get("wa_number")
+        verified_name = config.get("wa_verified_name")
+        name = f"{number} - {verified_name}"
 
         channel = Channel.objects.create(
             org=org,
