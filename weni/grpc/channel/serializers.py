@@ -49,15 +49,19 @@ class ChannelProtoSerializer(proto_serializers.ModelProtoSerializer):
 
     user = weni_serializers.UserEmailRelatedField(write_only=True, required=True)
     config = serializers.SerializerMethodField()
+    org = serializers.SerializerMethodField()
 
     def get_config(self, instance):
         return json.dumps(instance.config)
 
+    def get_org(self, instance):
+        return str(instance.org.uuid)
+
     class Meta:
         model = Channel
         proto_class = channel_pb2.Channel
-        fields = ("user", "uuid", "name", "address", "config")
-        read_only_fields = ("uuid", "name", "address", "config")
+        fields = ("user", "uuid", "name", "address", "config", "org", "is_active")
+        read_only_fields = ("uuid", "name", "address", "config", "org", "is_active")
 
 
 class ChannelWACSerializer(proto_serializers.ModelProtoSerializer):
