@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [1.0.25] - 2022-08-31
+- Add org and is_active to channel list
+
 ## [1.0.24] - 2022-08-29
 - Generate WAC channel name from number and verified_name
 
