@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [1.0.24] - 2022-08-29
+- Generate WAC channel name from number and verified_name
+
 ## [1.0.23] - 2022-08-26
 - Endpoint that lets you create a flow from a sample flow
 - Endpoint that allows you to create org from a template
