@@ -23,7 +23,10 @@ class ClassifierProtoSerializer(proto_serializers.ModelProtoSerializer):
         config = dict(access_token=validated_data["access_token"])
         validated_data.pop("access_token")
 
-        return Classifier.create(config=config, **validated_data)
+        classifier = Classifier.create(config=config, sync=False, **validated_data)
+        classifier.sync()
+
+        return classifier
 
     class Meta:
         model = Classifier
