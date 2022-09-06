@@ -12,10 +12,12 @@ from django.urls import path, include
 
 from weni.internal.orgs.urls import urlpatterns as orgs_urls
 from weni.internal.flows.urls import urlpatterns as flows_urls
+from weni.internal.users.urls import urlpatterns as users_urls
 
 
 internal_urlpatterns = []
 internal_urlpatterns += orgs_urls
 internal_urlpatterns += flows_urls
+internal_urlpatterns += users_urls
 
 urlpatterns = [path("internals/", include(internal_urlpatterns))]
