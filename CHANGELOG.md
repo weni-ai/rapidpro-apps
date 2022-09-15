@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.26] - 2022-09-15
+- Create serializer fields for User and Org using SlugRelatedField
+- Org and User APIToken internal endpoint
+
 ## [1.0.25] - 2022-08-31
 - Add org and is_active to channel list
 
