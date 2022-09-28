@@ -12,6 +12,7 @@ class UserPermissionProtoSerializer(proto_serializers.ProtoSerializer):
     viewer = serializers.BooleanField(default=False)
     editor = serializers.BooleanField(default=False)
     surveyor = serializers.BooleanField(default=False)
+    agent = serializers.BooleanField(default=False)
 
     class Meta:
         proto_class = user_pb2.Permission
