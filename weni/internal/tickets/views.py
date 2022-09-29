@@ -27,8 +27,8 @@ class TicketerQueueViewSet(
 
     @property
     def _ticketer(self):
-        ticketer_uuid = self.kwargs.get("ticketer_uuid")
-        return get_object_or_404(Ticketer, uuid=ticketer_uuid)
+        sector_uuid = self.kwargs.get("ticketer_uuid")
+        return get_object_or_404(Ticketer, config__sector_uuid=sector_uuid)
 
     def get_queryset(self):
         return super().get_queryset().filter(ticketer=self._ticketer)
