@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from weni import serializers as weni_serializers
 from temba.tickets.models import Ticketer
+from weni import serializers as weni_serializers
+from weni.internal.models import TicketerQueue
 
 
 User = get_user_model()
@@ -30,3 +31,12 @@ class TicketerSerializer(serializers.ModelSerializer):
         validated_data["modified_by"] = user
 
         return super().create(validated_data)
+
+
+class TicketerQueueSerializer(serializers.ModelSerializer):
+
+    uuid = serializers.UUIDField(required=True)
+
+    class Meta:
+        model = TicketerQueue
+        fields = ("uuid", "name")
