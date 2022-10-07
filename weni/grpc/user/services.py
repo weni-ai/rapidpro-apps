@@ -17,9 +17,7 @@ from temba.orgs.models import Org
 def get_user(user_email: str) -> User:
     # TODO: Remove this method, it is just a palliative solution
 
-    user, created = User.objects.get_or_create(
-        email=user_email, defaults={"username": user_email}
-    )
+    user, created = User.objects.get_or_create(email=user_email, defaults={"username": user_email})
     return user
 
 
@@ -85,6 +83,7 @@ class UserPermissionService(
             "viewer": org.viewers,
             "editor": org.editors,
             "surveyor": org.surveyors,
+            "agent": org.agents,
         }
 
     def get_user_permissions(self, org: Org, user: User) -> dict:
