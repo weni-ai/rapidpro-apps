@@ -606,7 +606,7 @@ testing = ["coverage (>=4)", "coverage-enable-subprocess (>=1)", "flaky (>=3)", 
 
 [[package]]
 name = "weni-protobuffers"
-version = "1.2.17"
+version = "1.2.18"
 description = "Protocol Buffers for Weni Platform"
 category = "main"
 optional = false
@@ -631,7 +631,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=4.6)", "pytest-black (
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "1e357d1b7d8858c6eb74cfe1370b34fc65e0a514e44801eb21c8445256a664d2"
+content-hash = "d8a0af4f12e4bf71534d4ca0095bf37453c6e98a183c9f966cdf4f77938afb5e"
 
 [metadata.files]
 amqp = []
@@ -681,5 +681,8 @@ typing-extensions = []
 urllib3 = []
 vine = []
 virtualenv = []
-weni-protobuffers = []
+weni-protobuffers = [
+    {file = "weni-protobuffers-1.2.18.tar.gz", hash = "sha256:abab1169d4d32bc201c0fd359a7a8e95b561e37f1a7a327dca1aca28f6c00946"},
+    {file = "weni_protobuffers-1.2.18-py3-none-any.whl", hash = "sha256:f398af8de476d7d129a10fc677cb287623512775130b9ee15cc9953dbbd80807"},
+]
 zipp = []
