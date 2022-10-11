@@ -38,6 +38,9 @@ class ChannelService(
     def filter_queryset(self, queryset):
         request = self.request
 
+        if getattr(request, "is_active"):
+            queryset = queryset.filter(is_active=request.is_active)
+
         if getattr(request, "channel_type", ""):
             queryset = queryset.filter(channel_type=request.channel_type)
 

@@ -6,6 +6,15 @@ First, clone this repository
 ```sh
 $ git clone https://github.com/Ilhasoft/rapidpro-apps.git
 ```
+Install dependencies and enter virtualenv
+```sh
+$ poetry install
+$ poetry shell
+```
+Sync pre-commits to your environment
+```sh
+$ pre-commit install
+```
 
 <br>
 
