@@ -195,7 +195,6 @@ class RetrieveChannelTestCase(TembaTest, TembaRequestMixin):
 
     def test_channel_retrieve_returned_fields(self):
         response = self.request_detail(uuid=str(self.channel_obj.uuid)).json()
-
         self.assertEqual(response.get("name"), self.channel_obj.name)
         self.assertEqual(response.get("address"), self.channel_obj.address)
         self.assertEqual(response.get("config"), self.channel_obj.config)
@@ -267,15 +266,10 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
         request = factory.get(self.url)
         force_authenticate(request, user=self.admin)
         response = view(request)
-        have_form = False
         total_attrs = 0
 
         if response.data:
             for value in response.data.get('available_channels'):
-                if value.get('form'):
-                    if len(value.get('form')) > 0:
-                        have_form = True
-
                 if value.get('attrs'):
                     if len(value.get('attrs')) > 0:
                         total_attrs +=1
@@ -284,8 +278,6 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # checks if the amount of #types returned is equivalent to the available response types
         self.assertEqual(len(TYPES), len(response.data.get('available_channels')))
-        # checks if any of the objects has been filled
-        self.assertEqual(have_form, True)
         # checks if response data have existing attributes
         self.assertEqual(total_attrs, len(TYPES))
 
