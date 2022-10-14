@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [1.0.27] - 2022-10-07
+- Add ticketer queues endpoint
+- Add agent permission in UserPermission retrieve endpoint
+- Add endpoint that allows managing ticketer queues
+- Endpoint that allows you to create, update and destroy a ticketer
+
 ## [1.0.26] - 2022-09-15
 - Create serializer fields for User and Org using SlugRelatedField
 - Org and User APIToken internal endpoint
