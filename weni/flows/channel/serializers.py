@@ -106,7 +106,6 @@ class CreateChannelSerializer(serializers.Serializer):
 
         return channel
 
-
     def create_channel(self, user: User, org: Org, data: dict, channel_type) -> str:
         factory = RequestFactory()
         url = f"channels/types/{channel_type.slug}/claim"
