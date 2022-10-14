@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [1.0.28] - 2022-10-07
+- Update weni-protobuffers to 1.2.18
+
 ## [1.0.27] - 2022-10-07
 - Add ticketer queues endpoint
 - Add agent permission in UserPermission retrieve endpoint
