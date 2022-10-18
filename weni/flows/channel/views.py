@@ -16,7 +16,7 @@ from .serializers import (ChannelSerializer,
                           ChannelWACSerializer)
 from weni.internal.views import InternalGenericViewSet
 
-class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):  
+class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
     serializer_class = ChannelSerializer
     lookup_field = "uuid"
 
@@ -94,6 +94,43 @@ class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
             "available_channels": types_object,
         }
         
+        return Response(payload)
+    
+    def retrieve(self, request, pk=None):
+        channel_type = None
+        fields_form = {}
+        code_type =  pk
+        
+        if code_type:
+            channel_type = TYPES.get(code_type.upper(), None)
+
+        if channel_type is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        fields_in_form = []
+        if channel_type.claim_view:
+            if channel_type.claim_view.form_class:
+                form = channel_type.claim_view.form_class.base_fields
+                for field in form:
+                    fields_in_form.append(extract_form_info(form[field], field))
+
+                if not (fields_in_form):
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+
+                fields_form['form'] = fields_in_form
+
+            fields_types = {}
+            attibutes_type =  extract_type_info(channel_type)
+            if not (attibutes_type):
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            fields_types['attributes'] = attibutes_type
+
+        payload = {
+            "attributes": fields_types.get('attributes'),
+            "form": fields_form.get('form')
+        }
+
         return Response(payload)
 
 
