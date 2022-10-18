@@ -300,12 +300,62 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
         response = view(request)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    @mock.patch('weni.flows.channel.views.extract_form_info', return_value=None)
-    def test_invalid_response_info_form(self, mock):
+    def test_retrieve_channel_with_permission(self):
+        """ Testing retrieve response is ok """
+        have_attribute = False
+        have_form = False
+        form_ok = True
+        
+        factory = APIRequestFactory()
+        request = factory.get(self.url)
+        view = AvailableChannels.as_view({'get': 'retrieve'})
+        view.permission_classes = []
+        force_authenticate(request, user=self.admin)
+        response = view(request, 'ac')
+
+        if response.data.get('attributes'):
+            have_attribute = True
+
+        if response.data.get('form'):
+            have_form = True
+            if len(response.data.get('form'))>0:
+                form = response.data.get('form')
+                for field in form:
+                    if not field.get('name') \
+                        or not field.get('type') \
+                            or not field.get('help_text'):
+                        form_ok = False
+                            
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(True, have_attribute)
+        if have_form:
+            self.assertEqual(True, form_ok)
+
+    def test_retrieve_channel_without_permission(self):
+        """ testing retrieve without permission """
+        factory = APIRequestFactory()
+        view = AvailableChannels.as_view({'get': 'retrieve'})
+
+        request = factory.get(self.url)
+        force_authenticate(request, user=self.user)
+        response = view(request, 'ac')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_retrieve_channel_without_authentication(self):
+        """ testing retrieve without being authenticated """
+        factory = APIRequestFactory()
+        view = AvailableChannels.as_view({'get': 'retrieve'})
+
+        request = factory.get(self.url)
+        response = view(request, 'ac')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_invalid_response_info_form(self):
+        """ test missing values """
         self.assertEqual(extract_form_info('', 'name_field'), None)
 
-    @mock.patch('weni.flows.channel.views.extract_type_info', return_value=None)
-    def test_invalid_response_info_type(self, mock):
+    def test_invalid_response_info_type(self):
+        """ test missing values """
         self.assertEqual(extract_type_info(''), None)
 
     def get_url_namespace(self):
