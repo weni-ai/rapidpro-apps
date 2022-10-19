@@ -2,23 +2,29 @@ import json
 from abc import ABC, abstractmethod
 from uuid import uuid1
 from unittest.mock import patch
+from unittest import mock
+from unittest import TestCase
+from rest_framework.test import APIRequestFactory, force_authenticate
+from rest_framework import status
 
 from django.contrib.auth.models import Group
 from django.urls import reverse
 from django.utils import timezone as tz
 from django.utils.http import urlencode
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 
 from temba.api.models import APIToken
-
 from temba.flows.models import Flow
 from temba.orgs.models import Org, OrgRole
 from temba.contacts.models import Contact
 from temba.channels.models import Channel
-
+from temba.channels.types import TYPES
 from temba.tests import TembaTest, mock_mailroom
- 
 
+from .views import AvailableChannels, extract_form_info, extract_type_info
+
+ 
 class TembaRequestMixin(ABC):
     def reverse(self, viewname, kwargs=None, query_params=None):
         url = reverse(viewname, kwargs=kwargs)
@@ -246,3 +252,176 @@ class ListChannelTestCase(TembaTest, TembaRequestMixin):
 
     def get_url_namespace(self):
         return "channel-list"
+
+
+class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
+    url ='/api/v2/flows-backend/channels/'
+    
+    def setUp(self):
+        super().setUp()
+        content_type = ContentType.objects.get_for_model(User)
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
+        self.admin.user_permissions.create(codename='can_communicate_internally', content_type=content_type)
+
+    def test_list_all_channels(self):
+        factory = APIRequestFactory()
+        view = AvailableChannels.as_view({'get': 'list'})
+        view.permission_classes = []
+
+        request = factory.get(self.url)
+        force_authenticate(request, user=self.admin)
+        response = view(request)
+        total_attrs = 0
+
+        if response.data:
+            for value in response.data.get('available_channels'):
+                if value.get('attrs'):
+                    if len(value.get('attrs')) > 0:
+                        total_attrs +=1
+
+        # checks if status code is 200 - ok   
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # checks if the amount of #types returned is equivalent to the available response types
+        self.assertEqual(len(TYPES), len(response.data.get('available_channels')))
+        # checks if response data have existing attributes
+        self.assertEqual(total_attrs, len(TYPES))
+
+    def test_list_channels_without_authentication(self):
+        """ testing without authenticated user """
+        factory = APIRequestFactory()
+        view = AvailableChannels.as_view({'get': 'list'})
+
+        request = factory.get(self.url)
+        response = view(request)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_channels_without_permission(self):
+        """ testing user without permission """
+        factory = APIRequestFactory()
+        view = AvailableChannels.as_view({'get': 'list'})
+
+        request = factory.get(self.url)
+        force_authenticate(request, user=self.user)
+        response = view(request)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_retrieve_channel_with_permission(self):
+        """ Testing retrieve response is ok """
+        have_attribute = False
+        have_form = False
+        form_ok = True
+        
+        factory = APIRequestFactory()
+        request = factory.get(self.url)
+        view = AvailableChannels.as_view({'get': 'retrieve'})
+        view.permission_classes = []
+        force_authenticate(request, user=self.admin)
+        response = view(request, 'ac')
+
+        if response.data.get('attributes'):
+            have_attribute = True
+
+        if response.data.get('form'):
+            have_form = True
+            if len(response.data.get('form'))>0:
+                form = response.data.get('form')
+                for field in form:
+                    if not field.get('name') \
+                        or not field.get('type') \
+                            or not field.get('help_text'):
+                        form_ok = False
+                            
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(True, have_attribute)
+        if have_form:
+            self.assertEqual(True, form_ok)
+
+    def test_retrieve_channel_without_permission(self):
+        """ testing retrieve without permission """
+        factory = APIRequestFactory()
+        view = AvailableChannels.as_view({'get': 'retrieve'})
+
+        request = factory.get(self.url)
+        force_authenticate(request, user=self.user)
+        response = view(request, 'ac')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_retrieve_channel_without_authentication(self):
+        """ testing retrieve without being authenticated """
+        factory = APIRequestFactory()
+        view = AvailableChannels.as_view({'get': 'retrieve'})
+
+        request = factory.get(self.url)
+        response = view(request, 'ac')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_invalid_response_info_form(self):
+        """ test missing values """
+        self.assertEqual(extract_form_info('', 'name_field'), None)
+
+    def test_invalid_response_info_type(self):
+        """ test missing values """
+        self.assertEqual(extract_type_info(''), None)
+
+    def get_url_namespace(self):
+        return "api.v2.flows_backend.channels-list"
+
+
+class FormatFunctionTestCase(TestCase):
+    types = TYPES
+
+    def test_form_with_values(self):
+        """ checks if the treatment was done correctly """
+        test_form = {
+            'widget': to_object(**{'input_type': 'text'}),
+            'help_text': 'test field'
+        }
+
+        expect_form = {
+            'name': 'test_form01',
+            'type': 'text',
+            'help_text': 'test field'
+        }
+
+        result = extract_form_info(to_object(**test_form),'test_form01')
+        self.assertEqual(result, expect_form)
+
+    def test_form_without_name_value(self):
+        """ check response without #name attribute """
+        test_form = {
+            'widget': to_object(**{'input_type': 'text'}),
+            'help_text': 'test field'
+        }
+        result = extract_form_info(to_object(**test_form),'')
+        self.assertEqual(result, None)
+        
+    def test_form_without_type_value(self):
+        """ check response without #widget attribute """
+        test_form = {
+            'help_text': 'test field'
+        }
+        result = extract_form_info(to_object(**test_form),'test_form03')
+        self.assertEqual(result, None)
+
+    def test_type_contains_code_and_name(self):
+        """ make sure that all results have code and name """
+        have_code_name = True
+        for value in self.types:
+            type_in = self.types[value]
+            result = extract_type_info(type_in)
+            if not (result.get('code')) or not (result.get('name')):
+                have_code_name = False
+        
+        self.assertEqual(have_code_name, True)
+    
+    def test_all_types_response_contains_dict(self):
+        """ make sure that all results have been processed and converted to dictionaries """
+        for value in self.types:
+            type_in = self.types[value]
+            result = extract_type_info(type_in)
+            self.assertEqual(type(result), dict)
+
+
+class to_object:
+    def __init__(self, **entries):
+        return self.__dict__.update(entries)
