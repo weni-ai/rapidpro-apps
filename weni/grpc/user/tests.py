@@ -16,7 +16,11 @@ class UserServiceTest(RPCTransactionTestCase):
 
     def setUp(self):
         User.objects.create_user(
-            username="testuser", password="123", email="test@weni.ai", first_name="Weni", last_name="ai",
+            username="testuser",
+            password="123",
+            email="test@weni.ai",
+            first_name="Weni",
+            last_name="ai",
         )
 
         user = User.objects.first()
@@ -40,14 +44,15 @@ class UserServiceTest(RPCTransactionTestCase):
         self.assertFalse(response.viewer)
         self.assertFalse(response.editor)
         self.assertFalse(response.surveyor)
+        self.assertFalse(response.agent)
 
     def test_update_permission_with_non_existent_user(self):
         org = Org.objects.first()
         email = "nonexistent@email.com"
 
-        response = self.user_permission_update_request(org_uuid=str(org.uuid),
-                                                       user_email=email,
-                                                       permission="administrator")
+        response = self.user_permission_update_request(
+            org_uuid=str(org.uuid), user_email=email, permission="administrator"
+        )
 
         self.assertTrue(User.objects.filter(email=email).exists())
 
@@ -55,6 +60,7 @@ class UserServiceTest(RPCTransactionTestCase):
         self.assertFalse(response.viewer)
         self.assertFalse(response.editor)
         self.assertFalse(response.surveyor)
+        self.assertFalse(response.agent)
 
     def test_update_user_lang_with_non_existent_user(self):
         email = "nonexistent@email.com"
@@ -103,6 +109,14 @@ class UserServiceTest(RPCTransactionTestCase):
         self.assertTrue(response.surveyor)
         self.assertTrue(self.permission_is_unique_true(response, "surveyor"))
 
+        org.surveyors.remove(user)
+        org.agents.add(user)
+
+        response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_email=user.email)
+
+        self.assertTrue(response.agent)
+        self.assertTrue(self.permission_is_unique_true(response, "agent"))
+
     def test_user_retrieve(self):
         user = User.objects.first()
 
@@ -144,6 +158,12 @@ class UserServiceTest(RPCTransactionTestCase):
 
         self.assertTrue(retrieve_response.surveyor)
         self.assertTrue(self.permission_is_unique_true(retrieve_response, "surveyor"))
+
+        self.user_permission_update_request(org_uuid=str(org.uuid), user_email=user.email, permission="agent")
+        retrieve_response = self.user_permission_retrieve_request(org_uuid=str(org.uuid), user_email=user.email)
+
+        self.assertTrue(retrieve_response.agent)
+        self.assertTrue(self.permission_is_unique_true(retrieve_response, "agent"))
 
     def test_user_language_update(self):
         user = User.objects.first()
@@ -187,10 +207,11 @@ class UserServiceTest(RPCTransactionTestCase):
             "viewer": response.viewer,
             "editor": response.editor,
             "surveyor": response.surveyor,
+            "agent": response.agent,
         }
         false_valeues = [key for key, value in permissions.items() if not value]
 
-        return len(false_valeues) == 3 and permission not in false_valeues
+        return len(false_valeues) == len(permissions.items()) - 1 and permission not in false_valeues
 
     def validate_response_user(self, response, user: User):
 

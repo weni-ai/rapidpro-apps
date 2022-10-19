@@ -41,6 +41,7 @@ class MsgSerializer(ProtoSerializer):
 
 class ChannelSerializer(ProtoSerializer):
     uuid = serializers.UUIDField()
+    channel_id = serializers.IntegerField()
     name = serializers.CharField()
 
     class Meta:
@@ -64,7 +65,11 @@ class ActiveContactDetailSerializer(ProtoSerializer):
                 "sent_on": flat_data["msg__sent_on"],
                 "direction": direction_map[flat_data["msg__direction"]],
             },
-            "channel": {"uuid": flat_data["channel__uuid"], "name": flat_data["channel__name"]},
+            "channel": {
+                "uuid": flat_data["channel__uuid"],
+                "channel_id": flat_data["channel__id"],
+                "name": flat_data["channel__name"],
+            },
         }
         return super().to_representation(instance)
 
