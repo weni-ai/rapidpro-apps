@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [1.0.29] - 2022-10-20
+- Fix: Set Channel Stats start date to 01/01/2000
+
 ## [1.0.28] - 2022-10-07
 - Update weni-protobuffers to 1.2.18
 
