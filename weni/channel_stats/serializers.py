@@ -1,6 +1,5 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 
-from dateutil.relativedelta import relativedelta
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import serializers
@@ -29,7 +28,7 @@ class ChannelStatsReadSerializer(ReadSerializer):
         channel = obj
 
         end_date = (timezone.now() + timedelta(days=1)).date()
-        start_date = end_date - relativedelta(months=12)
+        start_date = datetime(2000, 1, 1).date()
 
         message_stats = []
         channels = [channel]
