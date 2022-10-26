@@ -5,6 +5,6 @@ from rest_framework import routers
 from .views import ChannelEndpoint
 
 router = routers.SimpleRouter()
-router.register("flows-backend/channel", ChannelEndpoint, basename="api.v2.flows_backend.channel")
+router.register("channel", ChannelEndpoint, basename="channel")
 
 urlpatterns = format_suffix_patterns(router.urls, allowed=["json", "api"])

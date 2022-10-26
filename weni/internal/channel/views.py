@@ -10,13 +10,13 @@ from temba.channels.models import Channel
 from .serializers import ChannelSerializer, CreateChannelSerializer, ChannelWACSerializer
 
 
-class ChannelEndpoint(viewsets.ModelViewSet):
+class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
     serializer_class = ChannelSerializer
     lookup_field = "uuid"
 
     def get_queryset(self):
-        channel_type = self.request.query_params.get('channel_type')
-        org = self.request.query_params.get('org')
+        channel_type = self.request.query_params.get("channel_type")
+        org = self.request.query_params.get("org")
 
         queryset = Channel.objects.all()
 
@@ -28,7 +28,6 @@ class ChannelEndpoint(viewsets.ModelViewSet):
 
         return queryset
 
-
     def retrieve(self, request, uuid=None):
         try:
             channel = Channel.objects.get(uuid=uuid)
@@ -37,17 +36,15 @@ class ChannelEndpoint(viewsets.ModelViewSet):
 
         return JsonResponse(data=self.get_serializer(channel).data, status=status.HTTP_200_OK)
 
-    
     def create(self, request):
         serializer = CreateChannelSerializer(data=request.data)
-        
+
         if not serializer.is_valid():
             return JsonResponse(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         serializer.save()
-        
-        return JsonResponse(data=serializer.data, status=status.HTTP_200_OK)
 
+        return JsonResponse(data=serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, uuid=None):
         try:
@@ -59,14 +56,13 @@ class ChannelEndpoint(viewsets.ModelViewSet):
         channel.save()
         return Response(status=status.HTTP_200_OK)
 
-    
     @action(methods=["POST"], detail=False)
     def create_wac(self, request):
         serializer = ChannelWACSerializer(data=request.data)
-        
+
         if not serializer.is_valid():
             return JsonResponse(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         serializer.save()
-        
+
         return JsonResponse(data=serializer.data, status=status.HTTP_200_OK)

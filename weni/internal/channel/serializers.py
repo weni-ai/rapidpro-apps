@@ -33,7 +33,12 @@ class ChannelWACSerializer(serializers.Serializer):
 
     def validate_phone_number_id(self, value):
         if Channel.objects.filter(is_active=True, address=value).exists():
-            raise serializers.ValidationError({"error": "a Channel with that 'phone_number_id' alredy exists", "error_type": "WhatsApp.config.error.channel_already_exists"})
+            raise serializers.ValidationError(
+                {
+                    "error": "a Channel with that 'phone_number_id' alredy exists",
+                    "error_type": "WhatsApp.config.error.channel_already_exists",
+                }
+            )
         return value
 
     def validate_config(self, value):
@@ -76,10 +81,10 @@ class CreateChannelSerializer(serializers.Serializer):
     address = serializers.CharField(read_only=True)
 
     user = serializers.EmailField(required=True, write_only=True)
-    org  = serializers.CharField(required=True, write_only=True)
+    org = serializers.CharField(required=True, write_only=True)
     data = serializers.JSONField(write_only=True)
     channeltype_code = serializers.CharField(required=True, write_only=True)
-    
+
     def create(self, validated_data):
         data = validated_data.get("data")
 
@@ -93,7 +98,7 @@ class CreateChannelSerializer(serializers.Serializer):
             raise exceptions.ValidationError(f"No channels found with '{channel_type_code}' code")
 
         url = self.create_channel(user, org, data, channel_type)
-        
+
         if url is None:
             raise exceptions.ValidationError(f"Url not created")
 
@@ -105,7 +110,6 @@ class CreateChannelSerializer(serializers.Serializer):
         channel = Channel.objects.get(uuid=channe_uuid)
 
         return channel
-
 
     def create_channel(self, user: User, org: Org, data: dict, channel_type) -> str:
         factory = RequestFactory()
@@ -128,13 +132,13 @@ class ChannelSerializer(serializers.ModelSerializer):
     config = serializers.JSONField()
 
     class Meta:
-        #extra_kwargs = {
+        # extra_kwargs = {
         #    'uuid': {'write_only': True}
-        #}
+        # }
         model = Channel
         fields = (
-            'uuid',
-            'name',
-            'config',
-            'address',
+            "uuid",
+            "name",
+            "config",
+            "address",
         )

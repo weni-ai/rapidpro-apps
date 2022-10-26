@@ -36,7 +36,7 @@ class TembaRequestMixin(ABC):
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_detail(self, uuid):
-        url = self.reverse(self.get_url_namespace(), kwargs={'uuid': uuid})
+        url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
@@ -44,11 +44,13 @@ class TembaRequestMixin(ABC):
     def request_post(self, data):
         url = reverse(self.get_url_namespace())
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
-        
-        return self.client.post(url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json")
+
+        return self.client.post(
+            url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+        )
 
     def request_delete(self, uuid):
-        url = self.reverse(self.get_url_namespace(), kwargs={'uuid': uuid})
+        url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
@@ -115,8 +117,9 @@ class CreateWACServiceTest(TembaTest, TembaRequestMixin):
         channel = self.request_post(data=payload)
 
         self.assertEqual(channel.status_code, 400)
-        self.assertEqual(channel.json().get("phone_number_id").get("error_type"), "WhatsApp.config.error.channel_already_exists")
-
+        self.assertEqual(
+            channel.json().get("phone_number_id").get("error_type"), "WhatsApp.config.error.channel_already_exists"
+        )
 
     def get_url_namespace(self):
         return "api.v2.flows_backend.channel-create-wac"
@@ -156,9 +159,9 @@ class CreateChannelTestCase(TembaTest, TembaRequestMixin):
             "user": self.org_user.email,
             "org": str(self.my_org.uuid),
             "data": {"name": "test", "base_url": "https://weni.ai"},
-            "channeltype_code": "WWC"
+            "channeltype_code": "WWC",
         }
-   
+
         response = self.request_post(data=payload).json()
 
         channel = Channel.objects.get(uuid=response.get("uuid"))
@@ -169,7 +172,6 @@ class CreateChannelTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(channel.created_by, self.org_user)
         self.assertEqual(channel.modified_by, self.org_user)
         self.assertEqual(channel.channel_type, "WWC")
-        
 
     def get_url_namespace(self):
         return "api.v2.flows_backend.channel-list"
@@ -190,7 +192,7 @@ class RetrieveChannelTestCase(TembaTest, TembaRequestMixin):
 
     def test_channel_retrieve_returned_fields(self):
         response = self.request_detail(uuid=str(self.channel_obj.uuid)).json()
-        
+
         self.assertEqual(response.get("name"), self.channel_obj.name)
         self.assertEqual(response.get("address"), self.channel_obj.address)
         self.assertEqual(response.get("config"), self.channel_obj.config)
