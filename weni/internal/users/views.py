@@ -7,7 +7,6 @@ from django.contrib.auth.models import User
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import exceptions
-from rest_framework import viewsets
 from rest_framework import mixins
 from rest_framework.exceptions import ValidationError
 
@@ -37,7 +36,7 @@ class UserViewSet(InternalGenericViewSet):
         return Response(dict(user=api_token.user.email, org=api_token.org.uuid, api_token=api_token.key))
 
 
-class UserPermissionEndpoint(viewsets.GenericViewSet):
+class UserPermissionEndpoint(InternalGenericViewSet):
     serializer_class = UserPermissionSerializer
     lookup_field = "org_id"
 
@@ -112,7 +111,7 @@ class UserPermissionEndpoint(viewsets.GenericViewSet):
         return permissions
 
 
-class UserEndpoint(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
+class UserEndpoint(InternalGenericViewSet, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
 
     serializer_class = UserSerializer
     queryset = User.objects.all()
