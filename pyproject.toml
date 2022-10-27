@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "weni-rp-apps"
-version = "1.0.21"
+version = "1.0.29"
 description = "Weni apps for Rapidpro Platform"
 authors = ["jcbalmeida"]
 license = "AGPL-3.0"
@@ -17,8 +17,9 @@ elastic-apm = "^6.4.0"
 flower = "^0.9"
 django-templates-macros = "^0.2"
 django-csp = "^3.7"
-weni-protobuffers = "1.2.16"
 pre-commit = "^2.20.0"
+weni-protobuffers = "1.2.18"
+drf-nested-routers = "^0.93.4"
 
 [tool.poetry.dev-dependencies]
 grpcio-tools = "^1.39.0"
