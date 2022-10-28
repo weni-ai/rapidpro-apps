@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from rest_framework import viewsets
 from rest_framework import status
 
+from weni.internal.views import InternalGenericViewSet
 from temba.channels.models import Channel
 
 from .serializers import ChannelSerializer, CreateChannelSerializer, ChannelWACSerializer
