@@ -17,7 +17,7 @@ from temba.contacts.models import Contact
 from temba.channels.models import Channel
 
 from temba.tests import TembaTest, mock_mailroom
-
+ 
 
 class TembaRequestMixin(ABC):
     def reverse(self, viewname, kwargs=None, query_params=None):
@@ -30,7 +30,6 @@ class TembaRequestMixin(ABC):
 
     def request_get(self, **query_params):
         url = self.reverse(self.get_url_namespace(), query_params=query_params)
-        url = url.replace("channel", "channel.json")
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
@@ -122,7 +121,7 @@ class CreateWACServiceTest(TembaTest, TembaRequestMixin):
         )
 
     def get_url_namespace(self):
-        return "api.v2.flows_backend.channel-create-wac"
+        return "channel-create-wac"
 
 
 class ReleaseChannelTestCase(TembaTest, TembaRequestMixin):
@@ -141,7 +140,7 @@ class ReleaseChannelTestCase(TembaTest, TembaRequestMixin):
         self.assertFalse(Channel.objects.get(id=self.channel_obj.id).is_active)
 
     def get_url_namespace(self):
-        return "api.v2.flows_backend.channel-detail"
+        return "channel-detail"
 
 
 class CreateChannelTestCase(TembaTest, TembaRequestMixin):
@@ -164,6 +163,8 @@ class CreateChannelTestCase(TembaTest, TembaRequestMixin):
 
         response = self.request_post(data=payload).json()
 
+        print(response)
+
         channel = Channel.objects.get(uuid=response.get("uuid"))
         self.assertEqual(channel.address, response.get("address"))
         self.assertEqual(channel.name, response.get("name"))
@@ -174,7 +175,7 @@ class CreateChannelTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(channel.channel_type, "WWC")
 
     def get_url_namespace(self):
-        return "api.v2.flows_backend.channel-list"
+        return "channel-list"
 
 
 class RetrieveChannelTestCase(TembaTest, TembaRequestMixin):
@@ -198,7 +199,7 @@ class RetrieveChannelTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(response.get("config"), self.channel_obj.config)
 
     def get_url_namespace(self):
-        return "api.v2.flows_backend.channel-detail"
+        return "channel-detail"
 
 
 class ListChannelTestCase(TembaTest, TembaRequestMixin):
@@ -229,19 +230,19 @@ class ListChannelTestCase(TembaTest, TembaRequestMixin):
 
     def test_list_all_channels(self):
         response = self.request_get().json()
-        self.assertEqual(len(response.get("results")), 7)
+        self.assertEqual(len(response), 7)
 
     def test_list_channels_filtered_by_type(self):
         response = self.request_get(channel_type="WWC").json()
-        self.assertEqual(len(response), 4)
+        self.assertEqual(len(response), 3)
 
     def test_list_channels_filtered_by_org_uuid(self):
         org_uuid = str(self.orgs[0].uuid)
         response = self.request_get(org=org_uuid).json()
-        self.assertEqual(len(response.get("results")), 3)
+        self.assertEqual(len(response), 3)
 
-        channel = Channel.objects.get(uuid=response.get("results")[0].get("uuid"))
+        channel = Channel.objects.get(uuid=response[0].get("uuid"))
         self.assertEqual(channel.org, self.orgs[0])
 
     def get_url_namespace(self):
-        return "api.v2.flows_backend.channel-list"
+        return "channel-list"

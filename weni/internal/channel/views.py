@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework import viewsets
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 
 from weni.internal.views import InternalGenericViewSet
 from temba.channels.models import Channel
