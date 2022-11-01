@@ -1,9 +1,10 @@
-from django.conf import settings
+from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
-from rest_framework.serializers import ValidationError
 
 from weni.grpc.core import serializers as weni_serializers
+
+User = get_user_model()
 
 
 class UserAPITokenSerializer(serializers.Serializer):
@@ -18,17 +19,7 @@ class UserPermissionSerializer(serializers.Serializer):
     surveyor = serializers.BooleanField(default=False)
 
 
-class UserSerializer(serializers.Serializer):
-
-    id = serializers.IntegerField(read_only=True)
-    language = serializers.CharField(write_only=True)
-
-    def update(self, instance, validated_data):
-        if validated_data.get("language") not in [language[0] for language in settings.LANGUAGES]:
-            raise ValidationError("Invalid argument: language")
-
-        user_settings = instance.get_settings()
-        user_settings.language = validated_data.get("language")
-        user_settings.save()
-
-        return instance
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "email", "username", "first_name", "last_name", "date_joined", "is_active", "is_superuser"]
