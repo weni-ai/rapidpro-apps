@@ -29,13 +29,13 @@ class TembaRequestMixin(ABC):
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_detail(self, **kwargs):
-        url = self.reverse(self.get_url_namespace(), kwargs=kwargs)
+        url = self.reverse(self.get_url_namespace(), query_params=kwargs)
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_patch(self, data, **kwargs):
-        url = self.reverse(self.get_url_namespace(), kwargs=kwargs)
+        url = self.reverse(self.get_url_namespace(), query_params=kwargs)
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.patch(
@@ -51,7 +51,7 @@ class TembaRequestMixin(ABC):
         )
 
     def request_delete(self, data, **kwargs):
-        url = self.reverse(self.get_url_namespace(), kwargs=kwargs)
+        url = self.reverse(self.get_url_namespace(), query_params=kwargs)
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(
@@ -74,14 +74,16 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         org = Org.objects.first()
         user = User.objects.first()
 
-        destroy_wrong_permission = self.request_delete(org_id=org.id, user_id=user.id, data=dict(permission="adm"))
+        destroy_wrong_permission = self.request_delete(
+            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="adm")
+        )
         self.assertEqual(destroy_wrong_permission.status_code, 400)
         self.assertEqual(destroy_wrong_permission.json()[0], "adm is not a valid permission!")
 
-        self.request_patch(org_id=org.id, user_id=user.id, data=dict(permission="viewer"))
+        self.request_patch(data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="viewer"))
         user_permissions = self._get_user_permissions(org=org, user=user)
 
-        self.request_delete(org_id=org.id, user_id=user.id, data=dict(permission="viewer"))
+        self.request_delete(data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="viewer"))
         user_permissions_removed = self._get_user_permissions(org=org, user=user)
 
         self.assertFalse(user_permissions_removed.get("viewer", False))
@@ -92,32 +94,38 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         user = User.objects.first()
 
         update_wrong_permission_response = self.request_patch(
-            org_id=org.id, user_id=user.id, data=dict(permission="adm")
+            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="adm")
         )
         self.assertEqual(update_wrong_permission_response.status_code, 400)
         self.assertEqual(update_wrong_permission_response.json()[0], "adm is not a valid permission!")
 
         update_response = self.request_patch(
-            org_id=org.id, user_id=user.id, data=dict(permission="administrator")
+            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="administrator")
         ).json()
         user_permissions = self._get_user_permissions(org, user)
 
         self.assertTrue(user_permissions.get("administrator"))
         self.assertTrue(self._permission_is_unique_true(update_response, "administrator"))
 
-        update_response = self.request_patch(org_id=org.id, user_id=user.id, data=dict(permission="viewer")).json()
+        update_response = self.request_patch(
+            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="viewer")
+        ).json()
         user_permissions = self._get_user_permissions(org, user)
 
         self.assertTrue(user_permissions.get("viewer"))
         self.assertTrue(self._permission_is_unique_true(update_response, "viewer"))
 
-        update_response = self.request_patch(org_id=org.id, user_id=user.id, data=dict(permission="editor")).json()
+        update_response = self.request_patch(
+            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="editor")
+        ).json()
         user_permissions = self._get_user_permissions(org, user)
 
         self.assertTrue(user_permissions.get("editor"))
         self.assertTrue(self._permission_is_unique_true(update_response, "editor"))
 
-        update_response = self.request_patch(org_id=org.id, user_id=user.id, data=dict(permission="surveyor")).json()
+        update_response = self.request_patch(
+            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="surveyor")
+        ).json()
         user_permissions = self._get_user_permissions(org, user)
 
         self.assertTrue(user_permissions.get("surveyor"))
@@ -153,7 +161,7 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         return len(false_valeues) == 3 and permission not in false_valeues
 
     def get_url_namespace(self):
-        return "flows_users.permission-detail"
+        return "user_permission"
 
 
 class UserPermissionRetrieveTestCase(TembaTest, TembaRequestMixin):
@@ -167,19 +175,21 @@ class UserPermissionRetrieveTestCase(TembaTest, TembaRequestMixin):
         org = Org.objects.first()
         user = User.objects.first()
 
-        response_wrong_org = self.request_detail(org_id=0, user_id=0)
+        response_wrong_org = self.request_detail(
+            org_uuid="f7e70145-6d17-4384-a1f2-d6981397866a", user_email="wrong@weni.ai"
+        )
 
         self.assertEqual(response_wrong_org.status_code, 404)
         self.assertEqual(response_wrong_org.json().get("detail"), "Not found.")
 
         org.administrators.add(user)
 
-        response_wrong_user = self.request_detail(org_id=org.id, user_id=0)
+        response_wrong_user = self.request_detail(org_uuid=org.uuid, user_email=0)
 
         self.assertEqual(response_wrong_user.status_code, 404)
         self.assertEqual(response_wrong_user.json().get("detail"), "Not found.")
 
-        response = self.request_detail(org_id=org.id, user_id=user.id).json()
+        response = self.request_detail(org_uuid=org.uuid, user_email=user.email).json()
 
         self.assertTrue(response.get("administrator"))
         self.assertTrue(self.permission_is_unique_true(response, "administrator"))
@@ -187,7 +197,7 @@ class UserPermissionRetrieveTestCase(TembaTest, TembaRequestMixin):
         org.administrators.remove(user)
         org.viewers.add(user)
 
-        response = self.request_detail(org_id=org.id, user_id=user.id).json()
+        response = self.request_detail(org_uuid=org.uuid, user_email=user.email).json()
 
         self.assertTrue(response.get("viewer"))
         self.assertTrue(self.permission_is_unique_true(response, "viewer"))
@@ -195,7 +205,7 @@ class UserPermissionRetrieveTestCase(TembaTest, TembaRequestMixin):
         org.viewers.remove(user)
         org.editors.add(user)
 
-        response = self.request_detail(org_id=org.id, user_id=user.id).json()
+        response = self.request_detail(org_uuid=org.uuid, user_email=user.email).json()
 
         self.assertTrue(response.get("editor"))
         self.assertTrue(self.permission_is_unique_true(response, "editor"))
@@ -203,7 +213,7 @@ class UserPermissionRetrieveTestCase(TembaTest, TembaRequestMixin):
         org.editors.remove(user)
         org.surveyors.add(user)
 
-        response = self.request_detail(org_id=org.id, user_id=user.id).json()
+        response = self.request_detail(org_uuid=org.uuid, user_email=user.email).json()
 
         self.assertTrue(response.get("surveyor"))
         self.assertTrue(self.permission_is_unique_true(response, "surveyor"))
@@ -220,7 +230,7 @@ class UserPermissionRetrieveTestCase(TembaTest, TembaRequestMixin):
         return len(false_valeues) == 3 and permission not in false_valeues
 
     def get_url_namespace(self):
-        return "flows_users.permission-detail"
+        return "user_permission"
 
 
 class UserUpdateTestCase(TembaTest, TembaRequestMixin):
@@ -233,42 +243,24 @@ class UserUpdateTestCase(TembaTest, TembaRequestMixin):
     def test_user_language_update(self):
         languages = [language[0] for language in settings.LANGUAGES]
 
-        bad_language_response = self.request_patch(data={"language": "wrong"}, id=self.admin.id)
+        bad_language_response = self.request_patch(data={"language": "wrong"}, email=self.admin.email)
         self.assertEqual(bad_language_response.status_code, 400)
 
         for language in languages:
-            self.request_patch(data={"language": language}, id=self.admin.id).json()
+            self.request_patch(data={"language": language}, email=self.admin.email)
 
             user_language = User.objects.get(id=self.admin.id).get_settings().language
             self.assertEqual(user_language, language)
 
     def test_update_user_lang_with_non_existent_user(self):
-        bad_user_response = self.request_patch(data={"language": "wrong"}, id=0)
+        bad_user_response = self.request_patch(data={"language": "wrong"}, email="ssd")
         self.assertEqual(bad_user_response.status_code, 404)
         self.assertEqual(bad_user_response.json().get("detail"), "Not found.")
 
     def get_url_namespace(self):
-        return "flows_users-detail"
+        return "flow_users-detail"
 
 
-class UserRetrieveTestCase(TembaTest, TembaRequestMixin):
-    def setUp(self):
-        self.admin = User.objects.create_user(
-            username="testuser", password="123", email="test@weni.ai", is_superuser=True
-        )
-        super().setUp()
-
-    def test_retrive_user(self):
-        response = self.request_detail(id=self.admin.id).json()
-        response_user = User.objects.get(id=response.get("id"))
-
-        self.assertEqual(response_user, self.admin)
-
-    def get_url_namespace(self):
-        return "flows_users-detail"
-
-
-# TODO: This class is not agree with REST architecture, it is just a palliative solution to support old clients.
 class UserRetrieveByEmailTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
         self.admin = User.objects.create_user(
@@ -277,10 +269,10 @@ class UserRetrieveByEmailTestCase(TembaTest, TembaRequestMixin):
         super().setUp()
 
     def test_retrive_user_by_email(self):
-        response = self.request_get(user_email=self.admin.email).json()
+        response = self.request_get(email=self.admin.email).json()
         response_user = User.objects.get(id=response.get("id"))
 
         self.assertEqual(response_user, self.admin)
 
     def get_url_namespace(self):
-        return "flows_users-get-by-email"
+        return "flow_users-detail"
