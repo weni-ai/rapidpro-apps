@@ -24,3 +24,10 @@ class FlowSerializer(serializers.ModelSerializer):
         org.import_app(sample_flows, org.created_by)
 
         return org.flows.order_by("created_on").last()
+
+
+class FlowListSerializer(serializers.Serializer):
+    flow_name = serializers.CharField(required=True, write_only=True)
+    org_uuid = weni_serializers.OrgUUIDRelatedField(required=True, write_only=True)
+    uuid = serializers.CharField(read_only=True)
+    name = serializers.CharField(read_only=True)
