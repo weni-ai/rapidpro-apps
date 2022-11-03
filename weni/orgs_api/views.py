@@ -1,10 +1,12 @@
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
 
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from temba.orgs.models import Org
+
+from .serializers import FlagOrgSerializer
 
 
 class OrgViewSet(GenericViewSet):
@@ -18,4 +20,18 @@ class OrgViewSet(GenericViewSet):
         org.config["is_suspended"] = bool(request.data.get("is_suspended"))
         org.save()
 
-        return Response(dict(is_suspended=org.config.get("is_suspended", False)))
+        return JsonResponse(dict(is_suspended=org.config.get("is_suspended", False)))
+
+    @action(detail=True, methods=["POST"])
+    def suspend_flag(self, request, uuid=None):
+        org = get_object_or_404(Org, uuid=uuid)
+
+        serializer = FlagOrgSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        for flag_name, date in serializer.data.items():
+            org.config[flag_name] = date
+
+        org.save()
+
+        return JsonResponse(data=serializer.data, status=200)
