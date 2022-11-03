@@ -10,13 +10,13 @@ router.register(r"users", UserViewSet, basename="users")
 
 flows_router = [
     path(
-        "flows-users", UserEndpoint.as_view({"get": "retrieve", "patch": "partial_update"}), name="flow_users-detail"
+        "flows-users/", UserEndpoint.as_view({"get": "retrieve", "patch": "partial_update"}), name="flow_users-detail"
     ),
 ]
 
 user_permission_router = [
     path(
-        "user-permission",
+        "user-permission/",
         UserPermissionEndpoint.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="user_permission",
     ),
