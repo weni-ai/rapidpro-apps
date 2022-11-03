@@ -17,8 +17,8 @@ class TembaRequestMixin(ABC):
 
         if query_params:
             return "%s?%s" % (url, urlencode(query_params))
-        else:
-            return url
+
+        return url
 
     def request_detail(self, uuid):
         url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
