@@ -132,13 +132,21 @@ class ChannelSerializer(serializers.ModelSerializer):
     config = serializers.JSONField()
 
     class Meta:
-        # extra_kwargs = {
-        #    'uuid': {'write_only': True}
-        # }
+        extra_kwargs = {
+            'org': {'read_only': True},
+            'is_active': {'read_only': True},
+        }
         model = Channel
         fields = (
             "uuid",
             "name",
             "config",
             "address",
-        )
+            "org",
+            "is_active",
+        ) 
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['org'] = instance.uuid
+        return ret
