@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.30] - 2022-11-07
+- Feat: A endpoint to add a warning message to user showing org will be suspeded.
+- Feat: A endpoint to suspend a org
+
 ## [1.0.29] - 2022-10-20
 - Fix: Set Channel Stats start date to 01/01/2000
 
