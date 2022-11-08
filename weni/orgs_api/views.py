@@ -22,9 +22,20 @@ class OrgViewSet(GenericViewSet):
 
         return JsonResponse(dict(is_suspended=org.config.get("is_suspended", False)))
 
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST", "DELETE"])
     def suspend_flag(self, request, uuid=None):
         org = get_object_or_404(Org, uuid=uuid)
+
+        if request.method == "DELETE":
+            if org.config.get("date_billing_expired"):
+                org.config.pop("date_billing_expired")
+
+            if org.config.get("date_org_will_suspend"):
+                org.config.pop("date_org_will_suspend")
+
+            org.save()
+
+            return JsonResponse(data=dict(success=True), status=200)
 
         serializer = FlagOrgSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
