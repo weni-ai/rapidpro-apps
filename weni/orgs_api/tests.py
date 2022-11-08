@@ -63,24 +63,11 @@ class SuspendOrgTest(TembaTest, TembaRequestMixin):
 
         self.request_patch(uuid=org.uuid, data={"is_suspended": is_suspended})
 
-        self.assertEqual(org.config, {})
+        self.assertEqual(org.is_suspended, False)
 
         org = Org.objects.get(name="Tembinha")
 
-        self.assertEqual(org.config.get("is_suspended"), is_suspended)
-
-    def test_block_org_with_config(self):
-        org = Org.objects.get(name="Tembinha")
-        org.config["another_key"] = "test"
-        org.save()
-
-        is_suspended = bool(randint(0, 1))
-
-        self.request_patch(uuid=org.uuid, data={"is_suspended": is_suspended})
-
-        org = Org.objects.get(name="Tembinha")
-        self.assertEqual(org.config.get("is_suspended"), is_suspended)
-        self.assertEqual(org.config.get("another_key"), "test")
+        self.assertEqual(org.is_suspended, is_suspended)
 
     def get_url_namespace(self):
         return "org-is-suspended"
