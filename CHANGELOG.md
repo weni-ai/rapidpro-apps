@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [1.0.31] - 2022-11-08
+- Fix: fix org is_suspend endpoint
+
 ## [1.0.30] - 2022-11-07
 - Feat: A endpoint to add a warning message to user showing org will be suspeded.
 - Feat: A endpoint to suspend a org
