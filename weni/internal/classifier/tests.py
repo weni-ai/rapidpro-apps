@@ -18,9 +18,7 @@ from temba.classifiers.types.luis import LuisType
 from weni.protobuf.flows import classifier_pb2, classifier_pb2_grpc
 
 
-
 class TembaRequestMixin(ABC):
-
     def reverse(self, viewname, kwargs=None, query_params=None):
         url = reverse(viewname, kwargs=kwargs)
 
@@ -32,11 +30,11 @@ class TembaRequestMixin(ABC):
     def request_get(self, **query_params):
         url = self.reverse(self.get_url_namespace(), query_params=query_params)
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
-        #self.client.force_login(self.admin)
+        # self.client.force_login(self.admin)
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_detail(self, uuid):
-        url = self.reverse(self.get_url_namespace(), kwargs={'uuid': uuid})
+        url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
@@ -45,10 +43,12 @@ class TembaRequestMixin(ABC):
         url = reverse(self.get_url_namespace())
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
-        return self.client.post(url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json")
+        return self.client.post(
+            url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+        )
 
     def request_delete(self, uuid, user_email):
-        url = self.reverse(self.get_url_namespace(), query_params={"user_email":user_email}, kwargs={'uuid': uuid})
+        url = self.reverse(self.get_url_namespace(), query_params={"user_email": user_email}, kwargs={"uuid": uuid})
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
@@ -59,7 +59,6 @@ class TembaRequestMixin(ABC):
 
 
 class ClassifierTestCase(TembaTest, TembaRequestMixin):
-
     def setUp(self):
         self.config = {"access_token": "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"}
 
@@ -69,14 +68,15 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
 
         print(self.admin.is_authenticated)
 
-        self.org = Org.objects.create(name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin)
+        self.org = Org.objects.create(
+            name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin
+        )
 
         super().setUp()
 
     def test_list_classifier(self):
         org = Org.objects.first()
         org_uuid = str(org.uuid)
-
 
         classifier = Classifier.create(org, self.admin, WitType.slug, "Booker", self.config, sync=False)
 
@@ -91,7 +91,6 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(response.get("classifier_type"), WitType.slug)
         self.assertEqual(response.get("uuid"), str(classifier.uuid))
         self.assertEqual(response.get("access_token"), self.config["access_token"])
-
 
         classifier = Classifier.create(org, self.admin, LuisType.slug, "Test", self.config, sync=False)
 
@@ -117,7 +116,6 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(response.get("uuid"), str(classifier.uuid))
         self.assertEqual(response.get("access_token"), self.config["access_token"])
 
-
         classifier = Classifier.create(org, self.admin, LuisType.slug, "Test2", self.config, sync=False)
 
         response = self.request_get(org_uuid=org_uuid, is_active=1, classifier_type=LuisType.slug).json()
@@ -128,13 +126,11 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
 
         self.assertEqual(len(response), 3)
 
-
     def get_url_namespace(self):
         return "classifier-list"
 
 
 class ClassifierCreateTestCase(TembaTest, TembaRequestMixin):
-
     def setUp(self):
         self.config = {"access_token": "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"}
 
@@ -142,7 +138,9 @@ class ClassifierCreateTestCase(TembaTest, TembaRequestMixin):
             username="testuser", password="123", email="test@weni.ai", is_superuser=True
         )
 
-        self.org = Org.objects.create(name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin)
+        self.org = Org.objects.create(
+            name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin
+        )
 
         super().setUp()
 
@@ -162,7 +160,7 @@ class ClassifierCreateTestCase(TembaTest, TembaRequestMixin):
             "user": user.email,
             "org": str(org.uuid),
             "name": name,
-            "access_token": access_token
+            "access_token": access_token,
         }
 
         response = self.request_post(data=payload).json()
@@ -176,7 +174,6 @@ class ClassifierCreateTestCase(TembaTest, TembaRequestMixin):
 
 
 class ClassifierRetrieveTestCase(TembaTest, TembaRequestMixin):
-
     def setUp(self):
         self.config = {"access_token": "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"}
 
@@ -184,7 +181,9 @@ class ClassifierRetrieveTestCase(TembaTest, TembaRequestMixin):
             username="testuser", password="123", email="test@weni.ai", is_superuser=True
         )
 
-        self.org = Org.objects.create(name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin)
+        self.org = Org.objects.create(
+            name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin
+        )
 
         super().setUp()
 
@@ -209,14 +208,16 @@ class ClassifierDestroyTestCase(TembaTest, TembaRequestMixin):
             username="testuser", password="123", email="test@weni.ai", is_superuser=True
         )
 
-        self.org = Org.objects.create(name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin)
+        self.org = Org.objects.create(
+            name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin
+        )
 
         super().setUp()
 
     def test_destroy_classifier_by_valid_uuid(self):
         classifier = Classifier.create(self.org, self.admin, LuisType.slug, "Test2", self.config, sync=False)
         Intent.objects.create(classifier=classifier, name="Test Intent", external_id="FakeExternal")
-        
+
         self.assertEqual(classifier.intents.count(), 1)
 
         t = self.request_delete(uuid=str(classifier.uuid), user_email=self.admin.email)
