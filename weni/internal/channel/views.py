@@ -1,3 +1,5 @@
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 
 from rest_framework.response import Response
@@ -11,6 +13,7 @@ from temba.channels.models import Channel
 
 from .serializers import ChannelSerializer, CreateChannelSerializer, ChannelWACSerializer
 
+User = get_user_model()
 
 class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
     serializer_class = ChannelSerializer
@@ -49,13 +52,11 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         return JsonResponse(data=serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, uuid=None):
-        try:
-            channel = Channel.objects.get(uuid=uuid)
-        except Channel.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        channel = get_object_or_404(Channel, uuid=uuid)
+        user = get_object_or_404(User, email=request.data.get("user"))
 
-        channel.is_active = False
-        channel.save()
+        channel.release(user)
+
         return Response(status=status.HTTP_200_OK)
 
     @action(methods=["POST"], detail=False)
