@@ -19,8 +19,8 @@ class TembaRequestMixin(ABC):
 
         if query_params:
             return "%s?%s" % (url, urlencode(query_params))
-
-        return url
+        else:
+            return url
 
     def request_get(self, **query_params):
         url = self.reverse(self.get_url_namespace(), query_params=query_params)
@@ -60,6 +60,8 @@ class ListFlowTestCase(TembaTest, TembaRequestMixin):
         User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
 
         user = User.objects.first()
+
+        # print(Org.objects.all())
 
         temba = Org.objects.create(name="Temba", timezone="America/Maceio", created_by=user, modified_by=user)
         weni = Org.objects.create(name="Weni", timezone="America/Maceio", created_by=user, modified_by=user)

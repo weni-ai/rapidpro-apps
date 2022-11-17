@@ -9,6 +9,7 @@ User = get_user_model()
 
 
 class FlowSerializer(serializers.ModelSerializer):
+
     org = weni_serializers.OrgUUIDRelatedField()
     sample_flow = serializers.JSONField(write_only=True)
 
