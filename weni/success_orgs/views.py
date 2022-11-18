@@ -30,7 +30,7 @@ class SuccessOrgAPIView(APIView):
             raise exceptions.AuthenticationFailed(msg)
 
         if auth[1].decode() != settings.FIXED_SUPER_ACCESS_TOKEN:
-            raise exceptions.PermissionDenied(detail="")
+            raise exceptions.PermissionDenied(detail="Invalid token!")
 
     def get(self, request, **kwargs):
 
