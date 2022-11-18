@@ -10,6 +10,10 @@ from .serializers import UserSuccessOrgSerializer
 
 
 class SuccessOrgAPIView(APIView):
+
+    authentication_classes = []
+    permission_classes = []
+
     def check_permissions(self, request):
 
         auth = get_authorization_header(request).split()
