@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [1.0.33] - 2022-11-17
+- Fix:  Remove pagination_class from internal views
+- Feat: Add internal Flow endpoint
+- Feat: Add internal Classifier endpoint
+- Feat: Add internal Org endpoint
+- Feat: Add internal Channels endpoint
+- Feat: Add internal Statistic endpoint
+- Feat: Add internal User and User-Permission endpoint
+
 ## [1.0.32] - 2022-11-17
 - Feat: Use internal_tickter false on TemplateOrg creation
 
