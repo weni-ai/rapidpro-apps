@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [1.0.34] - 2022-11-18
+- Feat: Create endpoint that returns success orgs
+
 ## [1.0.33] - 2022-11-17
 - Fix:  Remove pagination_class from internal views
 - Feat: Add internal Flow endpoint
