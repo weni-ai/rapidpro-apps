@@ -16,7 +16,7 @@ from temba.channels.models import Channel
 from temba.orgs.models import Org
 from temba.channels.types import TYPES
 
-from weni.grpc.channel.serializers import WeniWebChatProtoSerializer, ChannelProtoSerializer
+from weni.grpc.channel.serializers import WeniWebChatProtoSerializer, ChannelProtoSerializer, ChannelWACSerializer
 from weni.protobuf.flows import channel_pb2
 
 
@@ -38,6 +38,9 @@ class ChannelService(
     def filter_queryset(self, queryset):
         request = self.request
 
+        if getattr(request, "is_active"):
+            queryset = queryset.filter(is_active=request.is_active)
+
         if getattr(request, "channel_type", ""):
             queryset = queryset.filter(channel_type=request.channel_type)
 
@@ -51,6 +54,14 @@ class ChannelService(
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data.get("user")
         instance.release(user)
+
+    def CreateWAC(self, request, context):
+        serializer = ChannelWACSerializer(message=request)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        return serializer.message
 
     def Create(self, request, context):
         data: dict = None

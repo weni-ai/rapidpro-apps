@@ -24,4 +24,5 @@ internal_urlpatterns += users_urls
 internal_urlpatterns += tickets_urls
 internal_urlpatterns += statistics_urls
 
+
 urlpatterns = [path("internals/", include(internal_urlpatterns))]

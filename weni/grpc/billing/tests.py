@@ -6,11 +6,15 @@ from django.utils import timezone as tz
 from google.protobuf.timestamp_pb2 import Timestamp as TimestampMessage
 from rest_framework.exceptions import ErrorDetail
 from temba.orgs.models import Org
+from temba.msgs.models import Msg
+from django.contrib.auth.models import User
+from temba.contacts.models import Contact
 from temba.tests import TembaTest
 from weni.protobuf.flows import billing_pb2 as pb2, billing_pb2_grpc as stubs
 from weni.grpc.billing.queries import ActiveContactsQuery
 from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer
 from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
+from google.protobuf import empty_pb2
 
 
 class ActiveContactsQueryTest(TembaTest):
@@ -213,14 +217,63 @@ class BillingRequestSerializerTest(TestCase):
         )
 
 
-class BillingServiceTest(RPCTransactionTestCase):
-
+class BillingServiceTest(RPCTransactionTestCase, TembaTest):
     def setUp(self):
         super().setUp()
-        self.stub = stubs.BillingStub(self.channel)
+        self.stub = stubs.BillingControllerStub(self.channel)
 
     def test_total(self):
         ...
 
     def test_detailed(self):
         ...
+
+    def test_message_detail(self):
+        user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
+        org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
+
+        contact = self.create_contact(f"Contact 1", phone=f"+553124826922")
+        contact.org = org
+        contact.save(update_fields=["org"])
+
+        channel = self.create_channel(channel_type="WA", name="channel_test", address="address_test", org=org)
+
+        msg = self.create_incoming_msg(contact=contact, text="incoming message test", channel=channel)
+        msg1 = self.create_outgoing_msg(contact=contact, text="incoming message test", channel=channel)
+
+        before = tz.now()
+        after = tz.now() - tz.timedelta(minutes=1)
+
+        result = self.billing_detail_msg(
+            org_uuid=str(org.uuid), contact_uuid=str(contact.uuid), before=str(before), after=str(after)
+        )
+
+        self.assertEqual(str(msg.uuid), result.uuid)
+        self.assertEqual(msg.text, result.text)
+        self.assertEqual(msg.direction, result.direction)
+        self.assertEqual(channel.id, result.channel_id)
+        self.assertEqual(channel.channel_type, result.channel_type)
+
+    def test_message_detail_fail(self):
+        user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
+        org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
+
+        contact = self.create_contact(f"Contact 1", phone=f"+553124826922")
+        contact.org = org
+        contact.save(update_fields=["org"])
+
+        channel = self.create_channel(channel_type="WA", name="channel_test", address="address_test", org=org)
+
+        msg = self.create_outgoing_msg(contact=contact, text="incoming message test", channel=channel, status="F")
+
+        before = tz.now()
+        after = tz.now() - tz.timedelta(minutes=1)
+
+        result = self.billing_detail_msg(
+            org_uuid=str(org.uuid), contact_uuid=str(contact.uuid), before=str(before), after=str(after)
+        )
+
+        self.assertEqual(type(result), empty_pb2.Empty)
+
+    def billing_detail_msg(self, **kwargs):
+        return self.stub.MessageDetail(pb2.MessageDetailRequest(**kwargs))

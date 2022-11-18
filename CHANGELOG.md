@@ -1,5 +1,61 @@
 ## [Unreleased]
 
+## [1.0.32] - 2022-11-17
+- Feat: Use internal_tickter false on TemplateOrg creation
+
+## [1.0.31] - 2022-11-08
+- Fix: fix org is_suspend endpoint
+
+## [1.0.30] - 2022-11-07
+- Feat: A endpoint to add a warning message to user showing org will be suspeded.
+- Feat: A endpoint to suspend a org
+
+## [1.0.29] - 2022-10-20
+- Fix: Set Channel Stats start date to 01/01/2000
+
+## [1.0.28] - 2022-10-07
+- Update weni-protobuffers to 1.2.18
+
+## [1.0.27] - 2022-10-07
+- Add ticketer queues endpoint
+- Add agent permission in UserPermission retrieve endpoint
+- Add endpoint that allows managing ticketer queues
+- Endpoint that allows you to create, update and destroy a ticketer
+
+## [1.0.26] - 2022-09-15
+- Create serializer fields for User and Org using SlugRelatedField
+- Org and User APIToken internal endpoint
+
+## [1.0.25] - 2022-08-31
+- Add org and is_active to channel list
+
+## [1.0.24] - 2022-08-29
+- Generate WAC channel name from number and verified_name
+
+## [1.0.23] - 2022-08-26
+- Endpoint that lets you create a flow from a sample flow
+- Endpoint that allows you to create org from a template
+- Create base classes for internal endpoints
+
+## [1.0.22] - 2022-06-15
+- Fix pipy package dependencies
+
+## [1.0.21] - 2022-06-15
+- Add channel_id field to response in billing Detailed endpoint
+- Adjust the python version to have compatibility with the new package;
+- Add a new package named pre-commit;
+- Creates a file named .pre-commit-config.yaml to configure the pre commit;
+- Adjust readme with the new feature.
+
+## [1.0.20] - 2022-06-15
+- Fix exception when has not msg on message detail
+
+## [1.0.19] - 2022-06-09
+- Add more details to Message endpoint
+
+## [1.0.18] - 2022-06-08
+- Add Channel Cloud Whatsapp
+
 ## [1.0.17] - 2022-05-02
 - Added permission_type of users to org object
 
