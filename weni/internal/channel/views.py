@@ -77,30 +77,26 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
 class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
 
     def list(self, request):
-        types_object = []
         types_available = TYPES
-
+        channel_types = {}
         for value in types_available:
             fields_types = {}
-            type = types_available[value]
-            attibutes_type =  extract_type_info(type)
+            attibutes_type =  extract_type_info(types_available[value])
             if not (attibutes_type):
                 return Response(status=status.HTTP_404_NOT_FOUND)
-            
-            fields_types['attrs'] = attibutes_type
-            types_object.append(fields_types)
+
+            fields_types['attributes'] = attibutes_type
+            channel_types[value] = fields_types
 
         payload = {
-            "available_channels": types_object,
+            "channel_types": channel_types,
         }
-        
         return Response(payload)
-    
+
     def retrieve(self, request, pk=None):
         channel_type = None
         fields_form = {}
         code_type =  pk
-        
         if code_type:
             channel_type = TYPES.get(code_type.upper(), None)
 

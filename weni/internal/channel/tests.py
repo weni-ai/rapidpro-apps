@@ -273,16 +273,17 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
         response = view(request)
         total_attrs = 0
 
-        if response.data:
-            for value in response.data.get('available_channels'):
-                if value.get('attrs'):
-                    if len(value.get('attrs')) > 0:
-                        total_attrs +=1
+        channel_types = response.data.get('channel_types')
+        for key in channel_types.keys():
+            attributes = response.data.get('channel_types').get(key)
+            if attributes:
+                if len(attributes)>0:
+                    total_attrs += 1
 
-        # checks if status code is 200 - ok   
+        # checks if status code is 200 - ok
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # checks if the amount of #types returned is equivalent to the available response types
-        self.assertEqual(len(TYPES), len(response.data.get('available_channels')))
+        self.assertEqual(len(TYPES), len(response.data.get('channel_types')))
         # checks if response data have existing attributes
         self.assertEqual(total_attrs, len(TYPES))
 
