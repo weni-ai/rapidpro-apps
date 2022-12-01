@@ -23,6 +23,10 @@ class UserDoesNotExist(User.DoesNotExist):
     pass
 
 
+class OrgDoesNotExist(Org.DoesNotExist):
+    pass
+
+
 def get_user_by_email(email: str) -> User:
     try:
         return User.objects.get(email=email)
@@ -54,3 +58,12 @@ def get_user_success_orgs_by_email(email: str):
     user = get_user_by_email(email)
 
     return dict(email=user.email, last_login=user.last_login, orgs=get_user_success_orgs(user))
+
+
+def retrieve_success_org(org_uuid: str, email: str) -> Org:
+    user = get_user_by_email(email)
+
+    try:
+        return get_user_success_orgs(user).get(uuid=org_uuid)
+    except Org.DoesNotExist as error:
+        raise OrgDoesNotExist(error)
