@@ -70,7 +70,8 @@ class ExternalService(SmartModel, DependencyMixin):
         """
         Returns the possible types available for external services
         """
-        types = OrderedDict({})
+        types = OrderedDict({"omie":"omie"})
+        return types.Values()
 
     def __str__(self):
         return f"ExternalService[uuid={self.uuid}, name={self.name}"
