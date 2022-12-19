@@ -7,7 +7,6 @@ from weni.success_orgs.business import (
     UserDoesNotExist,
     OrgDoesNotExist,
     get_user_by_email,
-    get_user_orgs,
     get_user_success_orgs,
     retrieve_success_org,
 )
@@ -35,12 +34,6 @@ class GetUserByEmailTestCase(SetupMixin, TestCase):
     def test_get_user_by_email_raise_does_not_exist_exception_with_wrong_email(self):
         with self.assertRaises(UserDoesNotExist):
             get_user_by_email("wrong@weni.ai")
-
-
-class GetUserOrgsTestCase(SetupMixin, TestCase):
-    def test_returns_list_of_orgs_created_by_user(self):
-        orgs = get_user_orgs(self.user)
-        self.assertIn(self.org, orgs)
 
 
 class GetUserSuccessOrgsTestCase(SetupMixin, TestCase):
@@ -83,9 +76,9 @@ class GetUserSuccessOrgsTestCase(SetupMixin, TestCase):
 
 class RetrieveSuccessOrgTestCase(SetupMixin, TestCase):
     def test_returns_org_by_uuid(self):
-        org = retrieve_success_org(str(self.org.uuid), self.user.email)
+        org = retrieve_success_org(str(self.org.uuid))
         self.assertEqual(org, self.org)
 
     def test_retrieve_success_org_raise_does_not_exist_exception_with_wrong_uuid(self):
         with self.assertRaises(OrgDoesNotExist):
-            retrieve_success_org(uuid.uuid4(), self.user.email)
+            retrieve_success_org(uuid.uuid4())

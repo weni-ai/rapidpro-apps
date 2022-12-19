@@ -1,3 +1,7 @@
+# TODO: move code to a package and separate between logic and exceptions
+
+from typing import TYPE_CHECKING
+
 from django.db.models import Exists, OuterRef, Case, When, Value, BooleanField, F
 from django.contrib.auth import get_user_model
 
@@ -6,6 +10,10 @@ from temba.classifiers.models import Classifier
 from temba.flows.models import Flow
 from temba.channels.models import Channel
 from temba.msgs.models import Msg
+
+
+if TYPE_CHECKING:
+    from django.db.models.query import QuerySet
 
 
 User = get_user_model()
@@ -27,6 +35,16 @@ class OrgDoesNotExist(Org.DoesNotExist):
     pass
 
 
+def user_has_org_permission(user: User, org: Org) -> bool:
+    return (
+        org.created_by == user
+        or user.org_admins.filter(pk=org.pk)
+        or user.org_viewers.filter(pk=org.pk)
+        or user.org_editors.filter(pk=org.pk)
+        or user.org_surveyors.filter(pk=org.pk)
+    )
+
+
 def get_user_by_email(email: str) -> User:
     try:
         return User.objects.get(email=email)
@@ -34,15 +52,9 @@ def get_user_by_email(email: str) -> User:
         raise UserDoesNotExist(error)
 
 
-def get_user_orgs(user: User):
-    return Org.objects.filter(created_by=user)
-
-
-def get_user_success_orgs(user: User):
-    user_orgs = get_user_orgs(user)
-
+def get_success_orgs() -> "QuerySet[Org]":
     return (
-        user_orgs.annotate(user_last_login=F("created_by__last_login"))
+        Org.objects.annotate(user_last_login=F("created_by__last_login"))
         .annotate(**SUCCESS_ORG_QUERIES)
         .annotate(
             is_success_project=Case(
@@ -54,16 +66,19 @@ def get_user_success_orgs(user: User):
     )
 
 
-def get_user_success_orgs_by_email(email: str):
+def get_user_success_orgs(user: User) -> "QuerySet[Org]":
+    return get_success_orgs().filter(created_by=user)
+
+
+def get_user_success_orgs_by_email(email: str) -> dict:
     user = get_user_by_email(email)
 
     return dict(email=user.email, last_login=user.last_login, orgs=get_user_success_orgs(user))
 
 
-def retrieve_success_org(org_uuid: str, email: str) -> Org:
-    user = get_user_by_email(email)
+def retrieve_success_org(org_uuid: str) -> Org:
 
     try:
-        return get_user_success_orgs(user).get(uuid=org_uuid)
+        return get_success_orgs().get(uuid=org_uuid)
     except Org.DoesNotExist as error:
         raise OrgDoesNotExist(error)
