@@ -11,6 +11,8 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 
 from weni.internal.views import InternalGenericViewSet
+from django.conf import settings
+
 from temba.channels.models import Channel
 from temba.channels.types import TYPES
 
@@ -80,13 +82,14 @@ class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
         types_available = TYPES
         channel_types = {}
         for value in types_available:
-            fields_types = {}
-            attibutes_type =  extract_type_info(types_available[value])
-            if not (attibutes_type):
-                return Response(status=status.HTTP_404_NOT_FOUND)
+            if value not in settings.DISABLED_CHANNELS_INTEGRATIONS:
+                fields_types = {}
+                attibutes_type =  extract_type_info(types_available[value])
+                if not (attibutes_type):
+                    return Response(status=status.HTTP_404_NOT_FOUND)
 
-            fields_types['attributes'] = attibutes_type
-            channel_types[value] = fields_types
+                fields_types['attributes'] = attibutes_type
+                channel_types[value] = fields_types
 
         payload = {
             "channel_types": channel_types,
