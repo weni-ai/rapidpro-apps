@@ -190,14 +190,19 @@ def extract_form_info(_form, name_form):
     except:
         detail['type'] = None
 
-    try:
+    if _form.help_text:
         detail['help_text'] = str(_form.help_text)
-    except:
+    else:
         detail['help_text'] = None
 
     if detail.get('type') == 'select':
         detail['choices'] = _form.choices
-    
+
+    if _form.label:
+        detail['label'] = str(_form.label)
+    else:
+        detail['label'] = None
+
     if not (detail.get('name')) or not (detail.get('type')):
         return None
 
