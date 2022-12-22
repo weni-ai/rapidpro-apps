@@ -40,11 +40,10 @@ class UserViewSet(InternalGenericViewSet):
 
 class UserPermissionEndpoint(InternalGenericViewSet):
     serializer_class = UserPermissionSerializer
-    # lookup_field = "org_id"
 
     def retrieve(self, request):
         org = get_object_or_404(Org, uuid=request.query_params.get("org_uuid"))
-        user = get_object_or_404(User, email=request.query_params.get("user_email"))
+        user = get_object_or_404(User, email=request.query_params.get("user_email"), is_active=request.query_params.get("is_active", True))
 
         permissions = self._get_user_permissions(org, user)
         serializer = self.get_serializer(permissions)
@@ -53,7 +52,7 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
     def partial_update(self, request):
         org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
-        user = get_object_or_404(User, email=request.data.get("user_email"))
+        user = get_object_or_404(User, email=request.data.get("user_email"), is_active=request.query_params.get("is_active", True))
 
         self._validate_permission(org, request.data.get("permission", ""))
         self._set_user_permission(org, user, request.data.get("permission", ""))
@@ -65,7 +64,7 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
     def destroy(self, request):
         org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
-        user = get_object_or_404(User, email=request.data.get("user_email"))
+        user = get_object_or_404(User, email=request.data.get("user_email"), is_active=request.query_params.get("is_active", True))
 
         self._validate_permission(org, request.data.get("permission", ""))
         self._remove_user_permission(org, user, request.data.get("permission", ""))
