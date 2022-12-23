@@ -1,3 +1,4 @@
+import celery
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -10,15 +11,15 @@ from weni.activities import tasks
 
 
 def create_recent_activity(instance: models.Model, created: bool):
-    action = "create" if created else "update"
+    action = "CREATE" if created else "UPDATE"
 
-    tasks.create_recent_activity.delay(
+    celery.execute.send_task("create_recent_activity", kwargs=dict(
         action=action,
-        entity=instance.__class__.__name__.lower(),
+        entity=instance.__class__.__name__.upper(),
         entity_name=instance.name,
         user=instance.modified_by.email,
         flow_organization=str(instance.org.uuid),
-    )
+    ))
 
 
 @receiver(post_save, sender=Channel)
