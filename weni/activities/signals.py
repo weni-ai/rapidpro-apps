@@ -7,19 +7,19 @@ from temba.channels.models import Channel
 from temba.flows.models import Flow
 from temba.triggers.models import Trigger
 from temba.campaigns.models import Campaign
-from weni.activities import tasks
 
 
 def create_recent_activity(instance: models.Model, created: bool):
-    action = "CREATE" if created else "UPDATE"
+    if instance.is_active:
+        action = "CREATE" if created else "UPDATE"
 
-    celery.execute.send_task("create_recent_activity", kwargs=dict(
-        action=action,
-        entity=instance.__class__.__name__.upper(),
-        entity_name=instance.name,
-        user=instance.modified_by.email,
-        flow_organization=str(instance.org.uuid),
-    ))
+        celery.execute.send_task("create_recent_activity", kwargs=dict(
+            action=action,
+            entity=instance.__class__.__name__.upper(),
+            entity_name=instance.name,
+            user=instance.modified_by.email,
+            flow_organization=str(instance.org.uuid),
+        ))
 
 
 @receiver(post_save, sender=Channel)
