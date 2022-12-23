@@ -13,6 +13,6 @@ class ConnectInternalClient(BaseInternalClient):
             user=user,
             flow_organization=flow_organization,
         )
-        response = requests.post(self.get_url("/v2/recent-activity"), headers=self.authenticator.headers, json=body)
+        response = requests.post(self.get_url("/v1/recent-activity"), headers=self.authenticator.headers, json=body)
 
         return response
