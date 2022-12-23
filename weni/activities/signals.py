@@ -29,7 +29,19 @@ def channel_recent_activity_signal(sender, instance: Channel, created: bool, **k
 
 @receiver(post_save, sender=Flow)
 def flow_recent_activity_signal(sender, instance: Flow, created: bool, **kwargs):
-    create_recent_activity(instance, created)
+    update_fields = kwargs.get("update_fields")
+    if update_fields != frozenset({
+        'version_number',
+        'modified_on',
+        'saved_on',
+        'modified_by',
+        'metadata',
+        'saved_by',
+        'base_language',
+        'has_issues'
+    }):
+        # This condition prevents two events from being sent when creating a flow
+        create_recent_activity(instance, created)
 
 
 @receiver(post_save, sender=Trigger)
