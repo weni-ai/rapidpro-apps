@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.0.0] - 2022-12-23
+- Feature: Create endpoint for channel type
+
 ## [1.0.34] - 2022-11-18
 - Feat: Create endpoint that returns success orgs
 
