@@ -3,6 +3,7 @@ on:
   push:
     tags: 
       - '*.*.*'
+      - '*.*.*a*'
 
 jobs:
   # build:
