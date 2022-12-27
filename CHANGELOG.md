@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.0.1] - 2022-12-27
+- Feature: Add a new endpoint thats return file from Weni Bucket
+- Feature: Add is_active filter to User-Permission endpoint
+
 ## [2.0.0] - 2022-12-23
 - Feature: Create endpoint for channel type
 
