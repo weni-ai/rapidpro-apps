@@ -16,7 +16,7 @@ def create_recent_activity(instance: models.Model, created: bool):
         celery.execute.send_task("create_recent_activity", kwargs=dict(
             action=action,
             entity=instance.__class__.__name__.upper(),
-            entity_name=instance.name,
+            entity_name=getattr(instance, "name", None),
             user=instance.modified_by.email,
             flow_organization=str(instance.org.uuid),
         ))
