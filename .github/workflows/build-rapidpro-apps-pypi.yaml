@@ -6,73 +6,19 @@ on:
       - '*.*.*a*'
 
 jobs:
-  # build:
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #   - name: Checkout repository
-  #     uses: actions/checkout@v3
-
-  #   - name: Install python
-  #     uses: actions/setup-python@v3
-  #     with:
-  #       python-version: '3.9'
-
-  #   - name: Install poetry
-  #     uses: Gr1N/setup-poetry@v7
-
-  #   - name: Checkout poetry version
-  #     run: poetry --version
-
-    # - name: Upload built package
-    #   uses: actions/upload-artifact@v3
-    #   with:
-    #     name: dist
-    #     path: dist/
-    #     retention-days: 1
-
-  # Run pytest using built package
-  # test:
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       python: ["3.8", "3.9", "3.10"]
-
-  #   steps:
-  #   - name: Checkout repository
-  #     uses: actions/checkout@v2
-
-  #   - name: Install python
-  #     uses: actions/setup-python@v2
-  #     with:
-  #       python-version: ${{ matrix.python }}
-  #       cache: 'pip'
-  #       cache-dependency-path: "poetry.lock"
-
-  #   - name: Download built package
-  #     uses: actions/download-artifact@v3
-  #     with:
-  #       name: dist
-    
-  #   - name: Install weni-rp-apps and pytest
-  #     shell: bash
-  #     run: |
-  #       WHL_NAME=$(ls weni-rp-apps-*.whl)
-  #       pip install ${WHL_NAME}[experiments,entmoot] pytest
-
-  #   - name: Run tests
-  #     shell: bash
-  #     run: weni-rp-apps-tests
-
-  # Publish to pypi on version change
-  # This is based on https://github.com/coveooss/pypi-publish-with-poetry
   publish:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+
+    - name: Set variables
+      shell: bash
+      run: |
+        TAG="$( echo "${GITHUB_REF}" | cut -d'/' -f3 )"
+        VERSION="${TAG}"
+        echo "VERSION=${VERSION}" | tee -a "${GITHUB_ENV}"
 
     - name: Install python
       uses: actions/setup-python@v2
@@ -81,64 +27,38 @@ jobs:
 
     - name: Install poetry
       uses: Gr1N/setup-poetry@v7
+
+    - name: Update version in pyproject.toml
+      shell: bash
+      run: |
+        sed -i 's;^version *=.*$;version = "'$VERSION'";g' pyproject.toml
     
     - name: Build package
       run: poetry build
 
-    # - name: Install coveo-pypi-cli
-    #   run: pip install coveo-pypi-cli
-
-    # - name: Determine the version for this release from the build
-    #   id: current
-    #   run: |
-    #     BUILD_VER="$(ls dist/weni-rp-apps-*.tar.gz)"
-    #     echo "Path: $BUILD_VER"
-    #     if [[ $BUILD_VER =~ (weni-rp-apps-)([^,][0-9.]{4}) ]]; then
-    #         echo "::set-output name=version::${BASH_REMATCH[2]}"
-    #         echo "Version of build: ${BASH_REMATCH[2]}"
-    #     else
-    #         echo "No version found found"
-    #     fi
-        
-    # - name: Get latest published version
-    #   id: published
-    #   run: |
-    #     PUB_VER="$(pypi current-version weni-rp-apps)"
-    #     echo "::set-output name=version::$PUB_VER"
-    #     echo "Latest published version: $PUB_VER"
-    
-
     - name: Publish to pypi
-      # if: (steps.current.outputs.version != steps.published.outputs.version)
       shell: bash
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
-        # if [[ '${{ github.ref_name }}' == 'master' ]]; then
-          poetry publish 
-        # else
-        #   echo "Dry run of publishing the package"
-        #   poetry publish --dry-run
-        # fi
+        poetry publish
 
-    # - name: Tag repository
-    #   shell: bash
-    #   id: get-next-tag
-    #   if: (steps.current.outputs.version != steps.published.outputs.version)
-    #   run: |
-    #     TAG_NAME=${{ steps.current.outputs.version }}
-    #     echo "::set-output name=tag-name::$TAG_NAME"
-    #     echo "This release will be tagged as $TAG_NAME"
-    #     git config user.name "github-actions"
-    #     git config user.email "actions@users.noreply.github.com"
-    #     git tag --annotate --message="Automated tagging system" $TAG_NAME ${{ github.sha }}
+    - name: Check out Kubernetes Manifests
+        uses: actions/checkout@master
+        with:
+          ref: main
+          repository: Ilhasoft/rapidpro
+          token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
+          path: ./rapidpro/
+          
+    - name: Update version on pip-requires.txt
+      run: |
+        sed -i 's;^weni-rp-apps@==.*$;weni-rp-apps@=='$VERSION';g' ./rapidpro/docker/pip-requires.txt
 
-    # - name: Push the tag
-    #   if: (steps.current.outputs.version != steps.published.outputs.version)
-    #   env:
-    #     TAG_NAME: ${{ steps.current.outputs.version }}
-    #   run: |
-    #     if [[ ${{ github.ref_name }} == 'master' ]]; then
-    #       git push origin $TAG_NAME
-    #     else
-    #       echo "If this was the master branch, I would push a new tag named $TAG_NAME"
-    #     fi
+    - name: Commit & Push changes
+        uses: actions-js/push@master
+        with:
+          github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
+          repository: Ilhasoft/rapidpro
+          directory: ./rapidpro/
+          branch: main
+          message: "Update version of weni-rp-apps to ${{ env.VERSION }})"
