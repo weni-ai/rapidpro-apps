@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [2.1.0] - 2022-12-27
+- Add success org retrieve endpoint
+- Create an internal client for the connect REST API
+- Create new Django App from recent activity
+- When creating a classifier syncs it synchronously
+
 ## [2.0.1] - 2022-12-27
 - Feature: Add a new endpoint thats return file from Weni Bucket
 - Feature: Add is_active filter to User-Permission endpoint
