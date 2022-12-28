@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.1.1] - 2022-12-28
+- Fix error with magic package usage
+
 ## [2.1.0] - 2022-12-27
 - Add success org retrieve endpoint
 - Create an internal client for the connect REST API
