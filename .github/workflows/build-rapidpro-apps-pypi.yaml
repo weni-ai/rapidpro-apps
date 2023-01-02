@@ -42,7 +42,7 @@ jobs:
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
 
-    - name: Check out Rapidpro-apps repository
+    - name: Check out Rapidpro repository
       uses: actions/checkout@master
       with:
         ref: main
