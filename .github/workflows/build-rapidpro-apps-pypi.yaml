@@ -42,7 +42,7 @@ jobs:
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
 
-    - name: Check out Kubernetes Manifests
+    - name: Check out Rapidpro-apps repository
       uses: actions/checkout@master
       with:
         ref: main
