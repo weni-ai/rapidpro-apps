@@ -1,4 +1,4 @@
-name: Build and Publish
+name: Build and Publish Rapidpro-apps With Poetry in PyPI
 on:
   push:
     tags: 
@@ -42,7 +42,7 @@ jobs:
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
 
-    - name: Check out Kubernetes Manifests
+    - name: Checkout Rapidpro repository
       uses: actions/checkout@master
       with:
         ref: main
