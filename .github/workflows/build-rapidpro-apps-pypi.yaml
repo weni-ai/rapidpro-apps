@@ -1,4 +1,4 @@
-name: Build and Publish
+name: Build and Publish Rapidpro-apps With Poetry in PyPI
 on:
   push:
     tags: 
@@ -32,6 +32,15 @@ jobs:
       shell: bash
       run: |
         sed -i 's;^version *=.*$;version = "'$VERSION'";g' pyproject.toml
+        
+    - name: Commit & Push changes in rapidpro-apps
+      uses: actions-js/push@master
+      with:
+        github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
+        repository: Ilhasoft/rapidpro-apps
+        directory: .
+        branch: "update/${{ env.VERSION }}"
+        message: "Update version of weni-rp-apps to ${{ env.VERSION }})"
     
     - name: Build package
       run: poetry build
@@ -42,7 +51,7 @@ jobs:
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
 
-    - name: Check out Kubernetes Manifests
+    - name: Checkout Rapidpro repository
       uses: actions/checkout@master
       with:
         ref: main
@@ -52,13 +61,15 @@ jobs:
           
     - name: Update version on pip-requires.txt
       run: |
+        VERSION="${{ env.VERSION }}"
         sed -i 's;^weni-rp-apps@==.*$;weni-rp-apps@=='$VERSION';g' ./rapidpro/docker/pip-requires.txt
 
-    - name: Commit & Push changes
+    - name: Commit & Push changes in rapidpro
       uses: actions-js/push@master
       with:
         github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
         repository: Ilhasoft/rapidpro
         directory: ./rapidpro/
-        branch: main
+        branch: "update/${{ env.VERSION }}"
         message: "Update version of weni-rp-apps to ${{ env.VERSION }})"
+
