@@ -64,12 +64,12 @@ jobs:
         VERSION="${{ env.VERSION }}"
         sed -i 's;^weni-rp-apps@==.*$;weni-rp-apps@=='$VERSION';g' ./rapidpro/docker/pip-requires.txt
 
-    - name: Create a new branch in rapidpro
-      uses: peterjgrainger/action-create-branch@v2.2.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}
-      with:
-        branch: "update/${{ env.VERSION }}"
+    # - name: Create a new branch in rapidpro
+    #   uses: peterjgrainger/action-create-branch@v2.2.0
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}
+    #   with:
+    #     branch: "update/${{ env.VERSION }}"
 
     - name: Commit & Push changes in rapidpro
       uses: actions-js/push@master
