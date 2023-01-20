@@ -47,7 +47,7 @@ jobs:
         repository: Ilhasoft/rapidpro-apps
         directory: .
         branch: "refs/heads/update/${{ env.VERSION }}"
-        message: "Update version of weni-rp-apps to ${{ env.VERSION }})"
+        message: "Update version of weni-rp-apps to ${{ env.VERSION }}"
     
     - name: Build package
       run: poetry build
@@ -78,4 +78,4 @@ jobs:
         repository: Ilhasoft/rapidpro
         directory: ./rapidpro/
         branch: "refs/heads/update/${{ env.VERSION }}"
-        message: "Update version of weni-rp-apps to ${{ env.VERSION }})"
+        message: "Update version of weni-rp-apps to ${{ env.VERSION }}"
