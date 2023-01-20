@@ -32,13 +32,6 @@ jobs:
       shell: bash
       run: |
         sed -i 's;^version *=.*$;version = "'$VERSION'";g' pyproject.toml
-      
-    # - name: Create a new branch in rapidpro-apps
-    #   uses: peterjgrainger/action-create-branch@v2.2.0
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}
-    #   with:
-    #     branch: 'update/${{ env.VERSION }}'
 
     - name: Commit & Push changes in rapidpro-apps
       uses: actions-js/push@master
@@ -59,7 +52,7 @@ jobs:
         poetry publish
 
     - name: Checkout Rapidpro repository
-      uses: actions/checkout@master
+      uses: actions/checkout@v3
       with:
         ref: main
         repository: Ilhasoft/rapidpro
@@ -70,6 +63,13 @@ jobs:
       run: |
         VERSION="${{ env.VERSION }}"
         sed -i 's;^weni-rp-apps@==.*$;weni-rp-apps@=='$VERSION';g' ./rapidpro/docker/pip-requires.txt
+
+    - name: Create a new branch in rapidpro
+      uses: peterjgrainger/action-create-branch@v2.2.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}
+      with:
+        branch: "update/${{ env.VERSION }}"
 
     - name: Commit & Push changes in rapidpro
       uses: actions-js/push@master
