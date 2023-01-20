@@ -61,7 +61,7 @@ jobs:
     - name: Checkout Rapidpro repository
       uses: actions/checkout@master
       with:
-        ref: "refs/heads/update/${{ env.VERSION }}"
+        ref: main
         repository: Ilhasoft/rapidpro
         token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
         path: ./rapidpro/
