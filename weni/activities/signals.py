@@ -24,7 +24,10 @@ def create_recent_activity(instance: models.Model, created: bool):
 
 @receiver(post_save, sender=Channel)
 def channel_recent_activity_signal(sender, instance: Channel, created: bool, **kwargs):
-    create_recent_activity(instance, created)
+    update_fields = kwargs.get("update_fields")
+    if instance.channel_type not in ['WA', 'WAC'] \
+        or update_fields != frozenset({'config',}):
+        create_recent_activity(instance, created)
 
 
 @receiver(post_save, sender=Flow)
