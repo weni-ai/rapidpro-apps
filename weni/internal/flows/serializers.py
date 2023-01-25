@@ -20,10 +20,11 @@ class FlowSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         org = validated_data.get("org")
         sample_flows = validated_data.get("sample_flow")
-
         org.import_app(sample_flows, org.created_by)
-
-        return org.flows.order_by("created_on").last()
+        flow = org.flows.order_by("created_on").last()
+        flow.has_issues = False
+        flow.save()
+        return flow
 
 
 class FlowListSerializer(serializers.Serializer):
