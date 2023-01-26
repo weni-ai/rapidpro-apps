@@ -18,14 +18,14 @@ class FlowSerializer(serializers.ModelSerializer):
         fields = ("org", "uuid", "sample_flow")
 
     def create(self, validated_data):
+        flows_name = []
         org = validated_data.get("org")
         sample_flows = validated_data.get("sample_flow")
         org.import_app(sample_flows, org.created_by)
-        flow = org.flows.order_by("created_on").last()
-        flow.has_issues = False
-        flow.save()
-        return flow
 
+        flows_name = list(map(lambda x: x.get('name'), sample_flows.get('flows')))
+        org.flows.filter(name__in=flows_name, org=org).update(has_issues=False)
+        return org.flows.order_by("created_on").last()
 
 class FlowListSerializer(serializers.Serializer):
     flow_name = serializers.CharField(required=True, write_only=True)
