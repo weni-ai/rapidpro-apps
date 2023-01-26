@@ -9,7 +9,6 @@ User = get_user_model()
 
 
 class FlowSerializer(serializers.ModelSerializer):
-
     org = weni_serializers.OrgUUIDRelatedField()
     sample_flow = serializers.JSONField(write_only=True)
 
@@ -21,10 +20,12 @@ class FlowSerializer(serializers.ModelSerializer):
         org = validated_data.get("org")
         sample_flows = validated_data.get("sample_flow")
         org.import_app(sample_flows, org.created_by)
-        flow = org.flows.order_by("created_on").last()
-        flow.has_issues = False
-        flow.save()
-        return flow
+        self.disable_flows_has_issues(org, sample_flows)
+        return org.flows.order_by("created_on").last()
+
+    def disable_flows_has_issues(self, org, sample_flows):
+        flows_name = list(map(lambda flow: flow.get("name"), sample_flows.get("flows")))
+        org.flows.filter(name__in=flows_name).update(has_issues=False)
 
 
 class FlowListSerializer(serializers.Serializer):
