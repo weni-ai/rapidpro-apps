@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.1.2] - 2023-02-03
+- Fix change the has_issues field to False, when create flow
+
 ## [2.1.1] - 2022-12-28
 - Fix error with magic package usage
 
