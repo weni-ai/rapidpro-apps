@@ -34,7 +34,7 @@ jobs:
         sed -i 's;^version *=.*$;version = "'$VERSION'";g' pyproject.toml
 
     - name: Commit & Push changes in rapidpro-apps
-      if: ${{ env.VERSION != '*.*.*a*' }}
+      if: ${{ !contains(env.VERSION, 'a') }}
       uses: actions-js/push@master
       with:
         github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
