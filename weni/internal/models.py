@@ -1,6 +1,9 @@
+from uuid import uuid4
+
 from django.db import models
 
 from temba.tickets.models import Ticketer, Topic
+from temba.orgs.models import Org
 
 
 class TicketerQueue(Topic):
@@ -12,3 +15,17 @@ class TicketerQueue(Topic):
 
     def __str__(self):
         return f"Queue[uuid={self.uuid}, name={self.name}]"
+
+
+class Project(Org):
+    project_uuid = models.UUIDField(default=uuid4, unique=True)
+
+    class Meta:
+        db_table = "internal_project"
+
+    def __str__(self):
+        return f"Project[uuid={self.project_uuid}, org={self.org}]"
+
+    @property
+    def org(self):
+        return self.org_ptr
