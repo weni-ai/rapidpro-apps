@@ -2,14 +2,14 @@ from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
 
-from weni.grpc.core import serializers as weni_serializers
+from weni.serializers import fields as weni_serializers
 
 User = get_user_model()
 
 
 class UserAPITokenSerializer(serializers.Serializer):
     user = weni_serializers.UserEmailRelatedField(required=True)
-    org = weni_serializers.OrgUUIDRelatedField(required=True)
+    project = weni_serializers.ProjectUUIDRelatedField(required=True)
 
 
 class UserPermissionSerializer(serializers.Serializer):
