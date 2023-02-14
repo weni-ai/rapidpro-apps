@@ -82,7 +82,6 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
         classifier = Classifier.create(project, self.admin, WitType.slug, "Booker", self.config, sync=False)
 
         response = self.request_get(org_uuid=project_uuid, is_active=1).json()
-        print(response)
 
         self.assertEqual(len(response), 1)
 
@@ -150,8 +149,6 @@ class ClassifierCreateTestCase(TembaTest, TembaRequestMixin):
         mock.return_value = None
 
         project = Project.objects.first()
-        print(project)
-        print("org", project.org.uuid)
         user = self.admin
         access_token = self.config["access_token"]
 
@@ -165,11 +162,8 @@ class ClassifierCreateTestCase(TembaTest, TembaRequestMixin):
             "name": name,
             "access_token": access_token,
         }
-        print(payload)
 
         response = self.request_post(data=payload).json()
-        print(response)
-        print(response.get("classifier_type"), classifier_type)
 
         self.assertEqual(response.get("name"), name)
         self.assertEqual(response.get("classifier_type"), classifier_type)
