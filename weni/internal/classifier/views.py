@@ -24,8 +24,6 @@ from weni.internal.models import Project
 class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
     serializer_class = ClassifierSerializer
     lookup_field = "uuid"
-    authentication_classes = []
-    permission_classes = []
 
     def get_queryset(self):
         is_active_possibilities = {

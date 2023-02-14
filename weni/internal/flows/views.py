@@ -20,7 +20,7 @@ class ProjectFlowsViewSet(ListModelMixin, InternalGenericViewSet):
 
         queryset = Flow.objects.filter(
             name__icontains=serializer.validated_data.get("flow_name"),
-            org=serializer.validated_data.get("org_uuid"),
+            org=serializer.validated_data.get("org_uuid").org,
             is_active=True,
         ).exclude(is_archived=True)[:20]
 
