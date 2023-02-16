@@ -47,8 +47,8 @@ class TembaRequestMixin(ABC):
             url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
         )
 
-    def request_delete(self, uuid, **query_params):
-        url = self.reverse(self.get_url_namespace(), kwargs={"project_uuid": uuid}, query_params=query_params)
+    def request_delete(self, project_uuid, **query_params):
+        url = self.reverse(self.get_url_namespace(), kwargs={"project_uuid": project_uuid}, query_params=query_params)
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
@@ -285,7 +285,7 @@ class OrgDestroyTest(TembaTest, TembaRequestMixin):
 
         weniuser = User.objects.get(username="weniuser")
 
-        self.request_delete(uuid=str(project.uuid), user_email=weniuser.email)
+        self.request_delete(project_uuid=str(project.project_uuid), user_email=weniuser.email)
 
         destroyed_org = Project.objects.get(id=project.id)
 
