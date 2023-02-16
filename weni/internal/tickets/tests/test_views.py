@@ -6,19 +6,23 @@ from django.db import transaction
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.permissions import AllowAny
 from rest_framework import status
+from django.contrib.auth.models import User
 
 from temba.tests import TembaTest
 from temba.tickets.models import Ticketer
 from temba.tickets.types.rocketchat import RocketChatType
 from weni.internal.tickets import views
-from weni.internal.models import TicketerQueue
+from weni.internal.models import Project, TicketerQueue
 
 
 class TicketerQueueViewTestMixin(object):
-
     action: dict
 
     def setUp(self):
+        admin = User.objects.create_user(username="testuser", password="123", email="test@weni.ai", is_superuser=True)
+
+        project = Project.objects.create(name="Test", timezone="Africa/Kigali", created_by=admin, modified_by=admin)
+
         self.fake_chats_uuid = uuid4()
         self.factory = APIRequestFactory()
         self.view = views.TicketerQueueViewSet
@@ -26,11 +30,11 @@ class TicketerQueueViewTestMixin(object):
 
         super().setUp()
 
-        self.ticketer = Ticketer.create(self.org, self.user, RocketChatType.slug, "Email (bob@acme.com)", {})
+        self.ticketer = Ticketer.create(project, self.user, RocketChatType.slug, "Email (bob@acme.com)", {})
         self.queue = TicketerQueue.objects.create(
             created_by=self.user,
             modified_by=self.user,
-            org=self.org,
+            org=project.org,
             name="Fake Name",
             uuid=self.fake_chats_uuid,
             ticketer=self.ticketer,
@@ -49,7 +53,6 @@ class TicketerQueueViewTestMixin(object):
 
 
 class CreateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
-
     action = dict(post="create")
 
     def test_create_queue(self):
@@ -62,7 +65,6 @@ class CreateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
 
 
 class UpdateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
-
     action = dict(patch="partial_update")
 
     def test_update_queue(self):
@@ -80,16 +82,14 @@ class UpdateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
 
 
 class DestroyTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
-
     action = dict(delete="destroy")
 
     def test_destroy_queue(self):
         kwargs = dict(ticketer_uuid=str(self.ticketer.uuid), uuid=str(self.queue.uuid))
 
         url = reverse("ticketer-queues-detail", kwargs=kwargs)
-
         response = self.request("delete", url, **kwargs)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, 204)
 
     def test_destroy_non_existing_queue(self):
         kwargs = dict(ticketer_uuid=str(self.ticketer.uuid), uuid=str(uuid4()))
