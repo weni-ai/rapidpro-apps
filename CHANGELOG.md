@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.1.3] - 2023-02-17
+- Adjust the org field in the channel listing return
+- Fix: does not create activities when updating the channel.config at whatsapp and whatsapp-cloud
+
 ## [2.1.2] - 2023-02-03
 - Fix change the has_issues field to False, when create flow
 
