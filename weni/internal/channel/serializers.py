@@ -148,5 +148,5 @@ class ChannelSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret['org'] = instance.uuid
+        ret['org'] = instance.org.uuid
         return ret
