@@ -58,7 +58,7 @@ jobs:
         ref: main
         repository: weni-ai/flows
         token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
-        path: ./flows/
+        path: ./rapidpro/
           
     - name: Update version on pip-requires.txt
       run: |
@@ -70,7 +70,7 @@ jobs:
       with:
         github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
         repository: weni-ai/flows
-        directory: ./flows/
+        directory: ./rapidpro/
         branch: "refs/heads/update/weni-rp-apps-${{ env.VERSION }}"
         message: "Update version of weni-rp-apps to ${{ env.VERSION }}"
         
