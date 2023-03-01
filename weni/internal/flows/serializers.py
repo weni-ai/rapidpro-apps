@@ -17,7 +17,7 @@ class FlowSerializer(serializers.ModelSerializer):
         fields = ("org", "uuid", "sample_flow")
 
     def create(self, validated_data):
-        org = validated_data["org"].org
+        org = validated_data["org"]
         sample_flows = validated_data.get("sample_flow")
         org.import_app(sample_flows, org.created_by)
         self.disable_flows_has_issues(org, sample_flows)
