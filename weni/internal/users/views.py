@@ -35,9 +35,7 @@ class UserViewSet(InternalGenericViewSet):
         except APIToken.DoesNotExist:
             raise exceptions.PermissionDenied()
 
-        return Response(
-            dict(user=api_token.user.email, project=api_token.project.project_uuid, api_token=api_token.key)
-        )
+        return Response(dict(user=api_token.user.email, project=api_token.project.org_uuid, api_token=api_token.key))
 
 
 class UserPermissionEndpoint(InternalGenericViewSet):

@@ -81,7 +81,7 @@ class OrgCreateSerializer(serializers.ModelSerializer):
 
 
 class OrgUpdateSerializer(serializers.ModelSerializer):
-    project_uuid = serializers.CharField(read_only=True)
+    uuid = serializers.CharField(read_only=True)
     modified_by = weni_serializers.UserEmailRelatedField(required=False, write_only=True)
     timezone = serializers.CharField(required=False)
     name = serializers.CharField(required=False)
@@ -90,7 +90,7 @@ class OrgUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            "project_uuid",
+            "uuid",
             "modified_by",
             "name",
             "timezone",
