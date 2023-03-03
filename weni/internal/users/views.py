@@ -36,7 +36,7 @@ class UserViewSet(InternalGenericViewSet):
             raise exceptions.PermissionDenied()
 
         return Response(
-            dict(user=api_token.user.email, project=api_token.project.project_uuid, api_token=api_token.key)
+            dict(user=api_token.user.email, org=api_token.org.project.project_uuid, api_token=api_token.key)
         )
 
 
