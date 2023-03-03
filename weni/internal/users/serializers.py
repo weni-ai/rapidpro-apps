@@ -9,7 +9,7 @@ User = get_user_model()
 
 class UserAPITokenSerializer(serializers.Serializer):
     user = weni_serializers.UserEmailRelatedField(required=True)
-    project = weni_serializers.ProjectUUIDRelatedField(required=True)
+    org = weni_serializers.ProjectUUIDRelatedField(required=True)
 
 
 class UserPermissionSerializer(serializers.Serializer):
