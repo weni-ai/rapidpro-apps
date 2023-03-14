@@ -11,7 +11,6 @@ from django.utils.http import urlencode
 from django.urls import reverse
 
 from temba.orgs.models import Org
-
 from temba.api.models import APIToken
 from temba.tests import TembaTest
 
@@ -116,7 +115,7 @@ class FlagOrgTest(TembaTest, TembaRequestMixin):
             "date_org_will_suspend": "10-12-2022",
         }
 
-        with self.assertRaises(TemplateDoesNotExist):
+        with self.assertRaises(ValueError):
             self.request_post(uuid=org.uuid, data=data).json()
 
     def get_url_namespace(self):
