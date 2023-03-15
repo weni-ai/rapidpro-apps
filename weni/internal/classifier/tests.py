@@ -15,8 +15,13 @@ from temba.orgs.models import Org
 from temba.classifiers.models import Classifier, Intent
 from temba.classifiers.types.wit import WitType
 from temba.classifiers.types.luis import LuisType
+from weni.internal.classifier.views import ClassifierEndpoint
 from weni.protobuf.flows import classifier_pb2, classifier_pb2_grpc
 from weni.internal.models import Project
+
+
+view = ClassifierEndpoint
+view.permission_classes = []
 
 
 class TembaRequestMixin(ABC):

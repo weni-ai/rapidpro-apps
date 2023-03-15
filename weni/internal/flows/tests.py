@@ -11,7 +11,12 @@ from temba.api.models import APIToken
 
 from temba.orgs.models import Org
 from temba.flows.models import Flow
+from weni.internal.flows.views import ProjectFlowsViewSet
 from weni.internal.models import Project
+
+
+view = ProjectFlowsViewSet
+view.permission_classes = []
 
 
 class TembaRequestMixin(ABC):

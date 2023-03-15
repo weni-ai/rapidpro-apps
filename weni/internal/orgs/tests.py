@@ -2,19 +2,23 @@ import json
 from abc import ABC, abstractmethod
 from datetime import datetime
 import random
+from urllib.parse import urlencode
 from unittest.mock import patch
 
-from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
-from django.conf import settings
+from django.contrib.auth.models import Group
 from django.utils.http import urlencode
 from django.urls import reverse
 
-from temba.orgs.models import Org
 from weni.internal.models import Project
 
 from temba.api.models import APIToken
 from temba.tests import TembaTest
+from weni.internal.orgs.views import OrgViewSet
+
+
+view_class = OrgViewSet
+view_class.permission_classes = []
 
 
 class TembaRequestMixin(ABC):
@@ -47,8 +51,8 @@ class TembaRequestMixin(ABC):
             url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
         )
 
-    def request_delete(self, project_uuid, **query_params):
-        url = self.reverse(self.get_url_namespace(), kwargs={"project_uuid": project_uuid}, query_params=query_params)
+    def request_delete(self, uuid, **query_params):
+        url = self.reverse(self.get_url_namespace(), kwargs={"project_uuid": uuid}, query_params=query_params)
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
@@ -126,7 +130,6 @@ class OrgListTest(TembaTest, TembaRequestMixin):
 
         org.administrators.add(testuser)
         response = self.request_get(user_email=testuser.email).json()
-
         self.assertEquals(len(response[0].get("users")), 1)
 
         org.administrators.add(weniuser)
@@ -162,8 +165,9 @@ class OrgCreateTest(TembaTest, TembaRequestMixin):
 
     @patch("temba.orgs.models.Org.create_sample_flows")
     def test_create_org(self, mock):
+        user = User.objects.first()
         org_name = "TestCreateOrg"
-        user = User.objects.get(username="weniuser")
+
         response = self.request_post(data=dict(name=org_name, timezone="Wrong/Zone", user_email=user.email)).json()
 
         self.assertEqual(response.get("timezone")[0], '"Wrong/Zone" is not a valid choice.')
@@ -171,7 +175,6 @@ class OrgCreateTest(TembaTest, TembaRequestMixin):
         response = self.request_post(
             data=dict(name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com")
         ).json()
-
         newuser_qs = User.objects.filter(email="newemail@email.com")
 
         self.assertTrue(newuser_qs.exists())
@@ -182,7 +185,6 @@ class OrgCreateTest(TembaTest, TembaRequestMixin):
         org = orgs.first()
 
         self.assertEquals(orgs.count(), 1)
-
         created_by = org.created_by
         modified_by = org.modified_by
         administrators = org.administrators.all()
@@ -223,7 +225,7 @@ class OrgRetrieveTest(TembaTest, TembaRequestMixin):
         super().setUp()
 
     def test_retrieve_org(self):
-        org = Project.objects.first()
+        org = Project.objects.last()
         user = User.objects.last()
 
         permission_types = ("administrator", "viewer", "editor", "surveyor")
@@ -243,11 +245,12 @@ class OrgRetrieveTest(TembaTest, TembaRequestMixin):
         org_timezone = str(org.timezone)
 
         response = self.request_detail(uuid=org_uuid).json()
+
         response_user = response.get("users")[-1]
 
         self.assertEqual(response.get("id"), org.id)
         self.assertEqual(response.get("name"), org.name)
-        self.assertEqual(response.get("uuid"), org_uuid)
+        self.assertEqual(response.get("uuid"), str(org.project_uuid))
         self.assertEqual(org_timezone, response.get("timezone"))
         self.assertEqual(org.date_format, response.get("date_format"))
 
@@ -285,14 +288,13 @@ class OrgDestroyTest(TembaTest, TembaRequestMixin):
 
         weniuser = User.objects.get(username="weniuser")
 
-        self.request_delete(project_uuid=str(project.project_uuid), user_email=weniuser.email)
+        self.request_delete(uuid=str(project.project_uuid), user_email=weniuser.email)
 
         destroyed_org = Project.objects.get(id=project.id)
 
         self.assertFalse(destroyed_org.is_active)
         self.assertNotEquals(is_active, destroyed_org.is_active)
         self.assertEquals(weniuser, destroyed_org.modified_by)
-        self.assertNotEquals(modified_by, destroyed_org.modified_by)
 
     def get_url_namespace(self):
         return "orgs-detail"

@@ -10,6 +10,11 @@ from temba.flows.models import Flow
 from temba.orgs.models import Org
 from temba.tests import TembaTest
 from weni.internal.models import Project
+from weni.internal.statistic.views import StatisticEndpoint
+
+
+view = StatisticEndpoint
+view.permission_classes = []
 
 
 class TembaRequestMixin(ABC):

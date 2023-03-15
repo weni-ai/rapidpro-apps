@@ -5,23 +5,37 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('tickets', '0025_remove_ticket_subject'),
+        ("tickets", "0025_remove_ticket_subject"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TicketerQueue',
+            name="TicketerQueue",
             fields=[
-                ('topic', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, related_name='queue', serialize=False, to='tickets.topic')),
-                ('ticketer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='queues', to='tickets.ticketer')),
+                (
+                    "topic",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        related_name="queue",
+                        serialize=False,
+                        to="tickets.topic",
+                    ),
+                ),
+                (
+                    "ticketer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="queues", to="tickets.ticketer"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'internal_tickets_ticketerqueue',
+                "db_table": "internal_tickets_ticketerqueue",
             },
-            bases=('tickets.topic',),
+            bases=("tickets.topic",),
         ),
     ]

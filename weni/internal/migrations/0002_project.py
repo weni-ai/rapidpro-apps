@@ -6,22 +6,31 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orgs', '0090_auto_20211209_2120'),
-        ('internal', '0001_initial'),
+        ("orgs", "0090_auto_20211209_2120"),
+        ("internal", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Project',
+            name="Project",
             fields=[
-                ('org_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='orgs.org')),
-                ('project_uuid', models.UUIDField(default=uuid.uuid4, unique=True)),
+                (
+                    "org_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        serialize=False,
+                        to="orgs.org",
+                    ),
+                ),
+                ("project_uuid", models.UUIDField(default=uuid.uuid4, unique=True)),
             ],
             options={
-                'db_table': 'internal_project',
+                "db_table": "internal_project",
             },
-            bases=('orgs.org',),
+            bases=("orgs.org",),
         ),
     ]

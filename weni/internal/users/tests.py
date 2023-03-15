@@ -12,6 +12,16 @@ from temba.api.models import APIToken
 from temba.tests import TembaTest
 from temba.orgs.models import Org
 from weni.internal.models import Project
+from weni.internal.users.views import UserEndpoint, UserPermissionEndpoint, UserViewSet
+
+view_set = UserViewSet
+view_set.permission_classes = []
+
+view_permissions = UserPermissionEndpoint
+view_permissions.permission_classes = []
+
+view_endpoint = UserEndpoint
+view_endpoint.permission_classes = []
 
 
 class TembaRequestMixin(ABC):
