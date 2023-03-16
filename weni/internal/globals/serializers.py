@@ -6,7 +6,6 @@ from temba.orgs.models import Org
 
 
 class GlobalSerializer(serializers.ModelSerializer):
-
     org = weni_serializers.OrgUUIDRelatedField(required=True)
     user = weni_serializers.UserEmailRelatedField(required=True, write_only=True)
 
@@ -29,12 +28,6 @@ class GlobalSerializer(serializers.ModelSerializer):
             }
             raise serializers.ValidationError(message)
 
-        # exists = org.globals.filter(is_active=True, name__iexact=name.lower()).exists()
-
-        # if self.instance.name != name and exists:
-        #     message = {"name": serializers.ErrorDetail("Must be unique.", code="invalid")}
-        #     raise serializers.ValidationError(message)
-
         if not Global.is_valid_key(Global.make_key(name)):
             message = {"name": serializers.ErrorDetail("Isn't a valid name", code="invalid")}
             raise serializers.ValidationError(message)
@@ -51,6 +44,18 @@ class GlobalSerializer(serializers.ModelSerializer):
             value=validated_data.get("value"),
             name=name,
         )
+
+    def create_many(self, validated_data_list):
+        for validated_data in validated_data_list:
+            name = validated_data.get("name")
+
+            Global.get_or_create(
+                validated_data.get("org"),
+                validated_data.get("user"),
+                key=Global.make_key(name=name),
+                value=validated_data.get("value"),
+                name=name,
+            )
 
     class Meta:
         model = Global
