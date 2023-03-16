@@ -6,7 +6,6 @@ from temba.orgs.models import Org
 
 
 class GlobalSerializer(serializers.ModelSerializer):
-
     org = weni_serializers.OrgUUIDRelatedField(required=True)
     user = weni_serializers.UserEmailRelatedField(required=True, write_only=True)
 
@@ -51,6 +50,18 @@ class GlobalSerializer(serializers.ModelSerializer):
             value=validated_data.get("value"),
             name=name,
         )
+
+    def create_many(self, validated_data_list):
+        for validated_data in validated_data_list:
+            name = validated_data.get("name")
+
+            Global.get_or_create(
+                validated_data.get("org"),
+                validated_data.get("user"),
+                key=Global.make_key(name=name),
+                value=validated_data.get("value"),
+                name=name,
+            )
 
     class Meta:
         model = Global
