@@ -149,5 +149,6 @@ class ChannelSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret["org"] = instance.org.project.project_uuid
+        ret["org"] = instance.org.project.project_uuid if hasattr(instance.org, "project") else None
+
         return ret
