@@ -1,6 +1,5 @@
 from django.db.models import Count, Prefetch, Q
 from django.urls import reverse
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
 from temba.api.v2.views_base import BaseAPIView, ListAPIMixin
@@ -133,7 +132,7 @@ class FlowRunAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
 
     ## List Analytics Flow Runs data
 
-    A **GET** returns analytical data related to flows, containing information about the type 
+    A **GET** returns analytical data related to flows, containing information about the type
                 of runs and being able to segment by date
 
     * **flow_uuid** - A flow UUID to filter by, ex: f5901b62-ba76-4003-9c62-72fdacc1b7b7.
