@@ -1,7 +1,6 @@
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
 
 from temba.globals.models import Global
@@ -27,11 +26,11 @@ class GlobalViewSet(
         try:
             org_object = Org.objects.get(uuid=org)
             queryset = queryset.filter(org=org_object)
+            return queryset
 
-        except:
-            raise ValidationError(detail="Org not found")
+        except Org.DoesNotExist as error:
+            raise ValidationError(detail={"message": str(error)})
 
-        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, many=True)
