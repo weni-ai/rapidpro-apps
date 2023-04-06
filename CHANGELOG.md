@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.3.0] - 2023-04-06
+- Add endpoint allows the generic creation of an external service
+
 ## [2.2.0] - 2023-03-30
 - Add endpoint that allows creating, retrieving, destroying and listing globals
 
