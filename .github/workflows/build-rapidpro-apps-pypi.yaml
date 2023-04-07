@@ -32,19 +32,13 @@ jobs:
       shell: bash
       run: |
         sed -i 's;^version *=.*$;version = "'$VERSION'";g' pyproject.toml
-      
-    # - name: Create a new branch in rapidpro-apps
-    #   uses: peterjgrainger/action-create-branch@v2.2.0
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}
-    #   with:
-    #     branch: 'update/${{ env.VERSION }}'
 
     - name: Commit & Push changes in rapidpro-apps
+      if: ${{ !contains(env.VERSION, 'a') }}
       uses: actions-js/push@master
       with:
         github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
-        repository: Ilhasoft/rapidpro-apps
+        repository: weni-ai/rapidpro-apps
         directory: .
         branch: "refs/heads/update/${{ env.VERSION }}"
         message: "Update version of weni-rp-apps to ${{ env.VERSION }}"
@@ -58,11 +52,11 @@ jobs:
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
 
-    - name: Checkout Rapidpro repository
+    - name: Checkout Flows repository
       uses: actions/checkout@master
       with:
         ref: main
-        repository: Ilhasoft/rapidpro
+        repository: weni-ai/flows
         token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
         path: ./rapidpro/
           
@@ -71,12 +65,12 @@ jobs:
         VERSION="${{ env.VERSION }}"
         sed -i 's;^weni-rp-apps@==.*$;weni-rp-apps@=='$VERSION';g' ./rapidpro/docker/pip-requires.txt
 
-    - name: Commit & Push changes in rapidpro
+    - name: Commit & Push changes in Flows
       uses: actions-js/push@master
       with:
         github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
-        repository: Ilhasoft/rapidpro
+        repository: weni-ai/flows
         directory: ./rapidpro/
-        branch: "refs/heads/update/${{ env.VERSION }}"
+        branch: "refs/heads/update/weni-rp-apps-${{ env.VERSION }}"
         message: "Update version of weni-rp-apps to ${{ env.VERSION }}"
         
