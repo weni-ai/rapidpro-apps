@@ -28,12 +28,6 @@ class GlobalSerializer(serializers.ModelSerializer):
             }
             raise serializers.ValidationError(message)
 
-        # exists = org.globals.filter(is_active=True, name__iexact=name.lower()).exists()
-
-        # if self.instance.name != name and exists:
-        #     message = {"name": serializers.ErrorDetail("Must be unique.", code="invalid")}
-        #     raise serializers.ValidationError(message)
-
         if not Global.is_valid_key(Global.make_key(name)):
             message = {"name": serializers.ErrorDetail("Isn't a valid name", code="invalid")}
             raise serializers.ValidationError(message)
