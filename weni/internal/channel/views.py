@@ -77,17 +77,18 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
 
 
 class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
+
     def list(self, request):
         types_available = TYPES
         channel_types = {}
         for value in types_available:
             if value not in settings.DISABLED_CHANNELS_INTEGRATIONS:
                 fields_types = {}
-                attibutes_type = extract_type_info(types_available[value])
+                attibutes_type =  extract_type_info(types_available[value])
                 if not (attibutes_type):
                     return Response(status=status.HTTP_404_NOT_FOUND)
 
-                fields_types["attributes"] = attibutes_type
+                fields_types['attributes'] = attibutes_type
                 channel_types[value] = fields_types
 
         payload = {
@@ -98,7 +99,7 @@ class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
     def retrieve(self, request, pk=None):
         channel_type = None
         fields_form = {}
-        code_type = pk
+        code_type =  pk
         if code_type:
             channel_type = TYPES.get(code_type.upper(), None)
 
@@ -115,16 +116,19 @@ class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
                 if not (fields_in_form):
                     return Response(status=status.HTTP_404_NOT_FOUND)
 
-                fields_form["form"] = fields_in_form
+                fields_form['form'] = fields_in_form
 
             fields_types = {}
-            attibutes_type = extract_type_info(channel_type)
+            attibutes_type =  extract_type_info(channel_type)
             if not (attibutes_type):
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
-            fields_types["attributes"] = attibutes_type
+            fields_types['attributes'] = attibutes_type
 
-        payload = {"attributes": fields_types.get("attributes"), "form": fields_form.get("form")}
+        payload = {
+            "attributes": fields_types.get('attributes'),
+            "form": fields_form.get('form')
+        }
 
         return Response(payload)
 
@@ -132,13 +136,16 @@ class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
 def extract_type_info(_class):
     channel = {}
     type_exclude = ["<class 'function'>"]
-    items_exclude = ["redact_response_keys", "claim_view_kwargs", "extra_links", "redact_request_keys"]
+    items_exclude = ["redact_response_keys", "claim_view_kwargs", 
+                     "extra_links", "redact_request_keys"]
 
     for i in _class.__class__.__dict__.items():
-        if not i[0].startswith("_"):
-            if not inspect.isclass(i[1]) and str(type(i[1])) not in (type_exclude) and i[0] not in items_exclude:
+        if not i[0].startswith('_'):
+            if not inspect.isclass(i[1]) and str(type(i[1])) not in(type_exclude) \
+                and i[0] not in items_exclude:
                 if str(type(i[1])) == "<enum 'Category'>":
-                    channel[i[0]] = {"name": i[1].name if i[1].name else "", "value": i[1].value if i[1].value else ""}
+                    channel[i[0]] = {"name": i[1].name if i[1].name else "",
+                                    "value": i[1].value if i[1].value else ""}
 
                 elif i[0] == "configuration_urls":
                     if i[1]:
@@ -146,14 +153,14 @@ def extract_type_info(_class):
                             urls_list = []
                             url_dict = {}
                             for url in i[1]:
-                                if url.get("label"):
-                                    url_dict["label"] = str(url.get("label"))
+                                if url.get('label'):
+                                    url_dict['label'] = str(url.get('label'))
 
-                                if i[1][0].get("url"):
-                                    url_dict["url"] = str(url.get("url"))
+                                if i[1][0].get('url'):
+                                    url_dict['url'] = str(url.get('url'))
 
-                                if i[1][0].get("description"):
-                                    url_dict["description"] = str(url.get("description"))
+                                if i[1][0].get('description'):
+                                    url_dict['description'] = str(url.get('description'))
 
                             urls_list.append(url_dict)
                             channel[i[0]] = urls_list
@@ -165,40 +172,41 @@ def extract_type_info(_class):
                     channel[i[0]] = str(i[1])
 
                 elif (i[0]) == "ivr_protocol":
-                    channel[i[0]] = {"name": i[1].name if i[1].name else "", "value": i[1].value if i[1].value else ""}
+                    channel[i[0]] = {"name": i[1].name if i[1].name else "", 
+                                    "value": i[1].value if i[1].value else ""}
                 else:
-                    channel[i[0]] = i[1]
+                    channel[i[0]] = (i[1])
 
-    if (not (channel.get("code"))) or (not (len(channel)) > 0) or (not (channel.get("name"))):
+    if (not (channel.get('code'))) or (not (len(channel))>0) \
+        or (not (channel.get('name'))):
         return None
 
-    channel["num_fields"] = len(channel)
-    return channel
-
+    channel['num_fields'] = len(channel)
+    return ((channel))
 
 def extract_form_info(_form, name_form):
     detail = {}
-    detail["name"] = name_form if name_form else None
+    detail['name'] = name_form if name_form else None
 
     try:
-        detail["type"] = str(_form.widget.input_type)
+        detail['type'] = str(_form.widget.input_type)
     except:
-        detail["type"] = None
+        detail['type'] = None
 
     if _form.help_text:
-        detail["help_text"] = str(_form.help_text)
+        detail['help_text'] = str(_form.help_text)
     else:
-        detail["help_text"] = None
+        detail['help_text'] = None
 
-    if detail.get("type") == "select":
-        detail["choices"] = _form.choices
+    if detail.get('type') == 'select':
+        detail['choices'] = _form.choices
 
     if _form.label:
-        detail["label"] = str(_form.label)
+        detail['label'] = str(_form.label)
     else:
-        detail["label"] = None
+        detail['label'] = None
 
-    if not (detail.get("name")) or not (detail.get("type")):
+    if not (detail.get('name')) or not (detail.get('type')):
         return None
 
     return detail

@@ -260,17 +260,17 @@ class ListChannelTestCase(TembaTest, TembaRequestMixin):
 
 
 class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
-    url = "/api/v2/flows-backend/channels/"
-
+    url ='/api/v2/flows-backend/channels/'
+    
     def setUp(self):
         super().setUp()
         content_type = ContentType.objects.get_for_model(User)
         self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
-        self.admin.user_permissions.create(codename="can_communicate_internally", content_type=content_type)
+        self.admin.user_permissions.create(codename='can_communicate_internally', content_type=content_type)
 
     def test_list_all_channels(self):
         factory = APIRequestFactory()
-        view = AvailableChannels.as_view({"get": "list"})
+        view = AvailableChannels.as_view({'get': 'list'})
         view.permission_classes = []
 
         request = factory.get(self.url)
@@ -278,33 +278,33 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
         response = view(request)
         total_attrs = 0
 
-        channel_types = response.data.get("channel_types")
+        channel_types = response.data.get('channel_types')
         for key in channel_types.keys():
-            attributes = response.data.get("channel_types").get(key)
+            attributes = response.data.get('channel_types').get(key)
             if attributes:
-                if len(attributes) > 0:
+                if len(attributes)>0:
                     total_attrs += 1
 
         # checks if status code is 200 - ok
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # checks if the amount of #types returned is equivalent to the available response types
-        self.assertEqual(len(TYPES), len(response.data.get("channel_types")))
+        self.assertEqual(len(TYPES), len(response.data.get('channel_types')))
         # checks if response data have existing attributes
         self.assertEqual(total_attrs, len(TYPES))
 
     def test_list_channels_without_authentication(self):
-        """testing without authenticated user"""
+        """ testing without authenticated user """
         factory = APIRequestFactory()
-        view = AvailableChannels.as_view({"get": "list"})
+        view = AvailableChannels.as_view({'get': 'list'})
 
         request = factory.get(self.url)
         response = view(request)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_list_channels_without_permission(self):
-        """testing user without permission"""
+        """ testing user without permission """
         factory = APIRequestFactory()
-        view = AvailableChannels.as_view({"get": "list"})
+        view = AvailableChannels.as_view({'get': 'list'})
 
         request = factory.get(self.url)
         force_authenticate(request, user=self.user)
@@ -312,52 +312,55 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_retrieve_channel_with_permission(self):
-        """Testing retrieve response is ok"""
+        """ Testing retrieve response is ok """
         have_attribute = False
         have_form = False
         form_ok = True
-
+        
         factory = APIRequestFactory()
         request = factory.get(self.url)
-        view = AvailableChannels.as_view({"get": "retrieve"})
+        view = AvailableChannels.as_view({'get': 'retrieve'})
         view.permission_classes = []
         force_authenticate(request, user=self.admin)
-        response = view(request, "ac")
+        response = view(request, 'ac')
 
-        if response.data.get("attributes"):
+        if response.data.get('attributes'):
             have_attribute = True
 
-        if response.data.get("form"):
+        if response.data.get('form'):
             have_form = True
-            if len(response.data.get("form")) > 0:
-                form = response.data.get("form")
+            if len(response.data.get('form'))>0:
+                form = response.data.get('form')
                 for field in form:
-                    if not field.get("name") or not field.get("type") or not field.get("help_text"):
+                    if not field.get('name') \
+                        or not field.get('type') \
+                            or not field.get('help_text'):
                         form_ok = False
-
+                            
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(True, have_attribute)
         if have_form:
             self.assertEqual(True, form_ok)
 
     def test_retrieve_channel_without_permission(self):
-        """testing retrieve without permission"""
+        """ testing retrieve without permission """
         factory = APIRequestFactory()
-        view = AvailableChannels.as_view({"get": "retrieve"})
+        view = AvailableChannels.as_view({'get': 'retrieve'})
 
         request = factory.get(self.url)
         force_authenticate(request, user=self.user)
-        response = view(request, "ac")
+        response = view(request, 'ac')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
+    
     def test_retrieve_channel_without_authentication(self):
-        """testing retrieve without being authenticated"""
+        """ testing retrieve without being authenticated """
         factory = APIRequestFactory()
-        view = AvailableChannels.as_view({"get": "retrieve"})
+        view = AvailableChannels.as_view({'get': 'retrieve'})
 
         request = factory.get(self.url)
-        response = view(request, "ac")
+        response = view(request, 'ac')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
     def get_url_namespace(self):
         return "api.v2.flows_backend.channels-list"
