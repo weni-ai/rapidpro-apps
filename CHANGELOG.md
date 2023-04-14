@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.3.2] - 2023-04-14
+- Update globals endpoint to filter by org
+
 ## [2.3.0] - 2023-04-06
 - Add endpoint allows the generic creation of an external service
 
