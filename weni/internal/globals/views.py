@@ -1,8 +1,10 @@
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 
 from temba.globals.models import Global
+from temba.orgs.models import Org
 from weni.internal.views import InternalGenericViewSet
 from weni.internal.globals.serializers import GlobalSerializer
 
@@ -15,8 +17,20 @@ class GlobalViewSet(
     InternalGenericViewSet,
 ):
     serializer_class = GlobalSerializer
-    queryset = Global.objects.filter(is_active=True)
     lookup_field = "uuid"
+
+    def get_queryset(self):
+        queryset = Global.objects.filter(is_active=True)
+        org = self.request.query_params.get("org")
+
+        try:
+            org_object = Org.objects.get(uuid=org)
+            queryset = queryset.filter(org=org_object)
+            return queryset
+
+        except Org.DoesNotExist as error:
+            raise ValidationError(detail={"message": str(error)})
+
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, many=True)
