@@ -28,7 +28,8 @@ class TembaRequestMixin(ABC):
         url = self.reverse(self.get_url_namespace(), query_params=query_params)
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
-        return self.client.get(url, HTTP_AUTHORIZATION=f"Token {token.key}")
+        with self.mockReadOnly(assert_models=None):
+            return self.client.get(url, HTTP_AUTHORIZATION=f"Token {token.key}")
 
     @abstractmethod
     def get_url_namespace(self):
@@ -48,6 +49,7 @@ class AnalyticsContactTest(TembaTest, TembaRequestMixin):
         for contact in range(0, 10):
             contact_name = "Joe Blow " + str(contact)
             created_contact = self.create_contact(contact_name)
+
             self.group2.contacts.add(created_contact)
 
         # create a contact without group
@@ -89,18 +91,19 @@ class AnalyticsContactTest(TembaTest, TembaRequestMixin):
 
     def test_total_contacts(self):
         response = self.get_response()
-        self.assertEqual(response.json().get("total"), 28)
+
+        self.assertEqual(response.data.get("total"), 28)
 
     def test_contacts_by_status(self):
         response = self.get_response()
-        self.assertEqual(response.json().get("current").get("actives"), 13)
-        self.assertEqual(response.json().get("current").get("blocked"), 5)
-        self.assertEqual(response.json().get("current").get("stopped"), 5)
-        self.assertEqual(response.json().get("current").get("archived"), 5)
+        self.assertEqual(response.data.get("current").get("actives"), 13)
+        self.assertEqual(response.data.get("current").get("blocked"), 5)
+        self.assertEqual(response.data.get("current").get("stopped"), 5)
+        self.assertEqual(response.data.get("current").get("archived"), 5)
 
     def test_by_date(self):
         response = self.get_response()
-        contacts = response.json()["by_date"]
+        contacts = response.data["by_date"]
 
         today = format_date(tz.now())
         yesterday = format_date(tz.now() - tz.timedelta(1))
@@ -112,52 +115,52 @@ class AnalyticsContactTest(TembaTest, TembaRequestMixin):
 
     def test_group_filter(self):
         response = self.get_response(group=self.group2.uuid)
-        self.assertEqual(response.json().get("total"), 10)
+        self.assertEqual(response.data.get("total"), 10)
 
     def test_non_existent_group_filter(self):
         random_uuid = uuid1()
         response = self.get_response(group=random_uuid)
-        self.assertEqual(response.json().get("total"), 0)
+        self.assertEqual(response.data.get("total"), 0)
 
     def test_deleted_contacts(self):
         response = self.get_response(deleted=True)
-        self.assertEqual(response.json().get("total"), 3)
+        self.assertEqual(response.data.get("total"), 3)
 
     def test_after_and_before(self):
         response = self.get_response()
-        self.assertEqual(response.json().get("total"), 28)
-        self.assertEqual(response.json().get("current").get("actives"), 13)
-        self.assertEqual(response.json().get("current").get("blocked"), 5)
-        self.assertEqual(response.json().get("current").get("stopped"), 5)
-        self.assertEqual(response.json().get("current").get("archived"), 5)
+        self.assertEqual(response.data.get("total"), 28)
+        self.assertEqual(response.data.get("current").get("actives"), 13)
+        self.assertEqual(response.data.get("current").get("blocked"), 5)
+        self.assertEqual(response.data.get("current").get("stopped"), 5)
+        self.assertEqual(response.data.get("current").get("archived"), 5)
 
         response = self.get_response(after=format_date(tz.now()))
-        self.assertEqual(response.json().get("total"), 26)
-        self.assertEqual(response.json().get("current").get("actives"), 11)
-        self.assertEqual(response.json().get("current").get("blocked"), 5)
-        self.assertEqual(response.json().get("current").get("stopped"), 5)
-        self.assertEqual(response.json().get("current").get("archived"), 5)
+        self.assertEqual(response.data.get("total"), 26)
+        self.assertEqual(response.data.get("current").get("actives"), 11)
+        self.assertEqual(response.data.get("current").get("blocked"), 5)
+        self.assertEqual(response.data.get("current").get("stopped"), 5)
+        self.assertEqual(response.data.get("current").get("archived"), 5)
 
         response = self.get_response(before=format_date(tz.now()))
-        self.assertEqual(response.json().get("total"), 2)
-        self.assertEqual(response.json().get("current").get("actives"), 2)
-        self.assertEqual(response.json().get("current").get("blocked"), 0)
-        self.assertEqual(response.json().get("current").get("stopped"), 0)
-        self.assertEqual(response.json().get("current").get("archived"), 0)
+        self.assertEqual(response.data.get("total"), 2)
+        self.assertEqual(response.data.get("current").get("actives"), 2)
+        self.assertEqual(response.data.get("current").get("blocked"), 0)
+        self.assertEqual(response.data.get("current").get("stopped"), 0)
+        self.assertEqual(response.data.get("current").get("archived"), 0)
 
         response = self.get_response(before=format_date(tz.now() - tz.timedelta(1)))
-        self.assertEqual(response.json().get("total"), 1)
-        self.assertEqual(response.json().get("current").get("actives"), 1)
-        self.assertEqual(response.json().get("current").get("blocked"), 0)
-        self.assertEqual(response.json().get("current").get("stopped"), 0)
-        self.assertEqual(response.json().get("current").get("archived"), 0)
+        self.assertEqual(response.data.get("total"), 1)
+        self.assertEqual(response.data.get("current").get("actives"), 1)
+        self.assertEqual(response.data.get("current").get("blocked"), 0)
+        self.assertEqual(response.data.get("current").get("stopped"), 0)
+        self.assertEqual(response.data.get("current").get("archived"), 0)
 
         response = self.get_response(before=format_date(tz.now() - tz.timedelta(7)))
-        self.assertEqual(response.json().get("total"), 0)
-        self.assertEqual(response.json().get("current").get("actives"), 0)
-        self.assertEqual(response.json().get("current").get("blocked"), 0)
-        self.assertEqual(response.json().get("current").get("stopped"), 0)
-        self.assertEqual(response.json().get("current").get("archived"), 0)
+        self.assertEqual(response.data.get("total"), 0)
+        self.assertEqual(response.data.get("current").get("actives"), 0)
+        self.assertEqual(response.data.get("current").get("blocked"), 0)
+        self.assertEqual(response.data.get("current").get("stopped"), 0)
+        self.assertEqual(response.data.get("current").get("archived"), 0)
 
 
 class AnalyticsFlowRunTest(TembaTest, TembaRequestMixin):
@@ -197,32 +200,32 @@ class AnalyticsFlowRunTest(TembaTest, TembaRequestMixin):
 
     def test_return_is_a_dict(self):
         response = self.get_response()
-        self.assertIsInstance(response.json(), dict)
+        self.assertIsInstance(response.data, dict)
 
     def test_flow_name_as_key(self):
         response = self.get_response()
-        self.assertEqual(list(response.json().keys())[0], "flow_1")
-        self.assertIsNone(response.json().get("non_existent_flow", None))
+        self.assertEqual(list(response.data.keys())[0], "flow_1")
+        self.assertIsNone(response.data.get("non_existent_flow", None))
 
     def test_uuid_is_returned(self):
         response = self.get_response()
-        self.assertEqual(response.json().get(self.flow.name).get("uuid"), self.flow.uuid)
+        self.assertEqual(response.data.get(self.flow.name).get("uuid"), self.flow.uuid)
 
     def test_has_stats(self):
         response = self.get_response()
-        self.assertIsNotNone(response.json().get(self.flow.name).get("stats", None))
+        self.assertIsNotNone(response.data.get(self.flow.name).get("stats", None))
 
     def test_stats_is_a_dict(self):
         response = self.get_response()
-        self.assertIsInstance(response.json().get(self.flow.name).get("stats"), dict)
+        self.assertIsInstance(response.data.get(self.flow.name).get("stats"), dict)
 
     def test_total(self):
         response = self.get_response()
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("total"), 6)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("total"), 6)
 
     def test_by_status(self):
         response = self.get_response()
-        by_status = response.json().get(self.flow.name).get("stats").get("by_status")
+        by_status = response.data.get(self.flow.name).get("stats").get("by_status")
         self.assertEqual(by_status.get("active"), 1)
         self.assertEqual(by_status.get("waiting"), 1)
         self.assertEqual(by_status.get("completed"), 1)
@@ -232,48 +235,48 @@ class AnalyticsFlowRunTest(TembaTest, TembaRequestMixin):
 
     def test_filter_after_and_before(self):
         response = self.get_response(after=format_date(tz.now()))
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("total"), 4)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("active"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("interrupted"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("waiting"), 1)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("completed"), 1)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("expired"), 1)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("failed"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("total"), 4)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("active"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("interrupted"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("waiting"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("completed"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("expired"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("failed"), 1)
 
         response = self.get_response(before=format_date(tz.now()))
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("total"), 2)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("active"), 1)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("interrupted"), 1)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("waiting"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("completed"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("expired"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("failed"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("total"), 2)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("active"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("interrupted"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("waiting"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("completed"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("expired"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("failed"), 0)
 
         response = self.get_response(
             after=format_date(tz.now() - tz.timedelta(3)), before=format_date(tz.now() - tz.timedelta(2))
         )
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("total"), 1)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("active"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("interrupted"), 1)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("waiting"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("completed"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("expired"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("failed"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("total"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("active"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("interrupted"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("waiting"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("completed"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("expired"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("failed"), 0)
 
         response = self.get_response(
             after=format_date(tz.now() - tz.timedelta(7)), before=format_date(tz.now() - tz.timedelta(6))
         )
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("total"), 1)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("active"), 1)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("interrupted"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("waiting"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("completed"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("expired"), 0)
-        self.assertEqual(response.json().get(self.flow.name).get("stats").get("by_status").get("failed"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("total"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("active"), 1)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("interrupted"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("waiting"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("completed"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("expired"), 0)
+        self.assertEqual(response.data.get(self.flow.name).get("stats").get("by_status").get("failed"), 0)
 
     def test_filter_by_flow_uuid(self):
         response = self.get_response(flow_uuid=self.flow.uuid)
-        self.assertEqual(len(response.json()), 1)
-        self.assertEqual(list(response.json().keys())[0], "flow_1")
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(list(response.data.keys())[0], "flow_1")
         response = self.get_response(flow_uuid="00000000-0000-0000-0000-000000000000")  # fake uuid
-        self.assertEqual(response.json(), {})
+        self.assertEqual(response.data, {})

@@ -18,15 +18,14 @@ from temba.orgs.models import Org
 
 from .serializers import ClassifierSerializer, ClassifierDeleteSerializer
 from weni.internal.views import InternalGenericViewSet
+from weni.internal.models import Project
 
 
 class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
-
     serializer_class = ClassifierSerializer
     lookup_field = "uuid"
 
     def get_queryset(self):
-
         is_active_possibilities = {
             "True": True,
             "False": False,
@@ -34,7 +33,7 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
             "false": False,
         }
 
-        org_uuid = self.request.query_params.get("org_uuid")
+        project_uuid = self.request.query_params.get("org_uuid")
         is_active = is_active_possibilities.get(self.request.query_params.get("is_active"))
         classifier_type = self.request.query_params.get("classifier_type")
 
@@ -42,12 +41,12 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
 
         filters = {}
 
-        if org_uuid is not None:
+        if project_uuid is not None:
             try:
-                org = Org.objects.get(uuid=org_uuid)
-                filters["org"] = org
-            except Org.DoesNotExist:
-                raise ValidationError(detail="Org does not exist")
+                project = Project.objects.get(project_uuid=project_uuid)
+                filters["org"] = project
+            except Project.DoesNotExist:
+                raise ValidationError(detail="Project does not exist")
 
         if is_active is not None:
             try:
@@ -71,7 +70,6 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         return JsonResponse(data=serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, uuid=None):
-
         try:
             classifier = Classifier.objects.get(uuid=uuid)
         except Classifier.DoesNotExist:
@@ -80,7 +78,6 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         return JsonResponse(data=self.get_serializer(classifier).data, status=status.HTTP_200_OK)
 
     def destroy(self, request, uuid=None):
-
         data = {
             "uuid": uuid,
             "user": request.query_params.get("user_email"),

@@ -9,7 +9,7 @@ User = get_user_model()
 
 
 class FlowSerializer(serializers.ModelSerializer):
-    org = weni_serializers.OrgUUIDRelatedField()
+    org = weni_serializers.ProjectUUIDRelatedField()
     sample_flow = serializers.JSONField(write_only=True)
 
     class Meta:
@@ -17,7 +17,7 @@ class FlowSerializer(serializers.ModelSerializer):
         fields = ("org", "uuid", "sample_flow")
 
     def create(self, validated_data):
-        org = validated_data.get("org")
+        org = validated_data["org"]
         sample_flows = validated_data.get("sample_flow")
         org.import_app(sample_flows, org.created_by)
         self.disable_flows_has_issues(org, sample_flows)
@@ -30,6 +30,6 @@ class FlowSerializer(serializers.ModelSerializer):
 
 class FlowListSerializer(serializers.Serializer):
     flow_name = serializers.CharField(required=True, write_only=True)
-    org_uuid = weni_serializers.OrgUUIDRelatedField(required=True, write_only=True)
+    org_uuid = weni_serializers.ProjectUUIDRelatedField(required=True, write_only=True)
     uuid = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)

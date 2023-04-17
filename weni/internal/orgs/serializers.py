@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from temba.orgs.models import Org
+# from temba.orgs.models import Org
+from weni.internal.models import Project
 from weni.grpc.core import serializers as weni_serializers
 
 
@@ -9,12 +10,11 @@ User = get_user_model()
 
 
 class TemplateOrgSerializer(serializers.ModelSerializer):
-
     user_email = serializers.EmailField(write_only=True)
     timezone = serializers.CharField()
 
     class Meta:
-        model = Org
+        model = Project
         fields = ("user_email", "name", "timezone", "uuid")
         read_only_fields = ("uuid",)
 
@@ -33,30 +33,30 @@ class TemplateOrgSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["plan"] = "infinity"
 
-        org = super().create(validated_data)
+        project = super().create(validated_data)
 
-        org.administrators.add(validated_data.get("created_by"))
-        org.initialize(sample_flows=False, internal_ticketer=False)
+        project.administrators.add(validated_data.get("created_by"))
+        project.initialize(sample_flows=False, internal_ticketer=False)
 
-        return org
+        return project
 
 
 class OrgSerializer(serializers.ModelSerializer):
-
     users = serializers.SerializerMethodField()
     timezone = serializers.CharField()
+    uuid = serializers.UUIDField(source="project_uuid")
 
     def set_user_permission(self, user: dict, permission: str) -> dict:
         user["permission_type"] = permission
         return user
 
-    def get_users(self, org: Org):
+    def get_users(self, project: Project):
         values = ["id", "email", "username", "first_name", "last_name"]
 
-        administrators = list(org.administrators.all().values(*values))
-        viewers = list(org.viewers.all().values(*values))
-        editors = list(org.editors.all().values(*values))
-        surveyors = list(org.surveyors.all().values(*values))
+        administrators = list(project.administrators.all().values(*values))
+        viewers = list(project.viewers.all().values(*values))
+        editors = list(project.editors.all().values(*values))
+        surveyors = list(project.surveyors.all().values(*values))
 
         administrators = list(map(lambda user: self.set_user_permission(user, "administrator"), administrators))
         viewers = list(map(lambda user: self.set_user_permission(user, "viewer"), viewers))
@@ -68,21 +68,19 @@ class OrgSerializer(serializers.ModelSerializer):
         return users
 
     class Meta:
-        model = Org
+        model = Project
         fields = ["id", "name", "uuid", "timezone", "date_format", "users"]
 
 
 class OrgCreateSerializer(serializers.ModelSerializer):
-
     user_email = serializers.EmailField()
 
     class Meta:
-        model = Org
+        model = Project
         fields = ["name", "timezone", "user_email"]
 
 
 class OrgUpdateSerializer(serializers.ModelSerializer):
-
     uuid = serializers.CharField(read_only=True)
     modified_by = weni_serializers.UserEmailRelatedField(required=False, write_only=True)
     timezone = serializers.CharField(required=False)
@@ -90,7 +88,7 @@ class OrgUpdateSerializer(serializers.ModelSerializer):
     plan_end = serializers.DateTimeField(required=False)
 
     class Meta:
-        model = Org
+        model = Project
         fields = [
             "uuid",
             "modified_by",

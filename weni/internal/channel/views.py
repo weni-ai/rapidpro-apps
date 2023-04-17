@@ -20,6 +20,7 @@ from .serializers import ChannelSerializer, CreateChannelSerializer, ChannelWACS
 
 User = get_user_model()
 
+
 class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
     serializer_class = ChannelSerializer
     lookup_field = "uuid"
@@ -27,14 +28,13 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
     def get_queryset(self):
         channel_type = self.request.query_params.get("channel_type")
         org = self.request.query_params.get("org")
-
         queryset = Channel.objects.all()
 
         if channel_type is not None:
             return queryset.filter(channel_type=channel_type)
 
         if org is not None:
-            return queryset.filter(org__uuid=org)
+            return queryset.filter(org__project__project_uuid=org)
 
         return queryset
 
@@ -58,7 +58,7 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
 
     def destroy(self, request, uuid=None):
         channel = get_object_or_404(Channel, uuid=uuid)
-        user = get_object_or_404(User, email=request.data.get("user"))
+        user = get_object_or_404(User, email=request.query_params.get("user"))
 
         channel.release(user)
 

@@ -6,14 +6,13 @@ from weni.grpc.core import serializers as weni_serializers
 
 
 class ClassifierSerializer(serializers.Serializer):
-
     uuid = serializers.UUIDField(read_only=True)
     is_active = serializers.BooleanField(read_only=True)
     classifier_type = serializers.CharField(required=True)
     name = serializers.CharField(required=True)
     access_token = weni_serializers.SerializerMethodCharField(required=True)
     user = weni_serializers.UserEmailRelatedField(write_only=True)
-    org = weni_serializers.OrgUUIDRelatedField(write_only=True)
+    org = weni_serializers.ProjectUUIDRelatedField(write_only=True)
 
     def get_access_token(self, instance):
         return instance.config.get("access_token")
@@ -21,6 +20,7 @@ class ClassifierSerializer(serializers.Serializer):
     def create(self, validated_data: dict) -> Classifier:
         config = dict(access_token=validated_data["access_token"])
         validated_data.pop("access_token")
+        validated_data["org"] = validated_data["org"].org
 
         classifier = Classifier.create(config=config, sync=False, **validated_data)
         classifier.sync()

@@ -15,6 +15,7 @@ from weni.internal.views import InternalGenericViewSet
 from weni.internal.users.serializers import UserAPITokenSerializer, UserSerializer, UserPermissionSerializer
 from temba.api.models import APIToken
 from temba.orgs.models import Org
+from weni.internal.models import Project
 
 
 if TYPE_CHECKING:
@@ -26,7 +27,6 @@ User = get_user_model()
 class UserViewSet(InternalGenericViewSet):
     @action(detail=False, methods=["GET"], url_path="api-token", serializer_class=UserAPITokenSerializer)
     def api_token(self, request: "Request", **kwargs):
-
         serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
@@ -35,89 +35,95 @@ class UserViewSet(InternalGenericViewSet):
         except APIToken.DoesNotExist:
             raise exceptions.PermissionDenied()
 
-        return Response(dict(user=api_token.user.email, org=api_token.org.uuid, api_token=api_token.key))
+        return Response(
+            dict(user=api_token.user.email, org=api_token.org.project.project_uuid, api_token=api_token.key)
+        )
 
 
 class UserPermissionEndpoint(InternalGenericViewSet):
     serializer_class = UserPermissionSerializer
 
     def retrieve(self, request):
-        org = get_object_or_404(Org, uuid=request.query_params.get("org_uuid"))
-        user = get_object_or_404(User, email=request.query_params.get("user_email"), is_active=request.query_params.get("is_active", True))
+        project = get_object_or_404(Project, project_uuid=request.query_params.get("org_uuid"))
+        user = get_object_or_404(
+            User, email=request.query_params.get("user_email"), is_active=request.query_params.get("is_active", True)
+        )
 
-        permissions = self._get_user_permissions(org, user)
+        permissions = self._get_user_permissions(project, user)
         serializer = self.get_serializer(permissions)
 
         return Response(serializer.data)
 
     def partial_update(self, request):
-        org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
-        user = get_object_or_404(User, email=request.data.get("user_email"), is_active=request.query_params.get("is_active", True))
+        project = get_object_or_404(Project, project_uuid=request.data.get("org_uuid"))
+        user = get_object_or_404(
+            User, email=request.data.get("user_email"), is_active=request.query_params.get("is_active", True)
+        )
 
-        self._validate_permission(org, request.data.get("permission", ""))
-        self._set_user_permission(org, user, request.data.get("permission", ""))
+        self._validate_permission(project, request.data.get("permission", ""))
+        self._set_user_permission(project, user, request.data.get("permission", ""))
 
-        permissions = self._get_user_permissions(org, user)
+        permissions = self._get_user_permissions(project, user)
         serializer = self.get_serializer(permissions)
 
         return Response(serializer.data)
 
     def destroy(self, request):
-        org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
-        user = get_object_or_404(User, email=request.data.get("user_email"), is_active=request.query_params.get("is_active", True))
+        project = get_object_or_404(Project, project_uuid=request.data.get("org_uuid"))
+        user = get_object_or_404(
+            User, email=request.data.get("user_email"), is_active=request.query_params.get("is_active", True)
+        )
 
-        self._validate_permission(org, request.data.get("permission", ""))
-        self._remove_user_permission(org, user, request.data.get("permission", ""))
+        self._validate_permission(project, request.data.get("permission", ""))
+        self._remove_user_permission(project, user, request.data.get("permission", ""))
 
-        permissions = self._get_user_permissions(org, user)
+        permissions = self._get_user_permissions(project, user)
         serializer = self.get_serializer(permissions)
 
         return Response(serializer.data)
 
-    def _remove_user_permission(self, org: Org, user: User, permission: str):
-        permissions = self._get_permissions(org)
+    def _remove_user_permission(self, project: Project, user: User, permission: str):
+        permissions = self._get_permissions(project)
         permissions.get(permission).remove(user)
 
-    def _set_user_permission(self, org: Org, user: User, permission: str):
-        permissions = self._get_permissions(org)
+    def _set_user_permission(self, project: Project, user: User, permission: str):
+        permissions = self._get_permissions(project)
 
-        for perm_name, org_field in permissions.items():
+        for perm_name, project_field in permissions.items():
             if not perm_name == permission:
-                org_field.remove(user)
+                project_field.remove(user)
 
         permissions.get(permission).add(user)
 
-    def _validate_permission(self, org: Org, permission: str):
-        permissions_keys = self._get_permissions(org).keys()
+    def _validate_permission(self, project: Project, permission: str):
+        permissions_keys = self._get_permissions(project).keys()
 
         if permission not in permissions_keys:
             raise ValidationError(detail=f"{permission} is not a valid permission!")
 
-    def _get_permissions(self, org: Org) -> dict:
+    def _get_permissions(self, project: Project) -> dict:
         return {
-            "administrator": org.administrators,
-            "viewer": org.viewers,
-            "editor": org.editors,
-            "surveyor": org.surveyors,
+            "administrator": project.administrators,
+            "viewer": project.viewers,
+            "editor": project.editors,
+            "surveyor": project.surveyors,
         }
 
-    def _get_user_permissions(self, org: Org, user: User) -> dict:
+    def _get_user_permissions(self, project: Project, user: User) -> dict:
         permissions = {}
-        org_permissions = self._get_permissions(org)
+        project_permissions = self._get_permissions(project)
 
-        for perm_name, org_field in org_permissions.items():
-            if org_field.filter(pk=user.id).exists():
+        for perm_name, project_field in project_permissions.items():
+            if project_field.filter(pk=user.id).exists():
                 permissions[perm_name] = True
 
         return permissions
 
 
 class UserEndpoint(InternalGenericViewSet, mixins.RetrieveModelMixin):
-
     serializer_class = UserSerializer
     queryset = User.objects.all()
     lookup_field = "uuid"
-
 
     def partial_update(self, request):
         instance = get_object_or_404(User, email=request.query_params.get("email"))

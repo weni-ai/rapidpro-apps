@@ -3,6 +3,7 @@ from rest_framework import relations
 from rest_framework import serializers
 
 from temba.orgs.models import Org
+from weni.internal.models import Project
 
 
 class UserEmailRelatedField(relations.SlugRelatedField):
@@ -13,6 +14,11 @@ class UserEmailRelatedField(relations.SlugRelatedField):
 class OrgUUIDRelatedField(relations.SlugRelatedField):
     def __init__(self, **kwargs):
         super().__init__(slug_field="uuid", queryset=Org.objects.all(), **kwargs)
+
+
+class ProjectUUIDRelatedField(relations.SlugRelatedField):
+    def __init__(self, **kwargs):
+        super().__init__(slug_field="project_uuid", queryset=Project.objects.all(), **kwargs)
 
 
 class SerializerMethodCharField(serializers.CharField):
@@ -28,7 +34,7 @@ class SerializerMethodCharField(serializers.CharField):
     def bind(self, field_name, parent):
         # The method name defaults to `get_{field_name}`.
         if self.method_name is None:
-            self.method_name = 'get_{field_name}'.format(field_name=field_name)
+            self.method_name = "get_{field_name}".format(field_name=field_name)
 
         super().bind(field_name, parent)
 
