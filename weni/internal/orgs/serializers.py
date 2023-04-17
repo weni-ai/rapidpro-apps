@@ -33,9 +33,8 @@ class TemplateOrgSerializer(serializers.ModelSerializer):
         validated_data["plan"] = "infinity"
 
         project = super().create(validated_data)
-
         project.administrators.add(validated_data.get("created_by"))
-        project.initialize(sample_flows=False, internal_ticketer=False)
+        project.initialize(sample_flows=False)
 
         return project
 
