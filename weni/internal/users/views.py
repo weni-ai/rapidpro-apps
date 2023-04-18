@@ -70,9 +70,9 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
     def partial_update(self, request):
         org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
-        user = User.objects.get_or_create(
-            User,
+        user, created = User.objects.get_or_create(
             email=request.data.get("user_email"),
+            defaults={"username": request.data.get("user_email")},
             is_active=request.query_params.get("is_active", True),
         )
 
@@ -115,7 +115,6 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
     def _validate_permission(self, org: Org, permission: str):
         permissions_keys = self._get_permissions(org).keys()
-
         if permission not in permissions_keys:
             raise ValidationError(detail=f"{permission} is not a valid permission!")
 
