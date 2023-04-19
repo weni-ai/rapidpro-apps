@@ -12,7 +12,11 @@ from rest_framework import mixins
 from rest_framework.exceptions import ValidationError
 
 from weni.internal.views import InternalGenericViewSet
-from weni.internal.users.serializers import UserAPITokenSerializer, UserSerializer, UserPermissionSerializer
+from weni.internal.users.serializers import (
+    UserAPITokenSerializer,
+    UserSerializer,
+    UserPermissionSerializer,
+)
 from temba.api.models import APIToken
 from temba.orgs.models import Org
 from weni.internal.models import Project
@@ -25,7 +29,12 @@ User = get_user_model()
 
 
 class UserViewSet(InternalGenericViewSet):
-    @action(detail=False, methods=["GET"], url_path="api-token", serializer_class=UserAPITokenSerializer)
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="api-token",
+        serializer_class=UserAPITokenSerializer,
+    )
     def api_token(self, request: "Request", **kwargs):
         serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
@@ -128,7 +137,9 @@ class UserEndpoint(InternalGenericViewSet, mixins.RetrieveModelMixin):
     def partial_update(self, request):
         instance = get_object_or_404(User, email=request.query_params.get("email"))
 
-        if request.data.get("language") not in [language[0] for language in settings.LANGUAGES]:
+        if request.data.get("language") not in [
+            language[0] for language in settings.LANGUAGES
+        ]:
             raise ValidationError("Invalid argument: language")
 
         user_settings = instance.get_settings()
@@ -142,7 +153,8 @@ class UserEndpoint(InternalGenericViewSet, mixins.RetrieveModelMixin):
             raise ValidationError(detail="empty email")
 
         user = User.objects.get_or_create(
-            email=request.query_params.get("email"), defaults={"username": request.query_params.get("email")}
+            email=request.query_params.get("email"),
+            defaults={"username": request.query_params.get("email")},
         )
 
         serializer = self.get_serializer(user[0])
