@@ -12,3 +12,8 @@ class TicketerQueue(Topic):
 
     def __str__(self):
         return f"Queue[uuid={self.uuid}, name={self.name}]"
+
+    def release(self, user):
+        self.ticketer.release(user=user)
+        self.is_active=False
+        self.save()
