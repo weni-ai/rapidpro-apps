@@ -43,6 +43,7 @@ class OrgSerializer(serializers.ModelSerializer):
     users = serializers.SerializerMethodField()
     timezone = serializers.CharField()
     uuid = serializers.UUIDField(source="project_uuid")
+    flow_organization = serializers.UUIDField(source="uuid")
 
     def set_user_permission(self, user: dict, permission: str) -> dict:
         user["permission_type"] = permission
@@ -67,7 +68,7 @@ class OrgSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ["id", "name", "uuid", "timezone", "date_format", "users"]
+        fields = ["id", "name", "uuid", "timezone", "date_format", "users", "flow_organization"]
 
 
 class OrgCreateSerializer(serializers.ModelSerializer):
@@ -75,7 +76,7 @@ class OrgCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ["name", "timezone", "user_email"]
+        fields = ["name", "timezone", "user_email", "uuid"]
 
 
 class OrgUpdateSerializer(serializers.ModelSerializer):

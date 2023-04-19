@@ -49,6 +49,8 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
             created_by=user,
             modified_by=user,
             plan="infinity",
+            project_uuid=request.data.get("uuid")
+
         )
 
         project.administrators.add(user)
