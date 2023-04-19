@@ -98,7 +98,8 @@ class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
     def retrieve(self, request, pk=None):
         channel_type = None
         fields_form = {}
-        code_type = pk
+        code_type =  pk
+        current_form = None
         if code_type:
             channel_type = TYPES.get(code_type.upper(), None)
 
@@ -108,7 +109,12 @@ class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
         fields_in_form = []
         if channel_type.claim_view:
             if channel_type.claim_view.form_class:
-                form = channel_type.claim_view.form_class.base_fields
+                current_form = channel_type.claim_view.form_class
+            elif channel_type.claim_view.ClaimForm:
+                current_form = channel_type.claim_view.ClaimForm
+
+            if current_form:
+                form = current_form.base_fields
                 for field in form:
                     fields_in_form.append(extract_form_info(form[field], field))
 
@@ -181,14 +187,14 @@ def extract_form_info(_form, name_form):
     detail["name"] = name_form if name_form else None
 
     try:
-        detail["type"] = str(_form.widget.input_type)
-    except:
-        detail["type"] = None
+        detail['type'] = str(_form.widget.input_type)
+    except AttributeError:
+        detail['type'] = str(_form.widget.__class__.__name__).lower()
 
     if _form.help_text:
         detail["help_text"] = str(_form.help_text)
     else:
-        detail["help_text"] = None
+        detail['help_text'] = ''
 
     if detail.get("type") == "select":
         detail["choices"] = _form.choices
@@ -196,7 +202,7 @@ def extract_form_info(_form, name_form):
     if _form.label:
         detail["label"] = str(_form.label)
     else:
-        detail["label"] = None
+        detail['label'] = ''
 
     if not (detail.get("name")) or not (detail.get("type")):
         return None
