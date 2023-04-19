@@ -67,7 +67,7 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
         return Response(serializer.data)
 
     def destroy(self, request, project_uuid=None):
-        project = get_object_or_404(Project, uuid=project_uuid)
+        project = get_object_or_404(Project, project_uuid=project_uuid)
         user = get_object_or_404(User, email=request.query_params.get("user_email"))
 
         self.pre_destroy(project, user)
