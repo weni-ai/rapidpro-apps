@@ -11,11 +11,12 @@ User = get_user_model()
 class TemplateOrgSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(write_only=True)
     timezone = serializers.CharField()
+    uuid = serializers.UUIDField(read_only=False, required=True)
+    flow_organization = serializers.UUIDField(source="uuid", read_only=True)
 
     class Meta:
         model = Project
-        fields = ("user_email", "name", "timezone", "uuid")
-        read_only_fields = ("uuid",)
+        fields = ("user_email", "name", "timezone", "uuid", "flow_organization")
 
     def validate(self, attrs):
         attrs = dict(attrs)
@@ -28,9 +29,16 @@ class TemplateOrgSerializer(serializers.ModelSerializer):
         attrs.pop("user_email")
 
         return super().validate(attrs)
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret["uuid"] = instance.project_uuid
+
+        return ret
 
     def create(self, validated_data):
         validated_data["plan"] = "infinity"
+        validated_data["project_uuid"] = validated_data.pop("uuid")
 
         project = super().create(validated_data)
 
