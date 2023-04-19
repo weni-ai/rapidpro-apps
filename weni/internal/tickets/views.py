@@ -49,3 +49,9 @@ class TicketerQueueViewSet(
             self.http_method_not_allowed(request, *args, **kwargs)
 
         return super().update(request, *args, **kwargs)
+
+    def perform_destroy(self, instance):
+        ticketer = instance.ticketer
+        # Release Ticketer
+        ticketer.release(self.request.user)
+        instance.delete()
