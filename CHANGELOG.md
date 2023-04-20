@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [2.3.3] - 2023-04-20
+- Removing the internal ticketer from org serializer template
+- Add agent permission in get_permissions method
+- Add delete endpoint in external-services
+
 ## [2.3.2] - 2023-04-14
 - Update globals endpoint to filter by org
 
