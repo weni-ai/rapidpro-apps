@@ -99,6 +99,7 @@ class UserPermissionEndpoint(InternalGenericViewSet):
             "viewer": org.viewers,
             "editor": org.editors,
             "surveyor": org.surveyors,
+            "agent": org.agents,
         }
 
     def _get_user_permissions(self, org: Org, user: User) -> dict:
