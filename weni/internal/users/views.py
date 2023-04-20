@@ -29,14 +29,16 @@ class UserViewSet(InternalGenericViewSet):
     def api_token(self, request: "Request", **kwargs):
         serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data.get("user")
+        project = serializer.validated_data.get("project")
 
         try:
-            api_token = APIToken.objects.get(**serializer.validated_data)
+            api_token = APIToken.objects.get(user=user, org=project.org)
         except APIToken.DoesNotExist:
             raise exceptions.PermissionDenied()
 
         return Response(
-            dict(user=api_token.user.email, project=api_token.project.project_uuid, api_token=api_token.key)
+            dict(user=api_token.user.email, project=project.project_uuid, api_token=api_token.key)
         )
 
 
