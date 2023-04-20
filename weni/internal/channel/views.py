@@ -98,12 +98,8 @@ class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
     def retrieve(self, request, pk=None):
         channel_type = None
         fields_form = {}
-<<<<<<< HEAD
-        code_type = pk
-=======
         code_type =  pk
         current_form = None
->>>>>>> 91b972e436b0e70055bbcd5e4eb30d6c3582ba5c
         if code_type:
             channel_type = TYPES.get(code_type.upper(), None)
 
@@ -191,24 +187,14 @@ def extract_form_info(_form, name_form):
     detail["name"] = name_form if name_form else None
 
     try:
-<<<<<<< HEAD
-        detail["type"] = str(_form.widget.input_type)
-    except:
-        detail["type"] = None
-=======
         detail['type'] = str(_form.widget.input_type)
     except AttributeError:
         detail['type'] = str(_form.widget.__class__.__name__).lower()
->>>>>>> 91b972e436b0e70055bbcd5e4eb30d6c3582ba5c
 
     if _form.help_text:
         detail["help_text"] = str(_form.help_text)
     else:
-<<<<<<< HEAD
-        detail["help_text"] = None
-=======
         detail['help_text'] = ''
->>>>>>> 91b972e436b0e70055bbcd5e4eb30d6c3582ba5c
 
     if detail.get("type") == "select":
         detail["choices"] = _form.choices
@@ -216,11 +202,7 @@ def extract_form_info(_form, name_form):
     if _form.label:
         detail["label"] = str(_form.label)
     else:
-<<<<<<< HEAD
-        detail["label"] = None
-=======
         detail['label'] = ''
->>>>>>> 91b972e436b0e70055bbcd5e4eb30d6c3582ba5c
 
     if not (detail.get("name")) or not (detail.get("type")):
         return None
