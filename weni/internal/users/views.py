@@ -49,7 +49,7 @@ class UserViewSet(InternalGenericViewSet):
         return Response(
             dict(
                 user=api_token.user.email,
-                org=api_token.org.uuid,
+                project=project.project_uuid,
                 api_token=api_token.key,
             )
         )
@@ -59,7 +59,7 @@ class UserPermissionEndpoint(InternalGenericViewSet):
     serializer_class = UserPermissionSerializer
 
     def retrieve(self, request):
-        org = get_object_or_404(Org, uuid=request.query_params.get("org_uuid"))
+        project = get_object_or_404(Project, uuid=request.query_params.get("org_uuid"))
         user = get_object_or_404(
             User,
             email=request.query_params.get("user_email"),
@@ -72,7 +72,7 @@ class UserPermissionEndpoint(InternalGenericViewSet):
         return Response(serializer.data)
 
     def partial_update(self, request):
-        org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
+        project = get_object_or_404(Project, uuid=request.data.get("org_uuid"))
         user, created = User.objects.get_or_create(
             email=request.data.get("user_email"),
             defaults={"username": request.data.get("user_email")},
@@ -88,7 +88,7 @@ class UserPermissionEndpoint(InternalGenericViewSet):
         return Response(serializer.data)
 
     def destroy(self, request):
-        org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
+        project = get_object_or_404(Project, uuid=request.data.get("org_uuid"))
         user = get_object_or_404(
             User,
             email=request.data.get("user_email"),
