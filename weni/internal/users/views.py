@@ -59,60 +59,60 @@ class UserPermissionEndpoint(InternalGenericViewSet):
     serializer_class = UserPermissionSerializer
 
     def retrieve(self, request):
-        project = get_object_or_404(Project, uuid=request.query_params.get("org_uuid"))
+        org = get_object_or_404(Org, uuid=request.query_params.get("org_uuid"))
         user = get_object_or_404(
             User,
             email=request.query_params.get("user_email"),
             is_active=request.query_params.get("is_active", True),
         )
 
-        permissions = self._get_user_permissions(project, user)
+        permissions = self._get_user_permissions(org, user)
         serializer = self.get_serializer(permissions)
 
         return Response(serializer.data)
 
     def partial_update(self, request):
-        project = get_object_or_404(Project, uuid=request.data.get("org_uuid"))
+        org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
         user, created = User.objects.get_or_create(
             email=request.data.get("user_email"),
             defaults={"username": request.data.get("user_email")},
             is_active=request.query_params.get("is_active", True),
         )
 
-        self._validate_permission(project, request.data.get("permission", ""))
-        self._set_user_permission(project, user, request.data.get("permission", ""))
+        self._validate_permission(org, request.data.get("permission", ""))
+        self._set_user_permission(org, user, request.data.get("permission", ""))
 
-        permissions = self._get_user_permissions(project, user)
+        permissions = self._get_user_permissions(org, user)
         serializer = self.get_serializer(permissions)
 
         return Response(serializer.data)
 
     def destroy(self, request):
-        project = get_object_or_404(Project, uuid=request.data.get("org_uuid"))
+        org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
         user = get_object_or_404(
             User,
             email=request.data.get("user_email"),
             is_active=request.query_params.get("is_active", True),
         )
 
-        self._validate_permission(project, request.data.get("permission", ""))
-        self._remove_user_permission(project, user, request.data.get("permission", ""))
+        self._validate_permission(org, request.data.get("permission", ""))
+        self._remove_user_permission(org, user, request.data.get("permission", ""))
 
-        permissions = self._get_user_permissions(project, user)
+        permissions = self._get_user_permissions(org, user)
         serializer = self.get_serializer(permissions)
 
         return Response(serializer.data)
 
-    def _remove_user_permission(self, project: Project, user: User, permission: str):
-        permissions = self._get_permissions(project)
+    def _remove_user_permission(self, org: Org, user: User, permission: str):
+        permissions = self._get_permissions(org)
         permissions.get(permission).remove(user)
 
-    def _set_user_permission(self, project: Project, user: User, permission: str):
-        permissions = self._get_permissions(project)
+    def _set_user_permission(self, org: Org, user: User, permission: str):
+        permissions = self._get_permissions(org)
 
-        for perm_name, project_field in permissions.items():
+        for perm_name, org_field in permissions.items():
             if not perm_name == permission:
-                project_field.remove(user)
+                org_field.remove(user)
 
         permissions.get(permission).add(user)
 
@@ -121,21 +121,20 @@ class UserPermissionEndpoint(InternalGenericViewSet):
         if permission not in permissions_keys:
             raise ValidationError(detail=f"{permission} is not a valid permission!")
 
-    def _get_permissions(self, project: Project) -> dict:
+    def _get_permissions(self, org: Org) -> dict:
         return {
-            "administrator": project.administrators,
-            "viewer": project.viewers,
-            "editor": project.editors,
-            "surveyor": project.surveyors,
-            "agent": project.agents,
+            "administrator": org.administrators,
+            "viewer": org.viewers,
+            "editor": org.editors,
+            "surveyor": org.surveyors,
         }
 
-    def _get_user_permissions(self, project: Project, user: User) -> dict:
+    def _get_user_permissions(self, org: Org, user: User) -> dict:
         permissions = {}
-        project_permissions = self._get_permissions(project)
+        org_permissions = self._get_permissions(org)
 
-        for perm_name, project_field in project_permissions.items():
-            if project_field.filter(pk=user.id).exists():
+        for perm_name, org_field in org_permissions.items():
+            if org_field.filter(pk=user.id).exists():
                 permissions[perm_name] = True
 
         return permissions
