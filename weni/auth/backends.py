@@ -1,10 +1,6 @@
 import logging
 
-import pytz
-from django.conf import settings
-
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
-from temba.orgs.models import Org
 
 LOGGER = logging.getLogger("weni_django_oidc")
 
@@ -32,18 +28,6 @@ class WeniOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         user.last_name = claims.get("family_name", "")
 
         user.save()
-
-        org = Org.objects.create(
-            name="Temba New",
-            timezone=pytz.timezone("America/Sao_Paulo"),
-            brand=settings.DEFAULT_BRAND,
-            created_by=user,
-            modified_by=user,
-        )
-        org.administrators.add(user)
-
-        # initialize our org, but without any credits
-        org.initialize(branding=org.get_branding(), topup_size=0)
 
         return user
 
