@@ -52,7 +52,11 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
     def partial_update(self, request):
         org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
-        user = get_object_or_404(User, email=request.data.get("user_email"), is_active=request.query_params.get("is_active", True))
+        user = User.objects.get_or_create(
+            User,
+            email=request.data.get("user_email"),
+            is_active=request.query_params.get("is_active", True),
+        )
 
         self._validate_permission(org, request.data.get("permission", ""))
         self._set_user_permission(org, user, request.data.get("permission", ""))
