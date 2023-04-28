@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.3.4] - 2023-04-27
+- Update permission endpoint from User permission
+- Update pre-commit config
+
 ## [2.3.3] - 2023-04-20
 - Removing the internal ticketer from org serializer template
 - Add agent permission in get_permissions method
