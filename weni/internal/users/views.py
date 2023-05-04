@@ -15,6 +15,7 @@ from weni.internal.views import InternalGenericViewSet
 from weni.internal.users.serializers import UserAPITokenSerializer, UserSerializer, UserPermissionSerializer
 from temba.api.models import APIToken
 from temba.orgs.models import Org
+from weni.internal.models import Project
 
 
 if TYPE_CHECKING:
@@ -26,16 +27,19 @@ User = get_user_model()
 class UserViewSet(InternalGenericViewSet):
     @action(detail=False, methods=["GET"], url_path="api-token", serializer_class=UserAPITokenSerializer)
     def api_token(self, request: "Request", **kwargs):
-
         serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data.get("user")
+        project = serializer.validated_data.get("project")
 
         try:
-            api_token = APIToken.objects.get(**serializer.validated_data)
+            api_token = APIToken.objects.get(user=user, org=project.org)
         except APIToken.DoesNotExist:
             raise exceptions.PermissionDenied()
 
-        return Response(dict(user=api_token.user.email, org=api_token.org.uuid, api_token=api_token.key))
+        return Response(
+            dict(user=api_token.user.email, project=project.project_uuid, api_token=api_token.key)
+        )
 
 
 class UserPermissionEndpoint(InternalGenericViewSet):
@@ -43,7 +47,11 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
     def retrieve(self, request):
         org = get_object_or_404(Org, uuid=request.query_params.get("org_uuid"))
-        user = get_object_or_404(User, email=request.query_params.get("user_email"), is_active=request.query_params.get("is_active", True))
+        user = get_object_or_404(
+            User,
+            email=request.query_params.get("user_email"),
+            is_active=request.query_params.get("is_active", True),
+        )
 
         permissions = self._get_user_permissions(org, user)
         serializer = self.get_serializer(permissions)
@@ -52,7 +60,11 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
     def partial_update(self, request):
         org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
-        user = get_object_or_404(User, email=request.data.get("user_email"), is_active=request.query_params.get("is_active", True))
+        user, created = User.objects.get_or_create(
+            email=request.data.get("user_email"),
+            defaults={"username": request.data.get("user_email")},
+            is_active=request.query_params.get("is_active", True),
+        )
 
         self._validate_permission(org, request.data.get("permission", ""))
         self._set_user_permission(org, user, request.data.get("permission", ""))
@@ -64,7 +76,11 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
     def destroy(self, request):
         org = get_object_or_404(Org, uuid=request.data.get("org_uuid"))
-        user = get_object_or_404(User, email=request.data.get("user_email"), is_active=request.query_params.get("is_active", True))
+        user = get_object_or_404(
+            User,
+            email=request.data.get("user_email"),
+            is_active=request.query_params.get("is_active", True),
+        )
 
         self._validate_permission(org, request.data.get("permission", ""))
         self._remove_user_permission(org, user, request.data.get("permission", ""))
@@ -89,7 +105,6 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
     def _validate_permission(self, org: Org, permission: str):
         permissions_keys = self._get_permissions(org).keys()
-
         if permission not in permissions_keys:
             raise ValidationError(detail=f"{permission} is not a valid permission!")
 
@@ -113,11 +128,9 @@ class UserPermissionEndpoint(InternalGenericViewSet):
 
 
 class UserEndpoint(InternalGenericViewSet, mixins.RetrieveModelMixin):
-
     serializer_class = UserSerializer
     queryset = User.objects.all()
     lookup_field = "uuid"
-
 
     def partial_update(self, request):
         instance = get_object_or_404(User, email=request.query_params.get("email"))
