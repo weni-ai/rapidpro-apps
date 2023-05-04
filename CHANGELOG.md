@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [2.4.0] - 2023-05-03
+- Add Project model to internal app
+- Adjust Channel app to new project model
+- Adjust Org app to new project model
+- Adjust Users app to new project model
+
 ## [2.3.4] - 2023-04-27
 - Update permission endpoint from User permission
 - Update pre-commit config
