@@ -16,7 +16,7 @@ from weni.internal.orgs.serializers import (
     OrgUpdateSerializer,
 )
 
-from temba.orgs.models import Org
+from weni.internal.models import Project
 
 
 class TemplateOrgViewSet(CreateModelMixin, InternalGenericViewSet):
@@ -24,14 +24,14 @@ class TemplateOrgViewSet(CreateModelMixin, InternalGenericViewSet):
 
 
 class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
-    queryset = Org.objects
-    lookup_field = "uuid"
+    queryset = Project.objects
+    lookup_field = "project_uuid"
 
     def list(self, request):
         user = self.get_user(request)
-        orgs = self.get_orgs(user)
-
-        serializer = OrgSerializer(orgs, many=True)
+        orgs_ids = self.get_orgs(user).values_list("id", flat=True)
+        projects = Project.objects.filter(id__in=orgs_ids)
+        serializer = OrgSerializer(projects, many=True)
 
         return Response(serializer.data)
 
@@ -43,53 +43,55 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
             email=request.data.get("user_email"), defaults={"username": request.data.get("user_email")}
         )
 
-        org = Org.objects.create(
+        project = Project.objects.create(
             name=request.data.get("name"),
             timezone=request.data.get("timezone"),
             created_by=user,
             modified_by=user,
             plan="infinity",
+            project_uuid=request.data.get("uuid")
+
         )
 
-        org.administrators.add(user)
-        org.initialize()
+        project.administrators.add(user)
+        project.initialize()
 
-        org_serializer = OrgSerializer(org)
+        org_serializer = OrgSerializer(project)
 
         return Response(org_serializer.data)
 
-    def retrieve(self, request, uuid=None):
-        org = get_object_or_404(Org, uuid=uuid)
-        serializer = OrgSerializer(org)
+    def retrieve(self, request, project_uuid=None):
+        project = get_object_or_404(Project, project_uuid=project_uuid)
+        serializer = OrgSerializer(project)
 
         return Response(serializer.data)
 
-    def destroy(self, request, uuid=None):
-        org = get_object_or_404(Org, uuid=uuid)
+    def destroy(self, request, project_uuid=None):
+        project = get_object_or_404(Project, project_uuid=project_uuid)
         user = get_object_or_404(User, email=request.query_params.get("user_email"))
 
-        self.pre_destroy(org, user)
-        org.release(user)
+        self.pre_destroy(project, user)
+        project.release(user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def partial_update(self, request, uuid=None):
-        org = get_object_or_404(Org, uuid=uuid)
+    def partial_update(self, request, project_uuid=None):
+        project = get_object_or_404(Project, project_uuid=project_uuid)
 
-        serializer = OrgUpdateSerializer(org, data=request.data)
+        serializer = OrgUpdateSerializer(project, data=request.data)
         serializer.is_valid(raise_exception=True)
 
         modified_by = serializer.validated_data.get("modified_by", None)
         plan = serializer.validated_data.get("plan", None)
 
-        if modified_by and not self._user_has_permisson(modified_by, org) and not modified_by.is_superuser:
+        if modified_by and not self._user_has_permisson(modified_by, project) and not modified_by.is_superuser:
             raise exceptions.ValidationError(
-                f"User: {modified_by.pk} has no permission to update Org: {org.uuid}",
+                f"User: {modified_by.pk} has no permission to update Org: {project.project_uuid}",
             )
 
         if plan is not None and plan == settings.INFINITY_PLAN:
-            org.uses_topups = False
-            org.plan_end = None
+            project.uses_topups = False
+            project.plan_end = None
 
             serializer.save(plan_end=None)
             return Response(serializer.data)
@@ -97,7 +99,7 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
         serializer.save()
         return Response(serializer.data)
 
-    def pre_destroy(self, org: Org, user: User):
+    def pre_destroy(self, org: Project, user: User):
         if user.id and user.id > 0 and hasattr(org, "modified_by_id"):
             org.modified_by = user
 
@@ -112,12 +114,12 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
 
         return get_object_or_404(User, email=request.query_params.get("user_email"))
 
-    def _user_has_permisson(self, user: User, org: Org) -> bool:
+    def _user_has_permisson(self, user: User, project: Project) -> bool:
         return (
-            user.org_admins.filter(pk=org.pk)
-            or user.org_viewers.filter(pk=org.pk)
-            or user.org_editors.filter(pk=org.pk)
-            or user.org_surveyors.filter(pk=org.pk)
+            user.org_admins.filter(pk=project.pk)
+            or user.org_viewers.filter(pk=project.pk)
+            or user.org_editors.filter(pk=project.pk)
+            or user.org_surveyors.filter(pk=project.pk)
         )
 
     def get_orgs(self, user: User):
