@@ -1,5 +1,27 @@
 ## [Unreleased]
 
+## [2.3.4] - 2023-04-27
+- Update permission endpoint from User permission
+- Update pre-commit config
+
+## [2.3.3] - 2023-04-20
+- Removing the internal ticketer from org serializer template
+- Add agent permission in get_permissions method
+- Add delete endpoint in external-services
+
+## [2.3.2] - 2023-04-14
+- Update globals endpoint to filter by org
+
+## [2.3.0] - 2023-04-06
+- Add endpoint allows the generic creation of an external service
+
+## [2.2.0] - 2023-03-30
+- Add endpoint that allows creating, retrieving, destroying and listing globals
+
+## [2.1.3] - 2023-02-17
+- Adjust the org field in the channel listing return
+- Fix: does not create activities when updating the channel.config at whatsapp and whatsapp-cloud
+
 ## [2.1.2] - 2023-02-03
 - Fix change the has_issues field to False, when create flow
 

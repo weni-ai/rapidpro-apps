@@ -36,7 +36,7 @@ class TemplateOrgSerializer(serializers.ModelSerializer):
         org = super().create(validated_data)
 
         org.administrators.add(validated_data.get("created_by"))
-        org.initialize(sample_flows=False, internal_ticketer=False)
+        org.initialize(sample_flows=False)
 
         return org
 
