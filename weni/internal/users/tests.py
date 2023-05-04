@@ -11,6 +11,17 @@ from temba.api.models import APIToken
 
 from temba.tests import TembaTest
 from temba.orgs.models import Org
+from weni.internal.models import Project
+from weni.internal.users.views import UserEndpoint, UserPermissionEndpoint, UserViewSet
+
+view_set = UserViewSet
+view_set.permission_classes = []
+
+view_permissions = UserPermissionEndpoint
+view_permissions.permission_classes = []
+
+view_endpoint = UserEndpoint
+view_endpoint.permission_classes = []
 
 
 class TembaRequestMixin(ABC):
@@ -52,7 +63,7 @@ class TembaRequestMixin(ABC):
 
     def request_delete(self, data, **kwargs):
         url = self.reverse(self.get_url_namespace(), query_params=kwargs)
-        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
+        token = APIToken.get_or_create(self.project, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(
             f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
@@ -68,83 +79,87 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         self.admin = User.objects.create_user(
             username="testuser", password="123", email="test@weni.ai", is_superuser=True
         )
+
+        self.project = Project.objects.create(
+            name="Test", timezone="Africa/Kigali", created_by=self.admin, modified_by=self.admin
+        )
         super().setUp()
 
     def test_user_permission_destroy(self):
-        org = Org.objects.first()
+        project = Project.objects.first()
         user = User.objects.first()
 
         destroy_wrong_permission = self.request_delete(
-            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="adm")
+            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="adm")
         )
         self.assertEqual(destroy_wrong_permission.status_code, 400)
         self.assertEqual(destroy_wrong_permission.json()[0], "adm is not a valid permission!")
 
-        self.request_patch(data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="viewer"))
-        user_permissions = self._get_user_permissions(org=org, user=user)
+        self.request_patch(data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="viewer"))
+        user_permissions = self._get_user_permissions(project=project, user=user)
 
-        self.request_delete(data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="viewer"))
-        user_permissions_removed = self._get_user_permissions(org=org, user=user)
+        self.request_delete(data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="viewer"))
+        user_permissions_removed = self._get_user_permissions(project=project, user=user)
 
         self.assertFalse(user_permissions_removed.get("viewer", False))
         self.assertNotEquals(user_permissions, user_permissions_removed)
 
     def test_user_permission_update(self):
-        org = Org.objects.first()
+        project = Project.objects.first()
         user = User.objects.first()
 
         update_wrong_permission_response = self.request_patch(
-            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="adm")
+            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="adm")
         )
         self.assertEqual(update_wrong_permission_response.status_code, 400)
         self.assertEqual(update_wrong_permission_response.json()[0], "adm is not a valid permission!")
 
         update_response = self.request_patch(
-            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="administrator")
+            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="administrator")
         ).json()
-        user_permissions = self._get_user_permissions(org, user)
+        user_permissions = self._get_user_permissions(project, user)
 
         self.assertTrue(user_permissions.get("administrator"))
         self.assertTrue(self._permission_is_unique_true(update_response, "administrator"))
 
         update_response = self.request_patch(
-            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="viewer")
+            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="viewer")
         ).json()
-        user_permissions = self._get_user_permissions(org, user)
+        user_permissions = self._get_user_permissions(project, user)
 
         self.assertTrue(user_permissions.get("viewer"))
         self.assertTrue(self._permission_is_unique_true(update_response, "viewer"))
 
         update_response = self.request_patch(
-            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="editor")
+            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="editor")
         ).json()
-        user_permissions = self._get_user_permissions(org, user)
+        user_permissions = self._get_user_permissions(project, user)
 
         self.assertTrue(user_permissions.get("editor"))
         self.assertTrue(self._permission_is_unique_true(update_response, "editor"))
 
         update_response = self.request_patch(
-            data=dict(org_uuid=str(org.uuid), user_email=user.email, permission="surveyor")
+            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="surveyor")
         ).json()
-        user_permissions = self._get_user_permissions(org, user)
+        user_permissions = self._get_user_permissions(project, user)
 
         self.assertTrue(user_permissions.get("surveyor"))
         self.assertTrue(self._permission_is_unique_true(update_response, "surveyor"))
 
-    def _get_permissions(self, org: Org) -> dict:
+    def _get_permissions(self, project: Project) -> dict:
         return {
-            "administrator": org.administrators,
-            "viewer": org.viewers,
-            "editor": org.editors,
-            "surveyor": org.surveyors,
+            "administrator": project.administrators,
+            "viewer": project.viewers,
+            "editor": project.editors,
+            "surveyor": project.surveyors,
         }
 
-    def _get_user_permissions(self, org: Org, user: User) -> dict:
+    def _get_user_permissions(self, project: Project, user: User) -> dict:
         permissions = {}
-        org_permissions = self._get_permissions(org)
+        project_permissions = self._get_permissions(project)
 
-        for perm_name, org_field in org_permissions.items():
-            if org_field.filter(pk=user.id).exists():
+        for perm_name, project_field in project_permissions.items():
+            if project_field.filter(pk=user.id).exists():
                 permissions[perm_name] = True
 
         return permissions
@@ -169,51 +184,54 @@ class UserPermissionRetrieveTestCase(TembaTest, TembaRequestMixin):
         self.admin = User.objects.create_user(
             username="testuser", password="123", email="test@weni.ai", is_superuser=True
         )
+        self.project = Project.objects.create(
+            name="Test", timezone="Africa/Kigali", created_by=self.admin, modified_by=self.admin
+        )
         super().setUp()
 
     def test_user_permission_retrieve(self):
-        org = Org.objects.first()
+        project = Project.objects.first()
         user = User.objects.first()
 
-        response_wrong_org = self.request_detail(
+        response_wrong_project = self.request_detail(
             org_uuid="f7e70145-6d17-4384-a1f2-d6981397866a", user_email="wrong@weni.ai"
         )
 
-        self.assertEqual(response_wrong_org.status_code, 404)
-        self.assertEqual(response_wrong_org.json().get("detail"), "Not found.")
+        self.assertEqual(response_wrong_project.status_code, 404)
+        self.assertEqual(response_wrong_project.json().get("detail"), "Not found.")
 
-        org.administrators.add(user)
+        project.administrators.add(user)
 
-        response_wrong_user = self.request_detail(org_uuid=org.uuid, user_email=0)
+        response_wrong_user = self.request_detail(org_uuid=project.project_uuid, user_email=0)
 
         self.assertEqual(response_wrong_user.status_code, 404)
         self.assertEqual(response_wrong_user.json().get("detail"), "Not found.")
 
-        response = self.request_detail(org_uuid=org.uuid, user_email=user.email).json()
+        response = self.request_detail(org_uuid=project.project_uuid, user_email=user.email).json()
 
         self.assertTrue(response.get("administrator"))
         self.assertTrue(self.permission_is_unique_true(response, "administrator"))
 
-        org.administrators.remove(user)
-        org.viewers.add(user)
+        project.administrators.remove(user)
+        project.viewers.add(user)
 
-        response = self.request_detail(org_uuid=org.uuid, user_email=user.email).json()
+        response = self.request_detail(org_uuid=project.project_uuid, user_email=user.email).json()
 
         self.assertTrue(response.get("viewer"))
         self.assertTrue(self.permission_is_unique_true(response, "viewer"))
 
-        org.viewers.remove(user)
-        org.editors.add(user)
+        project.viewers.remove(user)
+        project.editors.add(user)
 
-        response = self.request_detail(org_uuid=org.uuid, user_email=user.email).json()
+        response = self.request_detail(org_uuid=project.project_uuid, user_email=user.email).json()
 
         self.assertTrue(response.get("editor"))
         self.assertTrue(self.permission_is_unique_true(response, "editor"))
 
-        org.editors.remove(user)
-        org.surveyors.add(user)
+        project.editors.remove(user)
+        project.surveyors.add(user)
 
-        response = self.request_detail(org_uuid=org.uuid, user_email=user.email).json()
+        response = self.request_detail(org_uuid=project.project_uuid, user_email=user.email).json()
 
         self.assertTrue(response.get("surveyor"))
         self.assertTrue(self.permission_is_unique_true(response, "surveyor"))

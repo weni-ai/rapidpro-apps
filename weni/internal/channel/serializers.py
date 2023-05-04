@@ -10,16 +10,17 @@ from django.test import RequestFactory
 from rest_framework import serializers
 from rest_framework import exceptions
 
-from weni.grpc.core import serializers as weni_serializers
+from weni.serializers import fields as weni_serializers
 
 from temba.channels.models import Channel
 from temba.orgs.models import Org
 from temba.utils import analytics
+from weni.internal.models import Project
 
 
 class ChannelWACSerializer(serializers.Serializer):
     user = weni_serializers.UserEmailRelatedField(required=True, write_only=True)
-    org = weni_serializers.OrgUUIDRelatedField(required=True, write_only=True)
+    org = weni_serializers.ProjectUUIDRelatedField(required=True, write_only=True)
     phone_number_id = serializers.CharField(required=True, write_only=True)
     uuid = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
@@ -50,7 +51,7 @@ class ChannelWACSerializer(serializers.Serializer):
         channel_type = Channel.get_type_from_code("WAC")
         schemes = channel_type.schemes
 
-        org = validated_data.get("org")
+        org = validated_data["org"].org
         name = validated_data.get("name")
         phone_number_id = validated_data.get("phone_number_id")
         config = validated_data.get("config", {})
@@ -89,7 +90,7 @@ class CreateChannelSerializer(serializers.Serializer):
         data = validated_data.get("data")
 
         user = get_object_or_404(User, email=validated_data.get("user"))
-        org = get_object_or_404(Org, uuid=validated_data.get("org"))
+        org = get_object_or_404(Project, project_uuid=validated_data.get("org"))
 
         channel_type = Channel.get_type_from_code(validated_data.get("channeltype_code"))
 
@@ -97,13 +98,13 @@ class CreateChannelSerializer(serializers.Serializer):
             channel_type_code = validated_data.get("channeltype_code")
             raise exceptions.ValidationError(f"No channels found with '{channel_type_code}' code")
 
-        url = self.create_channel(user, org, data, channel_type)
+        url = self.create_channel(user, org.org, data, channel_type)
 
         if url is None:
             raise exceptions.ValidationError(f"Url not created")
 
         if "/users/login/?next=" in url:
-            raise exceptions.ValidationError(f"User: {user.email} do not have permission in Org: {org.uuid}")
+            raise exceptions.ValidationError(f"User: {user.email} do not have permission in Org: {org.org.uuid}")
 
         regex = "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
         channe_uuid = re.findall(regex, url)[0]
@@ -111,7 +112,7 @@ class CreateChannelSerializer(serializers.Serializer):
 
         return channel
 
-    def create_channel(self, user: User, org: Org, data: dict, channel_type) -> str:
+    def create_channel(self, user: User, org: Project, data: dict, channel_type) -> str:
         factory = RequestFactory()
         url = f"channels/types/{channel_type.slug}/claim"
 
@@ -148,5 +149,6 @@ class ChannelSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret['org'] = instance.org.uuid
+        ret["org"] = instance.org.project.project_uuid if hasattr(instance.org, "project") else None
+
         return ret
