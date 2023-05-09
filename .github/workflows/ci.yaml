@@ -28,11 +28,6 @@ jobs:
         with:
           python-version: ${{ env.python-version }}
 
-      - name: Install Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: '3.8.x'
-
       - name: Initialize environment
         run: |
           pip install --upgrade pip poetry
