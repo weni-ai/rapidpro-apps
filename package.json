@@ -1,0 +1,45 @@
+{
+    "name": "rapidpro",
+    "repository": "git@github.com:rapidpro/rapidpro.git",
+    "license": "AGPL-3.0",
+    "lint-staged": {
+      "*.{js,jsx,css,md}": [
+        "prettier --write",
+        "git add"
+      ]
+    },
+    "dependencies": {
+      "@weni/flow-editor": "1.2.0",
+      "@nyaruka/temba-components": "0.23.0",
+      "colorette": "1.2.2",
+      "fa-icons": "0.2.0",
+      "is-core-module": "2.4.0",
+      "less": "2.7.1",
+      "queue-microtask": "1.2.3",
+      "react": "16.13.1",
+      "react-dom": "16.13.1"
+    },
+    "scripts": {
+      "preinstall": "npx npm-force-resolutions",
+      "tw-build": "postcss static/scss/tailwind.scss -o static/css/tailwind.css",
+      "tw-watch": "watch 'npm run tw-build' ./static/scss"
+    },
+    "devDependencies": {
+      "autoprefixer": "10.2.5",
+      "bower": "1.8.8",
+      "jasmine-core": "2.5.0",
+      "postcss": "8.3.0",
+      "postcss-import": "14.0.2",
+      "postcss-loader": "5.3.0",
+      "postcss-scss": "3.0.5",
+      "postcss-simple-vars": "6.0.3",
+      "tailwindcss": "2.0.4",
+      "watch": "0.13.0"
+    },
+    "resolutions": {
+      "minimist": "1.2.5"
+    },
+    "vaadin": {
+      "disableUsageStatistics": true
+    }
+  }
