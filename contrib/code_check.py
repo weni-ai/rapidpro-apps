@@ -42,5 +42,5 @@ if __name__ == "__main__":
     # Lint validations
     execute("flake8 marketplace/")
     # Coverage tests
-    execute("coverage run manage.py test --verbosity=2 --noinput")
+    execute("coverage run manage.py weni test --verbosity=2 --noinput")
     execute("coverage report -m", cmd_output=True)
