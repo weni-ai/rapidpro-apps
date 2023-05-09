@@ -1,0 +1,74 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    name: Test
+    env:
+      python-version: '3.9.x'
+      postgis-version: '3.1'
+      redis-version: '3.2.4'
+      node-version: '10'
+      elastic-version: '7.10.1'
+      rpindexer-version: '7.0.0'
+      mailroom-version: '7.1.22'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pg-version: ['14']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install PostgreSQL
+        uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: ${{ matrix.pg-version }}
+          postgresql db: temba
+          postgresql user: temba
+          postgresql password: temba
+
+      - name: Install Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ env.python-version }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-in-project: true
+
+      - name: Install Redis
+        uses: zhulik/redis-action@v1.0.0
+        with:
+          redis version: ${{ env.redis-version }}
+
+      - name: Install ElasticSearch
+        uses: nyaruka/elasticsearch-action@master
+        with:
+          elastic version: ${{ env.elastic-version }}
+
+      - name: Initialize environment
+        run: |
+          poetry install
+          npm install
+          sudo npm install -g less
+          ln -s ${{ github.workspace }}/settings.py.dev ${{ github.workspace }}/settings.py
+          poetry run ./manage.py migrate
+
+      - name: Validate code syntax and unit tests
+        run: |
+          poetry run python contrib/code_check.py
+          poetry run coverage xml
+
+      - name: Mailroom log
+        if: failure()
+        run: cat mailroom.log
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: annotations,path,test_changes
+          fail_ci_if_error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
