@@ -28,10 +28,10 @@ class TicketerQueueViewSet(
     @property
     def _ticketer(self):
         sector_uuid = self.kwargs.get("ticketer_uuid")
-        return get_object_or_404(Ticketer, config__sector_uuid=sector_uuid)
+        return get_object_or_404(Ticketer, is_active=True, config__sector_uuid=sector_uuid)
 
     def get_queryset(self):
-        return super().get_queryset().filter(ticketer=self._ticketer)
+        return super().get_queryset().filter(is_active=True, ticketer=self._ticketer)
 
     def perform_create(self, serializer):
         ticketer = self._ticketer
@@ -49,3 +49,6 @@ class TicketerQueueViewSet(
             self.http_method_not_allowed(request, *args, **kwargs)
 
         return super().update(request, *args, **kwargs)
+
+    def perform_destroy(self, instance):
+        instance.release(self.request.user)

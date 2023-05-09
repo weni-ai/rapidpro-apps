@@ -16,6 +16,11 @@ class TicketerQueue(Topic):
     def __str__(self):
         return f"Queue[uuid={self.uuid}, name={self.name}]"
 
+    def release(self, user):
+        self.ticketer.release(user=user)
+        self.is_active=False
+        self.save()
+
 
 class Project(Org):
     project_uuid = models.UUIDField(default=uuid4, unique=True)
@@ -29,3 +34,4 @@ class Project(Org):
     @property
     def org(self):
         return self.org_ptr
+    
