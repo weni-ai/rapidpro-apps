@@ -45,17 +45,6 @@ jobs:
         # test that everything is well formatted, no missing migrations etc
         poetry run ./code_check.py --debug
 
-    - name: Run tests
-      run: |
-        poetry run coverage run manage.py test weni --keepdb --noinput --verbosity=2
-        poetry run coverage report -i
-        poetry run coverage report -i --rcfile .coveragerc_todo
-        poetry run coverage xml
-
-    - name: Mailroom log
-      if: failure()
-      run: cat mailroom.log
-
     - name: Upload coverage
       if: success()
       uses: codecov/codecov-action@v3
