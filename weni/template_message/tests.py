@@ -14,18 +14,18 @@ from temba.channels.types.whatsapp.type import (
 
 
 class TembaPostRequestMixin:
-
     url_namespace = None
 
     def request(self, data=None, user=None):
         url = reverse(self.url_namespace)
         token = APIToken.get_or_create(self.org, user if user else self.admin)
 
-        return self.client.post(f"{url}.json", HTTP_AUTHORIZATION=f"Token {token.key}", data=data)
+        return self.client.post(
+            f"{url}.json", HTTP_AUTHORIZATION=f"Token {token.key}", data=data
+        )
 
 
 class CreateTemplateMessageTest(TembaPostRequestMixin, TembaTest):
-
     url_namespace = "api.v2.template_messages"
 
     def setUp(self):
@@ -59,7 +59,6 @@ class CreateTemplateMessageTest(TembaPostRequestMixin, TembaTest):
         )
 
     def test_admin_create_template(self):
-
         data = self.request_data
 
         response = self.request(data)

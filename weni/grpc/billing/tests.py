@@ -6,14 +6,15 @@ from django.utils import timezone as tz
 from google.protobuf.timestamp_pb2 import Timestamp as TimestampMessage
 from rest_framework.exceptions import ErrorDetail
 from temba.orgs.models import Org
-from temba.msgs.models import Msg
 from django.contrib.auth.models import User
-from temba.contacts.models import Contact
 from temba.tests import TembaTest
 from weni.protobuf.flows import billing_pb2 as pb2, billing_pb2_grpc as stubs
 from weni.grpc.billing.queries import ActiveContactsQuery
-from weni.grpc.billing.serializers import BillingRequestSerializer, ActiveContactDetailSerializer
-from django_grpc_framework.test import FakeRpcError, RPCTransactionTestCase
+from weni.grpc.billing.serializers import (
+    BillingRequestSerializer,
+    ActiveContactDetailSerializer,
+)
+from django_grpc_framework.test import RPCTransactionTestCase
 from google.protobuf import empty_pb2
 
 
@@ -25,12 +26,16 @@ class ActiveContactsQueryTest(TembaTest):
 
         # create some contacts and incoming msgs
         for index in range(10):
-            contact = self.create_contact(f"Contact {index+1}", phone=f"+5531248269{index:2d}")
+            contact = self.create_contact(
+                f"Contact {index+1}", phone=f"+5531248269{index:2d}"
+            )
             self.create_outgoing_msg(contact, f"Hello, {contact.name}!")
 
         # some other contacts out of time range filter
         for index in range(10, 15):
-            contact = self.create_contact(f"Contact {index+1}", phone=f"+5531248269{index:2d}")
+            contact = self.create_contact(
+                f"Contact {index+1}", phone=f"+5531248269{index:2d}"
+            )
             self.create_outgoing_msg(
                 contact,
                 f"Hi there, {contact.name}!",
@@ -49,10 +54,14 @@ class ActiveContactsQueryTest(TembaTest):
     def test_total(self):
         self.assertEqual(self.query.total(self.org.uuid, tz.now(), self.start), 10)
         self.assertEqual(
-            self.query.total(self.org.uuid, tz.now(), self.start - tz.timedelta(minutes=11)),
+            self.query.total(
+                self.org.uuid, tz.now(), self.start - tz.timedelta(minutes=11)
+            ),
             15,
         )
-        self.assertEqual(self.query.total(self.another_org.uuid, tz.now(), self.start), 0)
+        self.assertEqual(
+            self.query.total(self.another_org.uuid, tz.now(), self.start), 0
+        )
 
     def test_detailed(self):
         start_to_now = self.query.detailed(self.org.uuid, tz.now(), self.start)
@@ -62,14 +71,20 @@ class ActiveContactsQueryTest(TembaTest):
             self.assertTrue(row["msg__sent_on"] >= self.start)
             self.assertTrue(row["msg__sent_on"] <= tz.now())
 
-        before_start = self.query.detailed(self.org.uuid, self.start, self.start - tz.timedelta(minutes=10))
+        before_start = self.query.detailed(
+            self.org.uuid, self.start, self.start - tz.timedelta(minutes=10)
+        )
         self.assertEqual(before_start.count(), 5)
         for row in before_start:
             self.assertEqual(row["msg__text"], f"Hi there, {row['name']}!")
-            self.assertTrue(row["msg__sent_on"] >= self.start - tz.timedelta(minutes=10))
+            self.assertTrue(
+                row["msg__sent_on"] >= self.start - tz.timedelta(minutes=10)
+            )
             self.assertTrue(row["msg__sent_on"] <= self.start)
 
-        ten_minutes_ago = self.query.detailed(self.org.uuid, tz.now(), self.start - tz.timedelta(minutes=10))
+        ten_minutes_ago = self.query.detailed(
+            self.org.uuid, tz.now(), self.start - tz.timedelta(minutes=10)
+        )
         self.assertEqual(ten_minutes_ago.count(), 15)
 
         another_org = self.query.detailed(self.another_org.uuid, tz.now(), self.start)
@@ -133,7 +148,9 @@ class BillingRequestSerializerTest(TestCase):
         after_message = TimestampMessage()
         after_message.FromDatetime(after)
 
-        return pb2.BillingRequest(org_uuid=str(org_uuid), before=before_message, after=after_message)
+        return pb2.BillingRequest(
+            org_uuid=str(org_uuid), before=before_message, after=after_message
+        )
 
     @classmethod
     def setUpTestData(cls):
@@ -146,7 +163,9 @@ class BillingRequestSerializerTest(TestCase):
         before_message.FromDatetime(before)
         after_message.FromDatetime(after)
         cls.valid_data = dict(org_uuid=org_uuid, before=before, after=after)
-        cls.valid_message = pb2.BillingRequest(org_uuid=str(org_uuid), before=before_message, after=after_message)
+        cls.valid_message = pb2.BillingRequest(
+            org_uuid=str(org_uuid), before=before_message, after=after_message
+        )
 
     def test_serialize(self):
         serializer = BillingRequestSerializer(self.valid_data)
@@ -163,11 +182,15 @@ class BillingRequestSerializerTest(TestCase):
             self.assertIsInstance(serializer.message, pb2.BillingRequest)
 
         with self.assertRaisesRegex(KeyError, "before"):
-            serializer = BillingRequestSerializer(dict(org_uuid="dontmatternow", after=tz.now()))
+            serializer = BillingRequestSerializer(
+                dict(org_uuid="dontmatternow", after=tz.now())
+            )
             self.assertIsInstance(serializer.message, pb2.BillingRequest)
 
         with self.assertRaisesRegex(KeyError, "after"):
-            serializer = BillingRequestSerializer(dict(org_uuid="dontmatternow", before=tz.now()))
+            serializer = BillingRequestSerializer(
+                dict(org_uuid="dontmatternow", before=tz.now())
+            )
             self.assertIsInstance(serializer.message, pb2.BillingRequest)
 
     def test_required(self):
@@ -205,7 +228,9 @@ class BillingRequestSerializerTest(TestCase):
         )
 
     def test_reversed_dates(self):
-        msg = self.create_message(before=tz.now() - tz.timedelta(hours=12), after=tz.now())
+        msg = self.create_message(
+            before=tz.now() - tz.timedelta(hours=12), after=tz.now()
+        )
         serializer = self.serializer_class(message=msg)
         self.assertFalse(serializer.is_valid())
         errors = serializer.errors
@@ -213,7 +238,9 @@ class BillingRequestSerializerTest(TestCase):
         self.assertEqual(len(errors.keys()), 1)
         self.assertEqual(
             errors["non_field_errors"][0],
-            ErrorDetail(string='"after" should be earlier then "before"', code="invalid"),
+            ErrorDetail(
+                string='"after" should be earlier then "before"', code="invalid"
+            ),
         )
 
 
@@ -229,23 +256,33 @@ class BillingServiceTest(RPCTransactionTestCase, TembaTest):
         ...
 
     def test_message_detail(self):
-        user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        user = User.objects.create_user(
+            username="testuser", password="123", email="test@weni.ai"
+        )
+        org = Org.objects.create(
+            name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
 
-        contact = self.create_contact(f"Contact 1", phone=f"+553124826922")
+        contact = self.create_contact(f'{"Contact 1"}', phone=f'{"+553124826922"}')
         contact.org = org
         contact.save(update_fields=["org"])
 
-        channel = self.create_channel(channel_type="WA", name="channel_test", address="address_test", org=org)
+        channel = self.create_channel(
+            channel_type="WA", name="channel_test", address="address_test", org=org
+        )
 
-        msg = self.create_incoming_msg(contact=contact, text="incoming message test", channel=channel)
-        msg1 = self.create_outgoing_msg(contact=contact, text="incoming message test", channel=channel)
+        msg = self.create_incoming_msg(
+            contact=contact, text="incoming message test", channel=channel
+        )
 
         before = tz.now()
         after = tz.now() - tz.timedelta(minutes=1)
 
         result = self.billing_detail_msg(
-            org_uuid=str(org.uuid), contact_uuid=str(contact.uuid), before=str(before), after=str(after)
+            org_uuid=str(org.uuid),
+            contact_uuid=str(contact.uuid),
+            before=str(before),
+            after=str(after),
         )
 
         self.assertEqual(str(msg.uuid), result.uuid)
@@ -255,22 +292,33 @@ class BillingServiceTest(RPCTransactionTestCase, TembaTest):
         self.assertEqual(channel.channel_type, result.channel_type)
 
     def test_message_detail_fail(self):
-        user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        org = Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        user = User.objects.create_user(
+            username="testuser", password="123", email="test@weni.ai"
+        )
+        org = Org.objects.create(
+            name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
 
-        contact = self.create_contact(f"Contact 1", phone=f"+553124826922")
+        contact = self.create_contact("Contact 1", phone="+553124826922")
         contact.org = org
         contact.save(update_fields=["org"])
 
-        channel = self.create_channel(channel_type="WA", name="channel_test", address="address_test", org=org)
+        channel = self.create_channel(
+            channel_type="WA", name="channel_test", address="address_test", org=org
+        )
 
-        msg = self.create_outgoing_msg(contact=contact, text="incoming message test", channel=channel, status="F")
+        self.create_outgoing_msg(
+            contact=contact, text="incoming message test", channel=channel, status="F"
+        )
 
         before = tz.now()
         after = tz.now() - tz.timedelta(minutes=1)
 
         result = self.billing_detail_msg(
-            org_uuid=str(org.uuid), contact_uuid=str(contact.uuid), before=str(before), after=str(after)
+            org_uuid=str(org.uuid),
+            contact_uuid=str(contact.uuid),
+            before=str(before),
+            after=str(after),
         )
 
         self.assertEqual(type(result), empty_pb2.Empty)

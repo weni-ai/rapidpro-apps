@@ -15,7 +15,7 @@ class InternalAuthenticator(object):
 
         token = response.json().get("access_token")
         return f"Bearer {token}"
-    
+
     @property
     def headers(self):
         return {

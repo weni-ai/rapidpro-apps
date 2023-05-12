@@ -5,17 +5,19 @@ from django_grpc_framework import generics, mixins
 from google.protobuf import empty_pb2
 
 from temba.orgs.models import Org
-from weni.grpc.org.serializers import OrgCreateProtoSerializer, OrgProtoSerializer, OrgUpdateProtoSerializer
+from weni.grpc.org.serializers import (
+    OrgCreateProtoSerializer,
+    OrgProtoSerializer,
+    OrgUpdateProtoSerializer,
+)
 from weni.grpc.core.services import AbstractService
 
 
 class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin):
-
     queryset = Org.objects
     lookup_field = "uuid"
 
     def List(self, request, context):
-
         user = self.get_user(request)
         orgs = self.get_orgs(user)
 
@@ -25,14 +27,19 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
             yield msg
 
     def Create(self, request, context):
-
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
-        user, created = User.objects.get_or_create(email=request.user_email, defaults={"username": request.user_email})
+        user, created = User.objects.get_or_create(
+            email=request.user_email, defaults={"username": request.user_email}
+        )
 
         org = Org.objects.create(
-            name=request.name, timezone=request.timezone, created_by=user, modified_by=user, plan="infinity"
+            name=request.name,
+            timezone=request.timezone,
+            created_by=user,
+            modified_by=user,
+            plan="infinity",
         )
 
         org.administrators.add(user)
@@ -67,7 +74,11 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         modified_by = data.get("modified_by", None)
         plan = data.get("plan", None)
 
-        if modified_by and not self._user_has_permisson(modified_by, org) and not modified_by.is_superuser:
+        if (
+            modified_by
+            and not self._user_has_permisson(modified_by, org)
+            and not modified_by.is_superuser
+        ):
             self.context.abort(
                 grpc.StatusCode.PERMISSION_DENIED,
                 f"User: {modified_by.pk} has no permission to update Org: {org.uuid}",
@@ -99,7 +110,9 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         try:
             return User.objects.get(email=request.user_email)
         except User.DoesNotExist:
-            self.context.abort(grpc.StatusCode.NOT_FOUND, f"User:{request.user_email} not found!")
+            self.context.abort(
+                grpc.StatusCode.NOT_FOUND, f"User:{request.user_email} not found!"
+            )
 
     def _user_has_permisson(self, user: User, org: Org) -> bool:
         return (

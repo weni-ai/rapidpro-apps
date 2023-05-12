@@ -2,7 +2,6 @@ import json
 from uuid import uuid4
 
 from django.urls import reverse
-from django.db import transaction
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.permissions import AllowAny
 from rest_framework import status
@@ -15,7 +14,6 @@ from weni.internal.models import TicketerQueue
 
 
 class TicketerQueueViewTestMixin(object):
-
     action: dict
 
     def setUp(self):
@@ -26,7 +24,9 @@ class TicketerQueueViewTestMixin(object):
 
         super().setUp()
 
-        self.ticketer = Ticketer.create(self.org, self.user, RocketChatType.slug, "Email (bob@acme.com)", {})
+        self.ticketer = Ticketer.create(
+            self.org, self.user, RocketChatType.slug, "Email (bob@acme.com)", {}
+        )
         self.queue = TicketerQueue.objects.create(
             created_by=self.user,
             modified_by=self.user,
@@ -49,7 +49,6 @@ class TicketerQueueViewTestMixin(object):
 
 
 class CreateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
-
     action = dict(post="create")
 
     def test_create_queue(self):
@@ -62,7 +61,6 @@ class CreateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
 
 
 class UpdateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
-
     action = dict(patch="partial_update")
 
     def test_update_queue(self):
@@ -80,7 +78,6 @@ class UpdateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
 
 
 class DestroyTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
-
     action = dict(delete="destroy")
 
     def test_destroy_queue(self):

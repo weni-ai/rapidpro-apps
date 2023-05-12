@@ -31,7 +31,6 @@ class GlobalViewSet(
         except Org.DoesNotExist as error:
             raise ValidationError(detail={"message": str(error)})
 
-
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
@@ -40,7 +39,9 @@ class GlobalViewSet(
 
         headers = self.get_success_headers(serializer.data)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     def perform_create(self, validated_data_list):
         self.get_serializer().create_many(validated_data_list)

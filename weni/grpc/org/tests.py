@@ -12,21 +12,29 @@ from weni.grpc.org.serializers import SerializerUtils
 
 
 class OrgServiceTest(RPCTransactionTestCase):
-
     WRONG_ID = -1
     WRONG_UUID = "31313-dasda-dasdasd-23123"
     WRONG_EMAIL = "wrong@email.com"
 
     def setUp(self):
-
-        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        User.objects.create_user(username="weniuser", password="123", email="wene@user.com")
+        User.objects.create_user(
+            username="testuser", password="123", email="test@weni.ai"
+        )
+        User.objects.create_user(
+            username="weniuser", password="123", email="wene@user.com"
+        )
 
         user = User.objects.get(username="testuser")
 
-        Org.objects.create(name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Org.objects.create(name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Org.objects.create(name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        Org.objects.create(
+            name="Temba", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Org.objects.create(
+            name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Org.objects.create(
+            name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
 
         super().setUp()
 
@@ -35,13 +43,14 @@ class OrgServiceTest(RPCTransactionTestCase):
     def test_serializer_utils(self):
         user = User.objects.last()
 
-        with self.assertRaisesMessage(ValidationError, (f"User: {self.WRONG_ID} not found!")):
+        with self.assertRaisesMessage(
+            ValidationError, (f"User: {self.WRONG_ID} not found!")
+        ):
             SerializerUtils.get_object(User, self.WRONG_ID)
 
         self.assertEquals(user, SerializerUtils.get_object(User, user.pk))
 
     def test_list_orgs(self):
-
         with self.assertRaises(FakeRpcError):
             for org in self.stub_org_list_request():
                 ...
@@ -90,11 +99,19 @@ class OrgServiceTest(RPCTransactionTestCase):
         org_name = "TestCreateOrg"
         user = User.objects.first()
 
-        with self.assertRaisesMessage(ValidationError, '"Wrong/Zone" is not a valid choice.'):
-            self.stub.Create(org_pb2.OrgCreateRequest(name=org_name, timezone="Wrong/Zone", user_email=user.email))
+        with self.assertRaisesMessage(
+            ValidationError, '"Wrong/Zone" is not a valid choice.'
+        ):
+            self.stub.Create(
+                org_pb2.OrgCreateRequest(
+                    name=org_name, timezone="Wrong/Zone", user_email=user.email
+                )
+            )
 
         self.stub.Create(
-            org_pb2.OrgCreateRequest(name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com")
+            org_pb2.OrgCreateRequest(
+                name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com"
+            )
         )
 
         newuser_qs = User.objects.filter(email="newemail@email.com")
@@ -121,7 +138,9 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEquals(administrator, newuser)
 
         self.stub.Create(
-            org_pb2.OrgCreateRequest(name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com")
+            org_pb2.OrgCreateRequest(
+                name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com"
+            )
         )
 
         self.assertEqual(User.objects.filter(email="newemail@email.com").count(), 1)
@@ -146,7 +165,9 @@ class OrgServiceTest(RPCTransactionTestCase):
         org_uuid = str(org.uuid)
         org_timezone = str(org.timezone)
 
-        with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_UUID} not found!"):
+        with self.assertRaisesMessage(
+            FakeRpcError, f"Org: {self.WRONG_UUID} not found!"
+        ):
             self.org_retrieve_request(uuid=self.WRONG_UUID)
 
         response = self.org_retrieve_request(uuid=org_uuid)
@@ -169,15 +190,29 @@ class OrgServiceTest(RPCTransactionTestCase):
         is_active = org.is_active
         modified_by = org.modified_by
 
-        with self.assertRaisesMessage(FakeRpcError, f"User: {self.WRONG_EMAIL} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(uuid=str(org.uuid), user_email=self.WRONG_EMAIL))
+        with self.assertRaisesMessage(
+            FakeRpcError, f"User: {self.WRONG_EMAIL} not found!"
+        ):
+            self.stub.Destroy(
+                org_pb2.OrgDestroyRequest(
+                    uuid=str(org.uuid), user_email=self.WRONG_EMAIL
+                )
+            )
 
         weniuser = User.objects.get(username="weniuser")
 
-        with self.assertRaisesMessage(FakeRpcError, f"Org: {self.WRONG_UUID} not found!"):
-            self.stub.Destroy(org_pb2.OrgDestroyRequest(uuid=self.WRONG_UUID, user_email=weniuser.email))
+        with self.assertRaisesMessage(
+            FakeRpcError, f"Org: {self.WRONG_UUID} not found!"
+        ):
+            self.stub.Destroy(
+                org_pb2.OrgDestroyRequest(
+                    uuid=self.WRONG_UUID, user_email=weniuser.email
+                )
+            )
 
-        self.stub.Destroy(org_pb2.OrgDestroyRequest(uuid=str(org.uuid), user_email=weniuser.email))
+        self.stub.Destroy(
+            org_pb2.OrgDestroyRequest(uuid=str(org.uuid), user_email=weniuser.email)
+        )
 
         destroyed_org = Org.objects.get(id=org.id)
 
@@ -190,10 +225,14 @@ class OrgServiceTest(RPCTransactionTestCase):
         org = Org.objects.first()
         user = User.objects.first()
 
-        permission_error_message = f"User: {user.id} has no permission to update Org: {org.uuid}"
+        permission_error_message = (
+            f"User: {user.id} has no permission to update Org: {org.uuid}"
+        )
 
         with self.assertRaisesMessage(FakeRpcError, permission_error_message):
-            self.stub.Update(org_pb2.OrgUpdateRequest(uuid=str(org.uuid), modified_by=user.email))
+            self.stub.Update(
+                org_pb2.OrgUpdateRequest(uuid=str(org.uuid), modified_by=user.email)
+            )
 
         user.is_superuser = True
         user.save()
@@ -213,7 +252,11 @@ class OrgServiceTest(RPCTransactionTestCase):
             "is_suspended": True,
         }
 
-        self.stub.Update(org_pb2.OrgUpdateRequest(uuid=str(org.uuid), modified_by=user.email, **update_fields))
+        self.stub.Update(
+            org_pb2.OrgUpdateRequest(
+                uuid=str(org.uuid), modified_by=user.email, **update_fields
+            )
+        )
 
         updated_org = Org.objects.get(pk=org.pk)
 

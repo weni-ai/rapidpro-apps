@@ -1,7 +1,7 @@
 import json
 import re
 
-from django.http import Http404, HttpResponseBadRequest
+from django.http import Http404
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -16,21 +16,28 @@ from temba.channels.models import Channel
 from temba.orgs.models import Org
 from temba.channels.types import TYPES
 
-from weni.grpc.channel.serializers import WeniWebChatProtoSerializer, ChannelProtoSerializer, ChannelWACSerializer
+from weni.grpc.channel.serializers import (
+    WeniWebChatProtoSerializer,
+    ChannelProtoSerializer,
+    ChannelWACSerializer,
+)
 from weni.protobuf.flows import channel_pb2
 
 
 # this class will be deprecated
-class WeniWebChatService(mixins.CreateModelMixin, mixins.DestroyModelMixin, generics.GenericService):
-
+class WeniWebChatService(
+    mixins.CreateModelMixin, mixins.DestroyModelMixin, generics.GenericService
+):
     channel_type = WeniWebChatType
     serializer_class = WeniWebChatProtoSerializer
 
 
 class ChannelService(
-    mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.DestroyModelMixin, generics.GenericService
+    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    generics.GenericService,
 ):
-
     queryset = Channel.objects
     lookup_field = "uuid"
     serializer_class = ChannelProtoSerializer
@@ -69,7 +76,9 @@ class ChannelService(
         try:
             data = json.loads(request.data)
         except json.decoder.JSONDecodeError:
-            self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Can't decode the `data` field")
+            self.context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT, "Can't decode the `data` field"
+            )
 
         user = get_object_or_404(User, email=request.user)
         org = get_object_or_404(Org, uuid=request.org)
@@ -86,15 +95,21 @@ class ChannelService(
 
         if "/users/login/?next=" in url:
             self.context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT, f"User: {user.email} do not have permission in Org: {org.uuid}"
+                grpc.StatusCode.INVALID_ARGUMENT,
+                f"User: {user.email} do not have permission in Org: {org.uuid}",
             )
 
-        regex = "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
+        regex = (
+            "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
+        )
         channe_uuid = re.findall(regex, url)[0]
         channel = Channel.objects.get(uuid=channe_uuid)
 
         return channel_pb2.Channel(
-            uuid=channe_uuid, name=channel.name, address=channel.address, config=json.dumps(channel.config)
+            uuid=channe_uuid,
+            name=channel.name,
+            address=channel.address,
+            config=json.dumps(channel.config),
         )
 
     def create_channel(self, user: User, org: Org, data: dict, channel_type) -> str:
@@ -108,7 +123,9 @@ class ChannelService(
 
         user._org = org
         request.user = user
-        response = MessageMiddleware(channel_type.claim_view.as_view(channel_type=channel_type))(request)
+        response = MessageMiddleware(
+            channel_type.claim_view.as_view(channel_type=channel_type)
+        )(request)
 
         if isinstance(response, HttpResponseRedirect):
             return response.url

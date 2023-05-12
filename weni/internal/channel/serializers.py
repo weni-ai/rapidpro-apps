@@ -13,7 +13,6 @@ from rest_framework import exceptions
 from weni.serializers import fields as weni_serializers
 
 from temba.channels.models import Channel
-from temba.orgs.models import Org
 from temba.utils import analytics
 from weni.internal.models import Project
 
@@ -44,7 +43,9 @@ class ChannelWACSerializer(serializers.Serializer):
 
     def validate_config(self, value):
         if "wa_verified_name" not in value:
-            raise serializers.ValidationError({"error": "You need to define a wa_verified_name in config"})
+            raise serializers.ValidationError(
+                {"error": "You need to define a wa_verified_name in config"}
+            )
         return value
 
     def create(self, validated_data):
@@ -52,7 +53,6 @@ class ChannelWACSerializer(serializers.Serializer):
         schemes = channel_type.schemes
 
         org = validated_data["org"].org
-        name = validated_data.get("name")
         phone_number_id = validated_data.get("phone_number_id")
         config = validated_data.get("config", {})
         user = validated_data.get("user")
@@ -70,7 +70,9 @@ class ChannelWACSerializer(serializers.Serializer):
             modified_by=user,
         )
 
-        analytics.track(user, "temba.channel_created", dict(channel_type=channel_type.code))
+        analytics.track(
+            user, "temba.channel_created", dict(channel_type=channel_type.code)
+        )
 
         return channel
 
@@ -92,21 +94,29 @@ class CreateChannelSerializer(serializers.Serializer):
         user = get_object_or_404(User, email=validated_data.get("user"))
         org = get_object_or_404(Project, project_uuid=validated_data.get("org"))
 
-        channel_type = Channel.get_type_from_code(validated_data.get("channeltype_code"))
+        channel_type = Channel.get_type_from_code(
+            validated_data.get("channeltype_code")
+        )
 
         if channel_type is None:
             channel_type_code = validated_data.get("channeltype_code")
-            raise exceptions.ValidationError(f"No channels found with '{channel_type_code}' code")
+            raise exceptions.ValidationError(
+                f"No channels found with '{channel_type_code}' code"
+            )
 
         url = self.create_channel(user, org.org, data, channel_type)
 
         if url is None:
-            raise exceptions.ValidationError(f"Url not created")
+            raise exceptions.ValidationError("Url not created")
 
         if "/users/login/?next=" in url:
-            raise exceptions.ValidationError(f"User: {user.email} do not have permission in Org: {org.org.uuid}")
+            raise exceptions.ValidationError(
+                f"User: {user.email} do not have permission in Org: {org.org.uuid}"
+            )
 
-        regex = "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
+        regex = (
+            "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
+        )
         channe_uuid = re.findall(regex, url)[0]
         channel = Channel.objects.get(uuid=channe_uuid)
 
@@ -123,7 +133,9 @@ class CreateChannelSerializer(serializers.Serializer):
 
         user._org = org
         request.user = user
-        response = MessageMiddleware(channel_type.claim_view.as_view(channel_type=channel_type))(request)
+        response = MessageMiddleware(
+            channel_type.claim_view.as_view(channel_type=channel_type)
+        )(request)
 
         if isinstance(response, HttpResponseRedirect):
             return response.url
@@ -134,8 +146,8 @@ class ChannelSerializer(serializers.ModelSerializer):
 
     class Meta:
         extra_kwargs = {
-            'org': {'read_only': True},
-            'is_active': {'read_only': True},
+            "org": {"read_only": True},
+            "is_active": {"read_only": True},
         }
         model = Channel
         fields = (
@@ -145,10 +157,14 @@ class ChannelSerializer(serializers.ModelSerializer):
             "address",
             "org",
             "is_active",
-        ) 
+        )
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret["org"] = instance.org.project.project_uuid if hasattr(instance.org, "project") else None
+        ret["org"] = (
+            instance.org.project.project_uuid
+            if hasattr(instance.org, "project")
+            else None
+        )
 
         return ret

@@ -12,11 +12,12 @@ class SerializerUtils(object):
         try:
             return model.objects.get(pk=pk)
         except model.DoesNotExist:
-            raise proto_serializers.ValidationError(f"{model.__name__}: {pk} not found!")
+            raise proto_serializers.ValidationError(
+                f"{model.__name__}: {pk} not found!"
+            )
 
 
 class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
-
     users = serializers.SerializerMethodField()
     timezone = serializers.CharField()
 
@@ -32,10 +33,21 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
         editors = list(org.editors.all().values(*values))
         surveyors = list(org.surveyors.all().values(*values))
 
-        administrators = list(map(lambda user: self.set_user_permission(user, "administrator"), administrators))
-        viewers = list(map(lambda user: self.set_user_permission(user, "viewer"), viewers))
-        editors = list(map(lambda user: self.set_user_permission(user, "editor"), editors))
-        surveyors = list(map(lambda user: self.set_user_permission(user, "surveyor"), surveyors))
+        administrators = list(
+            map(
+                lambda user: self.set_user_permission(user, "administrator"),
+                administrators,
+            )
+        )
+        viewers = list(
+            map(lambda user: self.set_user_permission(user, "viewer"), viewers)
+        )
+        editors = list(
+            map(lambda user: self.set_user_permission(user, "editor"), editors)
+        )
+        surveyors = list(
+            map(lambda user: self.set_user_permission(user, "surveyor"), surveyors)
+        )
 
         users = administrators + viewers + editors + surveyors
 
@@ -48,7 +60,6 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
 
 
 class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
-
     user_email = serializers.EmailField()
 
     class Meta:
@@ -58,9 +69,10 @@ class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
 
 
 class OrgUpdateProtoSerializer(proto_serializers.ModelProtoSerializer):
-
     uuid = serializers.CharField()
-    modified_by = weni_serializers.UserEmailRelatedField(required=False, write_only=True)
+    modified_by = weni_serializers.UserEmailRelatedField(
+        required=False, write_only=True
+    )
     timezone = serializers.CharField(required=False)
     name = serializers.CharField(required=False)
     plan_end = serializers.DateTimeField(required=False)

@@ -20,13 +20,11 @@ from .serializers import UserSuccessOrgSerializer, SuccessOrgSerializer
 
 
 class ListSuccessOrgAPIView(APIView):
-
     renderer_classes = [JSONRenderer]
     authentication_classes = []
     permission_classes = []
 
     def check_permissions(self, request):
-
         auth = get_authorization_header(request).split()
 
         if not auth:
@@ -47,7 +45,9 @@ class ListSuccessOrgAPIView(APIView):
         user_email = request.query_params.get("email")
 
         if user_email is None:
-            raise drf_exceptions.ValidationError("The query param: user_email is required!")
+            raise drf_exceptions.ValidationError(
+                "The query param: user_email is required!"
+            )
 
         return user_email
 
@@ -57,7 +57,9 @@ class ListSuccessOrgAPIView(APIView):
         try:
             user_sucess_orgs = get_user_success_orgs_by_email(user_email)
         except UserDoesNotExist:
-            raise drf_exceptions.ValidationError(f"User with email: {user_email} does not exist")
+            raise drf_exceptions.ValidationError(
+                f"User with email: {user_email} does not exist"
+            )
 
         serializer = UserSuccessOrgSerializer(user_sucess_orgs)
 
@@ -65,13 +67,11 @@ class ListSuccessOrgAPIView(APIView):
 
 
 class RetrieveSuccessOrgAPIView(APIView):
-
     authentication_classes = [InternalOIDCAuthentication]
     renderer_classes = [JSONRenderer]
     throttle_classes = []
 
     def get(self, request, uuid) -> Response:
-
         try:
             org = retrieve_success_org(uuid)
         except OrgDoesNotExist:

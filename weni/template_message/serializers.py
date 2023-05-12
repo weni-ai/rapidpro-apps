@@ -8,7 +8,6 @@ from temba.api.v2 import fields
 
 
 class TemplateMessageSerializers(WriteSerializer):
-
     channel = fields.ChannelField()
     content = serializers.CharField()
     name = serializers.CharField(write_only=True)
@@ -22,7 +21,9 @@ class TemplateMessageSerializers(WriteSerializer):
 
     def validate_channel(self, channel):
         if channel.channel_type not in [WhatsAppType.code, Dialog360Type.code]:
-            raise serializers.ValidationError("Template messages can be created only for WhatsApp channels")
+            raise serializers.ValidationError(
+                "Template messages can be created only for WhatsApp channels"
+            )
 
         return channel
 

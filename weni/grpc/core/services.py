@@ -14,7 +14,6 @@ class AbstractService:
         return self._get_object(Org, value, query_parameter)
 
     def _get_object(self, model, value, query_parameter: str):
-
         query = {query_parameter: value}
 
         try:
@@ -27,4 +26,6 @@ class AbstractService:
     def raises_not_fount(self, model_name, value):
         if not value:
             value = "None"
-        self.context.abort(grpc.StatusCode.NOT_FOUND, f"{model_name}: {value} not found!")
+        self.context.abort(
+            grpc.StatusCode.NOT_FOUND, f"{model_name}: {value} not found!"
+        )

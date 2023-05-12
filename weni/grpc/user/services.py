@@ -17,12 +17,17 @@ from temba.orgs.models import Org
 def get_user(user_email: str) -> User:
     # TODO: Remove this method, it is just a palliative solution
 
-    user, created = User.objects.get_or_create(email=user_email, defaults={"username": user_email})
+    user, created = User.objects.get_or_create(
+        email=user_email, defaults={"username": user_email}
+    )
     return user
 
 
 class UserPermissionService(
-    AbstractService, generics.GenericService, mixins.RetrieveModelMixin, mixins.UpdateModelMixin
+    AbstractService,
+    generics.GenericService,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
 ):
     def Retrieve(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
@@ -75,7 +80,9 @@ class UserPermissionService(
         permissions_keys = self.get_permissions(org).keys()
 
         if permission not in permissions_keys:
-            self.context.abort(grpc.StatusCode.NOT_FOUND, f"{permission} is not a valid permission!")
+            self.context.abort(
+                grpc.StatusCode.NOT_FOUND, f"{permission} is not a valid permission!"
+            )
 
     def get_permissions(self, org: Org) -> dict:
         return {
@@ -98,13 +105,13 @@ class UserPermissionService(
 
 
 class UserService(generics.GenericService, AbstractService, mixins.RetrieveModelMixin):
-
     serializer_class = UserProtoSerializer
 
     def Update(self, request, context):
-
         if request.language not in [language[0] for language in settings.LANGUAGES]:
-            self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Invalid argument: language")
+            self.context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT, "Invalid argument: language"
+            )
 
         user = get_user(request.email)
         user_settings = user.get_settings()
