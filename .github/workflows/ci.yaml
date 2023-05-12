@@ -11,10 +11,13 @@ jobs:
         pg-version: ['14']
     runs-on: ubuntu-latest
     steps:
+    # - name: Checkout code
+    #   uses: actions/checkout@main
+    #   with:
+    #     repository: weni-ai/flows
+
     - name: Checkout code
-      uses: actions/checkout@main
-      with:
-        repository: weni-ai/flows
+      uses: actions/checkout@v3
 
     - name: Install PostgreSQL and PostGIS
       uses: nyaruka/postgis-action@v2.1.0
@@ -43,7 +46,7 @@ jobs:
     - name: Run pre-test checks
       run: |
         # test that everything is well formatted, no missing migrations etc
-        poetry run ./code_check.py --debug
+        poetry run python ./code_check.py --debug
 
     - name: Upload coverage
       if: success()
