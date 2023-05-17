@@ -94,9 +94,11 @@ jobs:
           wget https://github.com/rapidpro/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
           tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
           ./mailroom -db=postgres://temba:temba@localhost:5432/temba?sslmode=disable -redis=redis://localhost:6379/10 -log-level=info > mailroom.log &
-          export RAPIDPRO_APPS_PATH="./rapidpro-apps"
-          cd $RAPIDPRO_APPS_PATH
-          ./install         
+          cd ./rapidpro-apps
+          poetry build
+          poetry_version=$(poetry version -s)
+          package_name="weni_rp_apps-${poetry_version}"
+          pip install ./dist/${package_name}.tar.gz
           
 
       - name: Run pre-test checks
