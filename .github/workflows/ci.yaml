@@ -1,0 +1,64 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    name: Test
+    env:
+      python-version: '3.9.x'
+      postgis-version: '3.1'
+    strategy:
+      matrix:
+        pg-version: ['14']
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Flows
+        uses: actions/checkout@main
+        with:
+          ref: main
+          repository: weni-ai/flows
+          token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
+          path: ./flows/ ## checkout flows to ./flows/ directory
+
+      - name: Checkout code Rapidpro-apps
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.GITHUB_SHA }} # checkout code to the commit that triggered the workflow
+          repository: weni-ai/rapidpro-apps
+          token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
+          path: ./rapidpro-apps/ ## checkout code to ./rapidpro-apps/ directory
+
+      - name: Install PostgreSQL and PostGIS
+        uses: nyaruka/postgis-action@v2.1.0
+        with:
+          postgresql version: ${{ matrix.pg-version }}
+          postgis version: ${{ env.postgis-version }}
+          postgresql db: temba
+          postgresql user: temba
+          postgresql password: temba
+
+      - name: Install Linux packages
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends libgdal-dev gettext
+
+      - name: Install Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ env.python-version }}
+
+      - name: Initialize environment
+        run: |
+          pip install --upgrade pip poetry
+          poetry install
+
+      - name: Run pre-test checks
+        run: |
+          # test that everything is well formatted, no missing migrations etc
+          poetry run python ./code_check.py --debug
+
+      - name: Upload coverage
+        if: success()
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
