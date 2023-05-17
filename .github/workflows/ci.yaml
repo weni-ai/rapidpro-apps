@@ -6,6 +6,12 @@ jobs:
     env:
       python-version: '3.9.x'
       postgis-version: '3.1'
+      redis-version: '3.2.4'
+      node-version: '10'
+      elastic-version: '7.10.1'
+      rpindexer-version: '7.0.0'
+      mailroom-version: '7.1.22'
+      DJANGO_SETTINGS_MODULE: temba.settings_ci
     strategy:
       matrix:
         pg-version: ['14']
@@ -28,7 +34,7 @@ jobs:
       - name: Checkout code Rapidpro-apps
         uses: actions/checkout@v3
         with:
-          ref: ${{ env.GITHUB_SHA }} # checkout code to the commit that triggered the workflow
+          ref: ${{ github.sha }} # checkout code to the commit that triggered the workflow
           repository: weni-ai/rapidpro-apps
           path: ./rapidpro-apps/ ## checkout code to ./rapidpro-apps/ directory
 
@@ -40,6 +46,7 @@ jobs:
           postgresql db: temba
           postgresql user: temba
           postgresql password: temba
+          postgresql arguments: '--jit=off'
 
       - name: Install Linux packages
         run: |
@@ -51,15 +58,65 @@ jobs:
         with:
           python-version: ${{ env.python-version }}
 
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-in-project: true
+
+      - name: Install Redis
+        uses: zhulik/redis-action@v1.0.0
+        with:
+          redis version: ${{ env.redis-version }}
+
+      - name: Install ElasticSearch
+        uses: nyaruka/elasticsearch-action@master
+        with:
+          elastic version: ${{ env.elastic-version }}
+
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.node-version }}
+
       - name: Initialize environment
         run: |
-          pip install --upgrade pip poetry
+          poetry add git+https://github.com/noumar/iso639.git
+          poetry add -n --lock $(cat ${{ github.workspace }}/docker/pip-requires.txt)
           poetry install
+          npm install
+          sudo npm install -g less
+          ln -s ${{ github.workspace }}/temba/settings.py.dev ${{ github.workspace }}/temba/settings.py
+          poetry run ./manage.py migrate
+          # fetch and extract rp-indexer
+          wget https://github.com/nyaruka/rp-indexer/releases/download/v${{ env.rpindexer-version }}/rp-indexer_${{ env.rpindexer-version }}_linux_amd64.tar.gz
+          tar -xvf rp-indexer_${{ env.rpindexer-version }}_linux_amd64.tar.gz rp-indexer
+          # fetch, extract and start mailroom
+          wget https://github.com/rapidpro/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
+          tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
+          ./mailroom -db=postgres://temba:temba@localhost:5432/temba?sslmode=disable -redis=redis://localhost:6379/10 -log-level=info > mailroom.log &
+          export RAPIDPRO_APPS_PATH="./rapidpro-apps"
+          cd $RAPIDPRO_APPS_PATH
+          ./install         
+          
 
       - name: Run pre-test checks
         run: |
           # test that everything is well formatted, no missing migrations etc
-          poetry run python ./code_check.py --debug
+          poetry run ./code_check.py --debug
+          # check we can collect and compress all static files
+          poetry run ./manage.py collectstatic --noinput --verbosity=0
+          poetry run ./manage.py compress --extension=".haml" --settings=temba.settings_compress
+
+      - name: Run tests
+        run: |
+          poetry run coverage run manage.py test ./rapidpro/--keepdb --noinput --verbosity=2
+          poetry run coverage report -i
+          poetry run coverage report -i --rcfile .coveragerc_todo
+          poetry run coverage xml
+
+      - name: Mailroom log
+        if: failure()
+        run: cat mailroom.log
 
       - name: Upload coverage
         if: success()
