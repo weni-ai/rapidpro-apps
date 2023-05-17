@@ -11,20 +11,25 @@ jobs:
         pg-version: ['14']
     runs-on: ubuntu-latest
     steps:
+      - name: Imprimir o commit SHA antes
+        run: |
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "ENV GITHUB_SHA: ${{ env.GITHUB_SHA }}"
+          echo "GITHUB_REF: ${GITHUB_REF}"
+          echo "COMMIT_SHA: ${{env.COMMIT_SHA}}"
+    
       - name: Checkout Flows
         uses: actions/checkout@main
         with:
           ref: main
           repository: weni-ai/flows
-          token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
-          path: ./flows/ ## checkout flows to ./flows/ directory
+          
 
       - name: Checkout code Rapidpro-apps
         uses: actions/checkout@v3
         with:
           ref: ${{ env.GITHUB_SHA }} # checkout code to the commit that triggered the workflow
           repository: weni-ai/rapidpro-apps
-          token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
           path: ./rapidpro-apps/ ## checkout code to ./rapidpro-apps/ directory
 
       - name: Install PostgreSQL and PostGIS
