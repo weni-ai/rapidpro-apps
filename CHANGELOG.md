@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.4.2] - 2023-05-18
+- Filter active orgs to return statistics
+
 ## [2.4.1] - 2023-05-17
 - Add external_api channel form in channel retrieve
 - Release ticketer instance before delete queue
