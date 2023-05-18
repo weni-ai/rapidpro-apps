@@ -14,7 +14,7 @@ class StatisticEndpoint(RetrieveModelMixin, InternalGenericViewSet):
     lookup_field = "uuid"
 
     def retrieve(self, request, uuid=None):
-        org = get_object_or_404(Org, uuid=uuid)
+        org = get_object_or_404(Org, uuid=uuid, is_active=True)
         group = ContactGroup.all_groups.get(org=org, group_type='A')
 
         response = {
