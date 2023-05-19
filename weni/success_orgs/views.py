@@ -45,9 +45,7 @@ class ListSuccessOrgAPIView(APIView):
         user_email = request.query_params.get("email")
 
         if user_email is None:
-            raise drf_exceptions.ValidationError(
-                "The query param: user_email is required!"
-            )
+            raise drf_exceptions.ValidationError("The query param: user_email is required!")
 
         return user_email
 
@@ -57,9 +55,7 @@ class ListSuccessOrgAPIView(APIView):
         try:
             user_sucess_orgs = get_user_success_orgs_by_email(user_email)
         except UserDoesNotExist:
-            raise drf_exceptions.ValidationError(
-                f"User with email: {user_email} does not exist"
-            )
+            raise drf_exceptions.ValidationError(f"User with email: {user_email} does not exist")
 
         serializer = UserSuccessOrgSerializer(user_sucess_orgs)
 

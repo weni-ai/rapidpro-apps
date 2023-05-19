@@ -39,9 +39,7 @@ class GlobalViewSet(
 
         headers = self.get_success_headers(serializer.data)
 
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, validated_data_list):
         self.get_serializer().create_many(validated_data_list)

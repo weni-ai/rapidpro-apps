@@ -27,25 +27,19 @@ class TembaRequestMixin(ABC):
 
     def request_get(self, **query_params):
         url = self.reverse(self.get_url_namespace(), query_params=query_params)
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
         # self.client.force_login(self.admin)
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_detail(self, uuid):
         url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_post(self, data):
         url = reverse(self.get_url_namespace())
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.post(
             url,
@@ -60,9 +54,7 @@ class TembaRequestMixin(ABC):
             query_params={"user_email": user_email},
             kwargs={"uuid": uuid},
         )
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
@@ -94,9 +86,7 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
         org = Org.objects.first()
         org_uuid = str(org.uuid)
 
-        classifier = Classifier.create(
-            org, self.admin, WitType.slug, "Booker", self.config, sync=False
-        )
+        classifier = Classifier.create(org, self.admin, WitType.slug, "Booker", self.config, sync=False)
 
         response = self.request_get(org_uuid=org_uuid, is_active=1).json()
         print(response)
@@ -110,9 +100,7 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(response.get("uuid"), str(classifier.uuid))
         self.assertEqual(response.get("access_token"), self.config["access_token"])
 
-        classifier = Classifier.create(
-            org, self.admin, LuisType.slug, "Test", self.config, sync=False
-        )
+        classifier = Classifier.create(org, self.admin, LuisType.slug, "Test", self.config, sync=False)
 
         response = self.request_get(org_uuid=org_uuid, is_active=1).json()
 
@@ -125,9 +113,7 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(response.get("uuid"), str(classifier.uuid))
         self.assertEqual(response.get("access_token"), self.config["access_token"])
 
-        response = self.request_get(
-            org_uuid=org_uuid, is_active=1, classifier_type=LuisType.slug
-        ).json()
+        response = self.request_get(org_uuid=org_uuid, is_active=1, classifier_type=LuisType.slug).json()
 
         self.assertEqual(len(response), 1)
 
@@ -138,13 +124,9 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(response.get("uuid"), str(classifier.uuid))
         self.assertEqual(response.get("access_token"), self.config["access_token"])
 
-        classifier = Classifier.create(
-            org, self.admin, LuisType.slug, "Test2", self.config, sync=False
-        )
+        classifier = Classifier.create(org, self.admin, LuisType.slug, "Test2", self.config, sync=False)
 
-        response = self.request_get(
-            org_uuid=org_uuid, is_active=1, classifier_type=LuisType.slug
-        ).json()
+        response = self.request_get(org_uuid=org_uuid, is_active=1, classifier_type=LuisType.slug).json()
 
         self.assertEqual(len(response), 2)
 
@@ -220,16 +202,12 @@ class ClassifierRetrieveTestCase(TembaTest, TembaRequestMixin):
         super().setUp()
 
     def test_retrieve_classifier_by_valid_uuid(self):
-        classifier = Classifier.create(
-            self.org, self.admin, LuisType.slug, "Test2", self.config, sync=False
-        )
+        classifier = Classifier.create(self.org, self.admin, LuisType.slug, "Test2", self.config, sync=False)
         response = self.request_detail(uuid=str(classifier.uuid)).json()
 
         self.assertEqual(classifier.classifier_type, response.get("classifier_type"))
         self.assertEqual(classifier.name, response.get("name"))
-        self.assertEqual(
-            classifier.config["access_token"], response.get("access_token")
-        )
+        self.assertEqual(classifier.config["access_token"], response.get("access_token"))
         self.assertEqual(classifier.is_active, response.get("is_active"))
 
     def get_url_namespace(self):
@@ -254,12 +232,8 @@ class ClassifierDestroyTestCase(TembaTest, TembaRequestMixin):
         super().setUp()
 
     def test_destroy_classifier_by_valid_uuid(self):
-        classifier = Classifier.create(
-            self.org, self.admin, LuisType.slug, "Test2", self.config, sync=False
-        )
-        Intent.objects.create(
-            classifier=classifier, name="Test Intent", external_id="FakeExternal"
-        )
+        classifier = Classifier.create(self.org, self.admin, LuisType.slug, "Test2", self.config, sync=False)
+        Intent.objects.create(classifier=classifier, name="Test Intent", external_id="FakeExternal")
 
         self.assertEqual(classifier.intents.count(), 1)
 

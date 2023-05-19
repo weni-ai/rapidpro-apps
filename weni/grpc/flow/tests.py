@@ -10,18 +10,12 @@ from weni.protobuf.flows import flow_pb2, flow_pb2_grpc
 
 class FlowServiceTest(RPCTransactionTestCase):
     def setUp(self):
-        User.objects.create_user(
-            username="testuser", password="123", email="test@weni.ai"
-        )
+        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
 
         user = User.objects.first()
 
-        temba = Org.objects.create(
-            name="Temba", timezone="America/Maceio", created_by=user, modified_by=user
-        )
-        weni = Org.objects.create(
-            name="Weni", timezone="America/Maceio", created_by=user, modified_by=user
-        )
+        temba = Org.objects.create(name="Temba", timezone="America/Maceio", created_by=user, modified_by=user)
+        weni = Org.objects.create(name="Weni", timezone="America/Maceio", created_by=user, modified_by=user)
 
         Flow.create(name="Test Temba", user=user, org=temba)
         Flow.create(name="Test flow name", user=user, org=weni)

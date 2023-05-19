@@ -17,9 +17,7 @@ class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
     org = weni_serializers.OrgUUIDRelatedField(write_only=True)
     user = weni_serializers.UserEmailRelatedField(write_only=True)
     name = serializers.CharField()
-    base_url = serializers.URLField(
-        validators=[URLValidator(), validate_external_url], write_only=True
-    )
+    base_url = serializers.URLField(validators=[URLValidator(), validate_external_url], write_only=True)
     uuid = serializers.UUIDField(read_only=True)
 
     def create(self, validated_data):
@@ -79,9 +77,7 @@ class ChannelWACSerializer(proto_serializers.ModelProtoSerializer):
 
     def validate_phone_number_id(self, value):
         if Channel.objects.filter(is_active=True, address=value).exists():
-            raise serializers.ValidationError(
-                "a Channel with that 'phone_number_id' alredy exists"
-            )
+            raise serializers.ValidationError("a Channel with that 'phone_number_id' alredy exists")
         return value
 
     def get_config(self, instance):
@@ -113,8 +109,6 @@ class ChannelWACSerializer(proto_serializers.ModelProtoSerializer):
             modified_by=user,
         )
 
-        analytics.track(
-            user, "temba.channel_created", dict(channel_type=channel_type.code)
-        )
+        analytics.track(user, "temba.channel_created", dict(channel_type=channel_type.code))
 
         return channel

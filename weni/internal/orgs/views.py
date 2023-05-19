@@ -84,11 +84,7 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
         modified_by = serializer.validated_data.get("modified_by", None)
         plan = serializer.validated_data.get("plan", None)
 
-        if (
-            modified_by
-            and not self._user_has_permisson(modified_by, project)
-            and not modified_by.is_superuser
-        ):
+        if modified_by and not self._user_has_permisson(modified_by, project) and not modified_by.is_superuser:
             raise exceptions.ValidationError(
                 f"User: {modified_by.pk} has no permission to update Org: {project.project_uuid}",
             )

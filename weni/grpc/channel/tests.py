@@ -37,9 +37,7 @@ class gRPCClient:
 
 class ReleaseChannelServiceTest(gRPCClient, RPCTransactionTestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="testuser", password="123", email="test@weni.ai"
-        )
+        self.user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
         self.org = Org.objects.create(
             name="Weni",
             timezone="Africa/Kigali",
@@ -58,9 +56,7 @@ class ReleaseChannelServiceTest(gRPCClient, RPCTransactionTestCase):
 
 class CreateWACServiceTest(gRPCClient, RPCTransactionTestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="fake@weni.ai", password="123", email="fake@weni.ai"
-        )
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.org = Org.objects.create(
             name="Weni",
             timezone="America/Sao_Paulo",
@@ -122,9 +118,7 @@ class CreateWACServiceTest(gRPCClient, RPCTransactionTestCase):
 
 class CreateChannelServiceTest(gRPCClient, RPCTransactionTestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="fake@weni.ai", password="123", email="fake@weni.ai"
-        )
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.org = Org.objects.create(
             name="Weni",
             timezone="America/Sao_Paulo",
@@ -156,9 +150,7 @@ class CreateChannelServiceTest(gRPCClient, RPCTransactionTestCase):
 
 class RetrieveChannelServiceTest(gRPCClient, RPCTransactionTestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="fake@weni.ai", password="123", email="fake@weni.ai"
-        )
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.org = Org.objects.create(
             name="Weni",
             timezone="America/Sao_Paulo",
@@ -187,9 +179,7 @@ class RetrieveChannelServiceTest(gRPCClient, RPCTransactionTestCase):
 
 class ListChannelServiceTest(gRPCClient, RPCTransactionTestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="fake@weni.ai", password="123", email="fake@weni.ai"
-        )
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.orgs = [
             Org.objects.create(
                 name=f"Org {org}",

@@ -24,9 +24,7 @@ class TicketerQueueViewTestMixin(object):
 
         super().setUp()
 
-        self.ticketer = Ticketer.create(
-            self.org, self.user, RocketChatType.slug, "Email (bob@acme.com)", {}
-        )
+        self.ticketer = Ticketer.create(self.org, self.user, RocketChatType.slug, "Email (bob@acme.com)", {})
         self.queue = TicketerQueue.objects.create(
             created_by=self.user,
             modified_by=self.user,

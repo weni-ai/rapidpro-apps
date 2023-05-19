@@ -25,25 +25,19 @@ class TembaRequestMixin(ABC):
     def request_get(self, **query_params):
         url = self.reverse(self.get_url_namespace(), query_params=query_params)
         url = url.replace("channel", "channel.json")
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_detail(self, uuid):
         url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_post(self, data):
         url = reverse(self.get_url_namespace())
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.post(
             url,
@@ -54,9 +48,7 @@ class TembaRequestMixin(ABC):
 
     def request_delete(self, uuid):
         url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
@@ -67,20 +59,14 @@ class TembaRequestMixin(ABC):
 
 class ListFlowTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
-        User.objects.create_user(
-            username="testuser", password="123", email="test@weni.ai"
-        )
+        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
 
         user = User.objects.first()
 
         # print(Org.objects.all())
 
-        temba = Org.objects.create(
-            name="Temba", timezone="America/Maceio", created_by=user, modified_by=user
-        )
-        weni = Org.objects.create(
-            name="Weni", timezone="America/Maceio", created_by=user, modified_by=user
-        )
+        temba = Org.objects.create(name="Temba", timezone="America/Maceio", created_by=user, modified_by=user)
+        weni = Org.objects.create(name="Weni", timezone="America/Maceio", created_by=user, modified_by=user)
 
         Flow.create(name="Test Temba", user=user, org=temba)
         Flow.create(name="Test flow name", user=user, org=weni)
@@ -92,14 +78,10 @@ class ListFlowTestCase(TembaTest, TembaRequestMixin):
         temba = Org.objects.filter(name="Temba").first()
         weni = Org.objects.get(name="Weni")
 
-        response = self.request_get(
-            flow_name="test", org_uuid="123"
-        )  # {'org_uuid': ['“123” is not a valid UUID.']}
+        response = self.request_get(flow_name="test", org_uuid="123")  # {'org_uuid': ['“123” is not a valid UUID.']}
         self.assertEquals(response.status_code, 400)
 
-        response = self.request_get(
-            flow_name="test", org_uuid=""
-        )  # {'org_id': ['This field may not be blank.']}
+        response = self.request_get(flow_name="test", org_uuid="")  # {'org_id': ['This field may not be blank.']}
         self.assertEquals(response.status_code, 400)
 
         response = self.request_get(flow_name="test", org_uuid=str(temba.uuid)).json()

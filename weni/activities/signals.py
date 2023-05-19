@@ -61,7 +61,5 @@ def trigger_recent_activity_signal(sender, instance: Trigger, created: bool, **k
 
 
 @receiver(post_save, sender=Campaign)
-def campaign_recent_activity_signal(
-    sender, instance: Campaign, created: bool, **kwargs
-):
+def campaign_recent_activity_signal(sender, instance: Campaign, created: bool, **kwargs):
     create_recent_activity(instance, created)

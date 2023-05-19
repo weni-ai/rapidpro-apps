@@ -12,12 +12,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         super().add_arguments(parser)
-        parser.add_argument(
-            "--server-key", dest="server_key", help="Server Key Certificate path"
-        )
-        parser.add_argument(
-            "--server-crt", dest="server_crt", help="Server CTR Certificate path"
-        )
+        parser.add_argument("--server-key", dest="server_key", help="Server Key Certificate path")
+        parser.add_argument("--server-crt", dest="server_crt", help="Server CTR Certificate path")
 
     def handle(self, *args, **options):
         self.server_key = options["server_key"]
@@ -37,9 +33,7 @@ class Command(BaseCommand):
             certificate_chain = open(self.server_crt, "rb").read()
 
             # create server credentials
-            server_credentials = grpc.ssl_server_credentials(
-                ((private_key, certificate_chain),)
-            )
+            server_credentials = grpc.ssl_server_credentials(((private_key, certificate_chain),))
 
             # add secure port using crendentials
             server.add_secure_port(self.address, server_credentials)

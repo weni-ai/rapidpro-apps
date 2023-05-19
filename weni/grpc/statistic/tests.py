@@ -14,28 +14,18 @@ from weni.protobuf.flows import statistic_pb2, statistic_pb2_grpc
 
 class OrgStatisticServiceTest(test_grpc.RPCTransactionTestCase):
     def setUp(self):
-        User.objects.create_user(
-            username="testuser", password="123", email="test@weni.ai"
-        )
+        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
         user = User.objects.get(username="testuser")
 
-        weni = Org.objects.create(
-            name="Weni", timezone="America/Maceio", created_by=user, modified_by=user
-        )
+        weni = Org.objects.create(name="Weni", timezone="America/Maceio", created_by=user, modified_by=user)
 
         Flow.create(name="Test Temba", user=user, org=weni, is_active=False)
         Flow.create(name="Test flow name", user=user, org=weni)
         Flow.create(name="Test Weni flow name", user=user, org=weni)
 
-        Classifier.objects.create(
-            org=weni, config="", created_by=user, modified_by=user, is_active=False
-        )
-        Classifier.objects.create(
-            org=weni, config="", created_by=user, modified_by=user
-        )
-        Classifier.objects.create(
-            org=weni, config="", created_by=user, modified_by=user
-        )
+        Classifier.objects.create(org=weni, config="", created_by=user, modified_by=user, is_active=False)
+        Classifier.objects.create(org=weni, config="", created_by=user, modified_by=user)
+        Classifier.objects.create(org=weni, config="", created_by=user, modified_by=user)
 
         super().setUp()
 

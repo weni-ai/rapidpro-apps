@@ -25,9 +25,7 @@ from weni.protobuf.flows import channel_pb2
 
 
 # this class will be deprecated
-class WeniWebChatService(
-    mixins.CreateModelMixin, mixins.DestroyModelMixin, generics.GenericService
-):
+class WeniWebChatService(mixins.CreateModelMixin, mixins.DestroyModelMixin, generics.GenericService):
     channel_type = WeniWebChatType
     serializer_class = WeniWebChatProtoSerializer
 
@@ -76,9 +74,7 @@ class ChannelService(
         try:
             data = json.loads(request.data)
         except json.decoder.JSONDecodeError:
-            self.context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT, "Can't decode the `data` field"
-            )
+            self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Can't decode the `data` field")
 
         user = get_object_or_404(User, email=request.user)
         org = get_object_or_404(Org, uuid=request.org)
@@ -99,9 +95,7 @@ class ChannelService(
                 f"User: {user.email} do not have permission in Org: {org.uuid}",
             )
 
-        regex = (
-            "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
-        )
+        regex = "[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}"
         channe_uuid = re.findall(regex, url)[0]
         channel = Channel.objects.get(uuid=channe_uuid)
 
@@ -123,9 +117,7 @@ class ChannelService(
 
         user._org = org
         request.user = user
-        response = MessageMiddleware(
-            channel_type.claim_view.as_view(channel_type=channel_type)
-        )(request)
+        response = MessageMiddleware(channel_type.claim_view.as_view(channel_type=channel_type))(request)
 
         if isinstance(response, HttpResponseRedirect):
             return response.url

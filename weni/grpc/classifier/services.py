@@ -20,11 +20,7 @@ class ClassifierService(
     def List(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
 
-        query = (
-            {"classifier_type": request.classifier_type}
-            if request.classifier_type
-            else {}
-        )
+        query = {"classifier_type": request.classifier_type} if request.classifier_type else {}
 
         classifiers = org.classifiers.filter(**query, is_active=request.is_active)
         serializer = ClassifierProtoSerializer(classifiers, many=True)

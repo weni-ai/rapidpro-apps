@@ -20,9 +20,7 @@ class TembaPostRequestMixin:
         url = reverse(self.url_namespace)
         token = APIToken.get_or_create(self.org, user if user else self.admin)
 
-        return self.client.post(
-            f"{url}.json", HTTP_AUTHORIZATION=f"Token {token.key}", data=data
-        )
+        return self.client.post(f"{url}.json", HTTP_AUTHORIZATION=f"Token {token.key}", data=data)
 
 
 class CreateTemplateMessageTest(TembaPostRequestMixin, TembaTest):

@@ -23,9 +23,7 @@ def get_test_classifier(test: grpc_test.RPCTransactionTestCase) -> Classifier:
 
     classifier = Classifier.objects.get(uuid=response.uuid)
 
-    Intent.objects.create(
-        classifier=classifier, name="Test Intent", external_id="FakeExternal"
-    )
+    Intent.objects.create(classifier=classifier, name="Test Intent", external_id="FakeExternal")
 
     return classifier
 
@@ -67,9 +65,7 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
         org = Org.objects.first()
         org_uuid = str(org.uuid)
 
-        classifier = Classifier.create(
-            org, self.admin, WitType.slug, "Booker", self.config, sync=False
-        )
+        classifier = Classifier.create(org, self.admin, WitType.slug, "Booker", self.config, sync=False)
 
         response = self.classifier_list_request(org_uuid=org_uuid, is_active=True)
         messages = [message for message in response]
@@ -83,9 +79,7 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
         self.assertEqual(message.uuid, str(classifier.uuid))
         self.assertEqual(message.access_token, self.config["access_token"])
 
-        classifier = Classifier.create(
-            org, self.admin, LuisType.slug, "Test", self.config, sync=False
-        )
+        classifier = Classifier.create(org, self.admin, LuisType.slug, "Test", self.config, sync=False)
 
         response = self.classifier_list_request(org_uuid=org_uuid, is_active=True)
         messages = [message for message in response]
@@ -99,9 +93,7 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
         self.assertEqual(message.uuid, str(classifier.uuid))
         self.assertEqual(message.access_token, self.config["access_token"])
 
-        response = self.classifier_list_request(
-            org_uuid=org_uuid, is_active=True, classifier_type=LuisType.slug
-        )
+        response = self.classifier_list_request(org_uuid=org_uuid, is_active=True, classifier_type=LuisType.slug)
         messages = [message for message in response]
 
         self.assertEqual(len(messages), 1)
@@ -113,13 +105,9 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
         self.assertEqual(message.uuid, str(classifier.uuid))
         self.assertEqual(message.access_token, self.config["access_token"])
 
-        classifier = Classifier.create(
-            org, self.admin, LuisType.slug, "Test2", self.config, sync=False
-        )
+        classifier = Classifier.create(org, self.admin, LuisType.slug, "Test2", self.config, sync=False)
 
-        response = self.classifier_list_request(
-            org_uuid=org_uuid, is_active=True, classifier_type=LuisType.slug
-        )
+        response = self.classifier_list_request(org_uuid=org_uuid, is_active=True, classifier_type=LuisType.slug)
         messages = [message for message in response]
 
         self.assertEqual(len(messages), 2)
@@ -172,9 +160,7 @@ class ClassifierServiceDestroyTest(BaseClassifierServiceTest):
         classifier = get_test_classifier(self)
         self.assertEqual(classifier.intents.count(), 1)
 
-        self.classifier_destroy_request(
-            uuid=str(classifier.uuid), user_email=self.admin.email
-        )
+        self.classifier_destroy_request(uuid=str(classifier.uuid), user_email=self.admin.email)
 
         classifier = Classifier.objects.get(uuid=classifier.uuid)
         self.assertEqual(classifier.intents.count(), 0)
@@ -184,6 +170,4 @@ class ClassifierServiceDestroyTest(BaseClassifierServiceTest):
         invalid_uuid = "wrong-wrong-wrong-wrong"
 
         with self.assertRaises(grpc_test.FakeRpcError):
-            self.classifier_destroy_request(
-                uuid=invalid_uuid, user_email=self.admin.email
-            )
+            self.classifier_destroy_request(uuid=invalid_uuid, user_email=self.admin.email)

@@ -26,6 +26,4 @@ class AbstractService:
     def raises_not_fount(self, model_name, value):
         if not value:
             value = "None"
-        self.context.abort(
-            grpc.StatusCode.NOT_FOUND, f"{model_name}: {value} not found!"
-        )
+        self.context.abort(grpc.StatusCode.NOT_FOUND, f"{model_name}: {value} not found!")

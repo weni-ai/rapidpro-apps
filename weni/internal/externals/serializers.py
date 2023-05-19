@@ -31,6 +31,4 @@ class ExternalServicesSerializer(serializers.Serializer):
 
         type_serializer = type_.serializer_class(data=type_fields)
         type_serializer.is_valid(raise_exception=True)
-        return type_serializer.save(
-            type=type_, created_by=user, modified_by=user, org=org
-        )
+        return type_serializer.save(type=type_, created_by=user, modified_by=user, org=org)

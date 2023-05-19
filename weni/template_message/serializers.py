@@ -21,9 +21,7 @@ class TemplateMessageSerializers(WriteSerializer):
 
     def validate_channel(self, channel):
         if channel.channel_type not in [WhatsAppType.code, Dialog360Type.code]:
-            raise serializers.ValidationError(
-                "Template messages can be created only for WhatsApp channels"
-            )
+            raise serializers.ValidationError("Template messages can be created only for WhatsApp channels")
 
         return channel
 

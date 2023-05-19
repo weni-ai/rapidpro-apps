@@ -12,9 +12,7 @@ class SerializerUtils(object):
         try:
             return model.objects.get(pk=pk)
         except model.DoesNotExist:
-            raise proto_serializers.ValidationError(
-                f"{model.__name__}: {pk} not found!"
-            )
+            raise proto_serializers.ValidationError(f"{model.__name__}: {pk} not found!")
 
 
 class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
@@ -39,15 +37,9 @@ class OrgProtoSerializer(proto_serializers.ModelProtoSerializer):
                 administrators,
             )
         )
-        viewers = list(
-            map(lambda user: self.set_user_permission(user, "viewer"), viewers)
-        )
-        editors = list(
-            map(lambda user: self.set_user_permission(user, "editor"), editors)
-        )
-        surveyors = list(
-            map(lambda user: self.set_user_permission(user, "surveyor"), surveyors)
-        )
+        viewers = list(map(lambda user: self.set_user_permission(user, "viewer"), viewers))
+        editors = list(map(lambda user: self.set_user_permission(user, "editor"), editors))
+        surveyors = list(map(lambda user: self.set_user_permission(user, "surveyor"), surveyors))
 
         users = administrators + viewers + editors + surveyors
 
@@ -70,9 +62,7 @@ class OrgCreateProtoSerializer(proto_serializers.ModelProtoSerializer):
 
 class OrgUpdateProtoSerializer(proto_serializers.ModelProtoSerializer):
     uuid = serializers.CharField()
-    modified_by = weni_serializers.UserEmailRelatedField(
-        required=False, write_only=True
-    )
+    modified_by = weni_serializers.UserEmailRelatedField(required=False, write_only=True)
     timezone = serializers.CharField(required=False)
     name = serializers.CharField(required=False)
     plan_end = serializers.DateTimeField(required=False)

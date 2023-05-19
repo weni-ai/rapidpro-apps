@@ -34,25 +34,19 @@ class TembaRequestMixin(ABC):
 
     def request_get(self, **query_params):
         url = self.reverse(self.get_url_namespace(), query_params=query_params)
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_detail(self, uuid):
         url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_post(self, data):
         url = reverse(self.get_url_namespace())
-        token = APIToken.get_or_create(
-            self.project, self.admin, Group.objects.get(name="Administrators")
-        )
+        token = APIToken.get_or_create(self.project, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.post(
             url,
@@ -62,12 +56,8 @@ class TembaRequestMixin(ABC):
         )
 
     def request_delete(self, uuid, **query_params):
-        url = self.reverse(
-            self.get_url_namespace(), kwargs={"uuid": uuid}, query_params=query_params
-        )
-        token = APIToken.get_or_create(
-            self.org, self.admin, Group.objects.get(name="Administrators")
-        )
+        url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid}, query_params=query_params)
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
@@ -78,9 +68,7 @@ class TembaRequestMixin(ABC):
 
 class CreateWACServiceTest(TembaTest, TembaRequestMixin):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="fake@weni.ai", password="123", email="fake@weni.ai"
-        )
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.project = Project.objects.create(
             name="Weni",
             timezone="America/Sao_Paulo",
@@ -149,9 +137,7 @@ class CreateWACServiceTest(TembaTest, TembaRequestMixin):
 
 class ReleaseChannelTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
-        self.org_user = User.objects.create_user(
-            username="testuser", password="123", email="test@weni.ai"
-        )
+        self.org_user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
         self.my_org = Project.objects.create(
             name="Weni",
             timezone="Africa/Kigali",
@@ -160,14 +146,10 @@ class ReleaseChannelTestCase(TembaTest, TembaRequestMixin):
         )
 
         super().setUp()
-        self.channel_obj = Channel.create(
-            self.my_org.org, self.org_user, None, "WWC", "Test WWC"
-        )
+        self.channel_obj = Channel.create(self.my_org.org, self.org_user, None, "WWC", "Test WWC")
 
     def test_released_channel_is_active_equal_to_false(self):
-        response = self.request_delete(
-            uuid=str(self.channel_obj.uuid), user=self.org_user.email
-        )
+        response = self.request_delete(uuid=str(self.channel_obj.uuid), user=self.org_user.email)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Channel.objects.get(id=self.channel_obj.id).is_active)
 
@@ -177,9 +159,7 @@ class ReleaseChannelTestCase(TembaTest, TembaRequestMixin):
 
 class CreateChannelTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
-        self.org_user = User.objects.create_user(
-            username="fake@weni.ai", password="123", email="fake@weni.ai"
-        )
+        self.org_user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.project = Project.objects.create(
             name="Weni",
             timezone="America/Sao_Paulo",
@@ -215,9 +195,7 @@ class CreateChannelTestCase(TembaTest, TembaRequestMixin):
 
 class RetrieveChannelTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="fake@weni.ai", password="123", email="fake@weni.ai"
-        )
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.project = Project.objects.create(
             name="Weni",
             timezone="America/Sao_Paulo",
@@ -256,9 +234,7 @@ class ListChannelTestCase(TembaTest, TembaRequestMixin):
             email="test@weni.ai",
             is_superuser=True,
         )
-        self.user = User.objects.create_user(
-            username="fake@weni.ai", password="123", email="fake@weni.ai"
-        )
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.projects = [
             Project.objects.create(
                 name=f"Org {project}",
@@ -311,12 +287,8 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
         super().setUp()
         content_type = ContentType.objects.get_for_model(User)
-        self.user = User.objects.create_user(
-            username="fake@weni.ai", password="123", email="fake@weni.ai"
-        )
-        self.admin.user_permissions.create(
-            codename="can_communicate_internally", content_type=content_type
-        )
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
+        self.admin.user_permissions.create(codename="can_communicate_internally", content_type=content_type)
 
     def test_list_all_channels(self):
         factory = APIRequestFactory()
@@ -382,11 +354,7 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
             if len(response.data.get("form")) > 0:
                 form = response.data.get("form")
                 for field in form:
-                    if (
-                        not field.get("name")
-                        or not field.get("type")
-                        or not field.get("help_text")
-                    ):
+                    if not field.get("name") or not field.get("type") or not field.get("help_text"):
                         form_ok = False
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

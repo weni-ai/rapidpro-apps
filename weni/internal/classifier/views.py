@@ -25,9 +25,7 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         }
 
         org_uuid = self.request.query_params.get("org_uuid")
-        is_active = is_active_possibilities.get(
-            self.request.query_params.get("is_active")
-        )
+        is_active = is_active_possibilities.get(self.request.query_params.get("is_active"))
         classifier_type = self.request.query_params.get("classifier_type")
 
         queryset = Classifier.objects.all()
@@ -56,9 +54,7 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         serializer = ClassifierSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return JsonResponse(
-                data=serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return JsonResponse(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         serializer.save()
 
@@ -70,9 +66,7 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         except Classifier.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        return JsonResponse(
-            data=self.get_serializer(classifier).data, status=status.HTTP_200_OK
-        )
+        return JsonResponse(data=self.get_serializer(classifier).data, status=status.HTTP_200_OK)
 
     def destroy(self, request, uuid=None):
         data = {
@@ -82,9 +76,7 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
 
         serializer = ClassifierDeleteSerializer(data=data)
         if not serializer.is_valid():
-            return JsonResponse(
-                data=serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return JsonResponse(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         classifier = Classifier.objects.get(uuid=uuid)
         classifier.release(serializer.validated_data.get("user"))

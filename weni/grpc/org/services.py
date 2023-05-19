@@ -30,9 +30,7 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
-        user, created = User.objects.get_or_create(
-            email=request.user_email, defaults={"username": request.user_email}
-        )
+        user, created = User.objects.get_or_create(email=request.user_email, defaults={"username": request.user_email})
 
         org = Org.objects.create(
             name=request.name,
@@ -74,11 +72,7 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         modified_by = data.get("modified_by", None)
         plan = data.get("plan", None)
 
-        if (
-            modified_by
-            and not self._user_has_permisson(modified_by, org)
-            and not modified_by.is_superuser
-        ):
+        if modified_by and not self._user_has_permisson(modified_by, org) and not modified_by.is_superuser:
             self.context.abort(
                 grpc.StatusCode.PERMISSION_DENIED,
                 f"User: {modified_by.pk} has no permission to update Org: {org.uuid}",
@@ -110,9 +104,7 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
         try:
             return User.objects.get(email=request.user_email)
         except User.DoesNotExist:
-            self.context.abort(
-                grpc.StatusCode.NOT_FOUND, f"User:{request.user_email} not found!"
-            )
+            self.context.abort(grpc.StatusCode.NOT_FOUND, f"User:{request.user_email} not found!")
 
     def _user_has_permisson(self, user: User, org: Org) -> bool:
         return (

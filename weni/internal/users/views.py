@@ -148,9 +148,7 @@ class UserEndpoint(InternalGenericViewSet, mixins.RetrieveModelMixin):
     def partial_update(self, request):
         instance = get_object_or_404(User, email=request.query_params.get("email"))
 
-        if request.data.get("language") not in [
-            language[0] for language in settings.LANGUAGES
-        ]:
+        if request.data.get("language") not in [language[0] for language in settings.LANGUAGES]:
             raise ValidationError("Invalid argument: language")
 
         user_settings = instance.get_settings()
