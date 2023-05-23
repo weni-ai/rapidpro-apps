@@ -5,17 +5,19 @@ from django_grpc_framework import generics, mixins
 from google.protobuf import empty_pb2
 
 from temba.orgs.models import Org
-from weni.grpc.org.serializers import OrgCreateProtoSerializer, OrgProtoSerializer, OrgUpdateProtoSerializer
+from weni.grpc.org.serializers import (
+    OrgCreateProtoSerializer,
+    OrgProtoSerializer,
+    OrgUpdateProtoSerializer,
+)
 from weni.grpc.core.services import AbstractService
 
 
 class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin):
-
     queryset = Org.objects
     lookup_field = "uuid"
 
     def List(self, request, context):
-
         user = self.get_user(request)
         orgs = self.get_orgs(user)
 
@@ -25,14 +27,17 @@ class OrgService(AbstractService, generics.GenericService, mixins.ListModelMixin
             yield msg
 
     def Create(self, request, context):
-
         serializer = OrgCreateProtoSerializer(message=request)
         serializer.is_valid(raise_exception=True)
 
         user, created = User.objects.get_or_create(email=request.user_email, defaults={"username": request.user_email})
 
         org = Org.objects.create(
-            name=request.name, timezone=request.timezone, created_by=user, modified_by=user, plan="infinity"
+            name=request.name,
+            timezone=request.timezone,
+            created_by=user,
+            modified_by=user,
+            plan="infinity",
         )
 
         org.administrators.add(user)

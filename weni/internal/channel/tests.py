@@ -1,29 +1,23 @@
 import json
 from abc import ABC, abstractmethod
-from uuid import uuid1
 from unittest.mock import patch
-from unittest import mock
-from unittest import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework import status
 
 from django.contrib.auth.models import Group
 from django.urls import reverse
-from django.utils import timezone as tz
 from django.utils.http import urlencode
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 
 from temba.api.models import APIToken
-from temba.flows.models import Flow
-from temba.orgs.models import Org, OrgRole
-from temba.contacts.models import Contact
+from temba.orgs.models import OrgRole
 from temba.channels.models import Channel
 from temba.channels.types import TYPES
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 from weni.internal.models import Project
 
-from .views import AvailableChannels, ChannelEndpoint, extract_form_info, extract_type_info
+from .views import AvailableChannels, ChannelEndpoint
 
 view_class = ChannelEndpoint
 view_class.permission_classes = []
@@ -55,7 +49,10 @@ class TembaRequestMixin(ABC):
         token = APIToken.get_or_create(self.project, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.post(
-            url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+            url,
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
         )
 
     def request_delete(self, uuid, **query_params):
@@ -73,7 +70,10 @@ class CreateWACServiceTest(TembaTest, TembaRequestMixin):
     def setUp(self):
         self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.project = Project.objects.create(
-            name="Weni", timezone="America/Sao_Paulo", created_by=self.user, modified_by=self.user
+            name="Weni",
+            timezone="America/Sao_Paulo",
+            created_by=self.user,
+            modified_by=self.user,
         )
         self.project.add_user(self.user, OrgRole.ADMINISTRATOR)
 
@@ -127,7 +127,8 @@ class CreateWACServiceTest(TembaTest, TembaRequestMixin):
 
         self.assertEqual(channel.status_code, 400)
         self.assertEqual(
-            channel.json().get("phone_number_id").get("error_type"), "WhatsApp.config.error.channel_already_exists"
+            channel.json().get("phone_number_id").get("error_type"),
+            "WhatsApp.config.error.channel_already_exists",
         )
 
     def get_url_namespace(self):
@@ -138,7 +139,10 @@ class ReleaseChannelTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
         self.org_user = User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
         self.my_org = Project.objects.create(
-            name="Weni", timezone="Africa/Kigali", created_by=self.org_user, modified_by=self.org_user
+            name="Weni",
+            timezone="Africa/Kigali",
+            created_by=self.org_user,
+            modified_by=self.org_user,
         )
 
         super().setUp()
@@ -157,7 +161,10 @@ class CreateChannelTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
         self.org_user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.project = Project.objects.create(
-            name="Weni", timezone="America/Sao_Paulo", created_by=self.org_user, modified_by=self.org_user
+            name="Weni",
+            timezone="America/Sao_Paulo",
+            created_by=self.org_user,
+            modified_by=self.org_user,
         )
         self.project.add_user(self.org_user, OrgRole.ADMINISTRATOR)
 
@@ -190,13 +197,22 @@ class RetrieveChannelTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
         self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.project = Project.objects.create(
-            name="Weni", timezone="America/Sao_Paulo", created_by=self.user, modified_by=self.user
+            name="Weni",
+            timezone="America/Sao_Paulo",
+            created_by=self.user,
+            modified_by=self.user,
         )
 
         super().setUp()
 
         self.channel_obj = Channel.create(
-            self.project.org, self.user, None, "WWC", "Test WWC", "test", {"fake_key": "fake_value"}
+            self.project.org,
+            self.user,
+            None,
+            "WWC",
+            "Test WWC",
+            "test",
+            {"fake_key": "fake_value"},
         )
 
     def test_channel_retrieve_returned_fields(self):
@@ -213,12 +229,18 @@ class RetrieveChannelTestCase(TembaTest, TembaRequestMixin):
 class ListChannelTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="testuseradmin", password="123", email="test@weni.ai", is_superuser=True
+            username="testuseradmin",
+            password="123",
+            email="test@weni.ai",
+            is_superuser=True,
         )
         self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
         self.projects = [
             Project.objects.create(
-                name=f"Org {project}", timezone="America/Sao_Paulo", created_by=self.user, modified_by=self.user
+                name=f"Org {project}",
+                timezone="America/Sao_Paulo",
+                created_by=self.user,
+                modified_by=self.user,
             )
             for project in range(2)
         ]
@@ -400,7 +422,7 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
         }
         result = extract_form_info(to_object(**test_form),'')
         self.assertEqual(result, None)
-        
+
     def test_form_without_type_value(self):
         """ check response without #widget attribute """
         test_form = {
@@ -418,9 +440,9 @@ class ListChannelAvailableTestCase(TembaTest, TembaRequestMixin):
             result = extract_type_info(type_in)
             if not (result.get('code')) or not (result.get('name')):
                 have_code_name = False
-        
+
         self.assertEqual(have_code_name, True)
-    
+
     def test_all_types_response_contains_dict(self):
         """ make sure that all results have been processed and converted to dictionaries """
         for value in self.types:

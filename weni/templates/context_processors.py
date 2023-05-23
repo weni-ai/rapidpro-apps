@@ -2,7 +2,6 @@ from django.conf import settings
 
 
 def enable_weni_layout(request):
-
     host = request.get_host().split(":")[0]
 
     return {"use_weni_layout": host.endswith(settings.WENI_DOMAINS["weni"])}
@@ -18,6 +17,4 @@ def weni_announcement(request):
 
 
 def hotjar(request):
-    return {
-        "hotjar_id": settings.HOTJAR_ID
-    }
+    return {"hotjar_id": settings.HOTJAR_ID}

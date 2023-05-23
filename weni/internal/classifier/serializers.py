@@ -6,7 +6,6 @@ from weni.grpc.core import serializers as weni_serializers
 
 
 class ClassifierSerializer(serializers.Serializer):
-
     uuid = serializers.UUIDField(read_only=True)
     is_active = serializers.BooleanField(read_only=True)
     classifier_type = serializers.CharField(required=True)
@@ -30,7 +29,15 @@ class ClassifierSerializer(serializers.Serializer):
     class Meta:
         model = Classifier
         proto_class = classifier_pb2.Classifier
-        fields = ["uuid", "is_active", "classifier_type", "name", "access_token", "org", "user"]
+        fields = [
+            "uuid",
+            "is_active",
+            "classifier_type",
+            "name",
+            "access_token",
+            "org",
+            "user",
+        ]
 
 
 class ClassifierDeleteSerializer(serializers.Serializer):

@@ -6,16 +6,14 @@ from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from django.urls import reverse
 from django.utils.http import urlencode
-from django.contrib.auth.models import User
 
 from temba.api.models import APIToken
 
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 from temba.orgs.models import Org
 from temba.classifiers.models import Classifier, Intent
 from temba.classifiers.types.wit import WitType
 from temba.classifiers.types.luis import LuisType
-from weni.protobuf.flows import classifier_pb2, classifier_pb2_grpc
 
 
 class TembaRequestMixin(ABC):
@@ -44,11 +42,18 @@ class TembaRequestMixin(ABC):
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.post(
-            url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+            url,
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
         )
 
     def request_delete(self, uuid, user_email):
-        url = self.reverse(self.get_url_namespace(), query_params={"user_email": user_email}, kwargs={"uuid": uuid})
+        url = self.reverse(
+            self.get_url_namespace(),
+            query_params={"user_email": user_email},
+            kwargs={"uuid": uuid},
+        )
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
@@ -69,7 +74,10 @@ class ClassifierTestCase(TembaTest, TembaRequestMixin):
         print(self.admin.is_authenticated)
 
         self.org = Org.objects.create(
-            name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin
+            name="Weni",
+            timezone="America/Maceio",
+            created_by=self.admin,
+            modified_by=self.admin,
         )
 
         super().setUp()
@@ -139,7 +147,10 @@ class ClassifierCreateTestCase(TembaTest, TembaRequestMixin):
         )
 
         self.org = Org.objects.create(
-            name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin
+            name="Weni",
+            timezone="America/Maceio",
+            created_by=self.admin,
+            modified_by=self.admin,
         )
 
         super().setUp()
@@ -182,7 +193,10 @@ class ClassifierRetrieveTestCase(TembaTest, TembaRequestMixin):
         )
 
         self.org = Org.objects.create(
-            name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin
+            name="Weni",
+            timezone="America/Maceio",
+            created_by=self.admin,
+            modified_by=self.admin,
         )
 
         super().setUp()
@@ -209,7 +223,10 @@ class ClassifierDestroyTestCase(TembaTest, TembaRequestMixin):
         )
 
         self.org = Org.objects.create(
-            name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin
+            name="Weni",
+            timezone="America/Maceio",
+            created_by=self.admin,
+            modified_by=self.admin,
         )
 
         super().setUp()
@@ -220,7 +237,7 @@ class ClassifierDestroyTestCase(TembaTest, TembaRequestMixin):
 
         self.assertEqual(classifier.intents.count(), 1)
 
-        t = self.request_delete(uuid=str(classifier.uuid), user_email=self.admin.email)
+        self.request_delete(uuid=str(classifier.uuid), user_email=self.admin.email)
 
         classifier = Classifier.objects.get(uuid=classifier.uuid)
         self.assertEqual(classifier.intents.count(), 0)

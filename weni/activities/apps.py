@@ -6,4 +6,4 @@ class ActivitiesConfig(AppConfig):
     name = "weni.activities"
 
     def ready(self) -> None:
-        from weni.activities import signals
+        from weni.activities import signals  # noqa: F401

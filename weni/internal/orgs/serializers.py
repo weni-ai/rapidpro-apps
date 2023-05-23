@@ -29,7 +29,7 @@ class TemplateOrgSerializer(serializers.ModelSerializer):
         attrs.pop("user_email")
 
         return super().validate(attrs)
-    
+
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         ret["uuid"] = instance.project_uuid
@@ -66,7 +66,12 @@ class OrgSerializer(serializers.ModelSerializer):
         editors = list(project.editors.all().values(*values))
         surveyors = list(project.surveyors.all().values(*values))
 
-        administrators = list(map(lambda user: self.set_user_permission(user, "administrator"), administrators))
+        administrators = list(
+            map(
+                lambda user: self.set_user_permission(user, "administrator"),
+                administrators,
+            )
+        )
         viewers = list(map(lambda user: self.set_user_permission(user, "viewer"), viewers))
         editors = list(map(lambda user: self.set_user_permission(user, "editor"), editors))
         surveyors = list(map(lambda user: self.set_user_permission(user, "surveyor"), surveyors))
@@ -77,7 +82,15 @@ class OrgSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ["id", "name", "uuid", "timezone", "date_format", "users", "flow_organization"]
+        fields = [
+            "id",
+            "name",
+            "uuid",
+            "timezone",
+            "date_format",
+            "users",
+            "flow_organization",
+        ]
 
 
 class OrgCreateSerializer(serializers.ModelSerializer):

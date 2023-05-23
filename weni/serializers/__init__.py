@@ -1,1 +1,0 @@
-from weni.serializers.fields import UserEmailRelatedField, OrgUUIDRelatedField

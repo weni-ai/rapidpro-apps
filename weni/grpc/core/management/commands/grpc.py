@@ -1,8 +1,9 @@
 from concurrent import futures
 
 import grpc
-from django_grpc_framework.management.commands.grpcrunserver import \
-    Command as BaseCommand
+from django_grpc_framework.management.commands.grpcrunserver import (
+    Command as BaseCommand,
+)
 from django_grpc_framework.settings import grpc_settings
 
 
@@ -21,7 +22,8 @@ class Command(BaseCommand):
 
     def _serve(self):
         server = grpc.server(
-            futures.ThreadPoolExecutor(max_workers=self.max_workers), interceptors=grpc_settings.SERVER_INTERCEPTORS,
+            futures.ThreadPoolExecutor(max_workers=self.max_workers),
+            interceptors=grpc_settings.SERVER_INTERCEPTORS,
         )
         grpc_settings.ROOT_HANDLERS_HOOK(server)
 
