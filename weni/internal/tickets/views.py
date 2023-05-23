@@ -62,4 +62,4 @@ class TicketerQueueViewSet(
         return super().update(request, *args, **kwargs)
 
     def perform_destroy(self, instance):
-        instance.release(self.request.user)
+        instance.release()
