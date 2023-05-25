@@ -9,7 +9,7 @@ def update_urlpatterns(app_urls, urls_module="temba.api.v2.urls"):
         added = []
         for url in app_urls:
             if isinstance(url, URLPattern):
-                if hasattr(url.callback, 'view_class'):
+                if hasattr(url.callback, "view_class"):
                     view = url.callback.view_class
                 else:
                     view = url.callback

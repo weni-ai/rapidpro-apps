@@ -40,7 +40,10 @@ class TembaRequestMixin(ABC):
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.post(
-            url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+            url,
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
         )
 
     def request_delete(self, uuid):
@@ -56,7 +59,6 @@ class TembaRequestMixin(ABC):
 
 class ListFlowTestCase(TembaTest, TembaRequestMixin):
     def setUp(self):
-
         User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
 
         user = User.objects.first()
@@ -73,7 +75,6 @@ class ListFlowTestCase(TembaTest, TembaRequestMixin):
         super().setUp()
 
     def test_list_flow(self):
-
         temba = Org.objects.filter(name="Temba").first()
         weni = Org.objects.get(name="Weni")
 

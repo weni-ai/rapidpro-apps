@@ -47,17 +47,13 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         except Channel.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        return JsonResponse(
-            data=self.get_serializer(channel).data, status=status.HTTP_200_OK
-        )
+        return JsonResponse(data=self.get_serializer(channel).data, status=status.HTTP_200_OK)
 
     def create(self, request):
         serializer = CreateChannelSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return JsonResponse(
-                data=serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return JsonResponse(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         serializer.save()
 
@@ -76,9 +72,7 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         serializer = ChannelWACSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return JsonResponse(
-                data=serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return JsonResponse(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         serializer.save()
 
@@ -159,11 +153,7 @@ def extract_type_info(_class):
 
     for i in _class.__class__.__dict__.items():
         if not i[0].startswith("_"):
-            if (
-                not inspect.isclass(i[1])
-                and str(type(i[1])) not in (type_exclude)
-                and i[0] not in items_exclude
-            ):
+            if not inspect.isclass(i[1]) and str(type(i[1])) not in (type_exclude) and i[0] not in items_exclude:
                 if str(type(i[1])) == "<enum 'Category'>":
                     channel[i[0]] = {
                         "name": i[1].name if i[1].name else "",
@@ -183,9 +173,7 @@ def extract_type_info(_class):
                                     url_dict["url"] = str(url.get("url"))
 
                                 if i[1][0].get("description"):
-                                    url_dict["description"] = str(
-                                        url.get("description")
-                                    )
+                                    url_dict["description"] = str(url.get("description"))
 
                             urls_list.append(url_dict)
                             channel[i[0]] = urls_list
@@ -204,11 +192,7 @@ def extract_type_info(_class):
                 else:
                     channel[i[0]] = i[1]
 
-    if (
-        (not (channel.get("code")))
-        or (not (len(channel)) > 0)
-        or (not (channel.get("name")))
-    ):
+    if (not (channel.get("code"))) or (not (len(channel)) > 0) or (not (channel.get("name"))):
         return None
 
     channel["num_fields"] = len(channel)
@@ -221,8 +205,8 @@ def extract_form_info(_form, name_form):
 
     try:
         detail["type"] = str(_form.widget.input_type)
-    except AttributeError:
-        detail["type"] = str(_form.widget.__class__.__name__).lower()
+    except Exception:
+        detail["type"] = None
 
     if _form.help_text:
         detail["help_text"] = str(_form.help_text)

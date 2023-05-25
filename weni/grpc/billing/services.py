@@ -12,8 +12,8 @@ from weni.grpc.billing.serializers import (
 
 from google.protobuf import empty_pb2
 
-class BillingService(generics.GenericService):
 
+class BillingService(generics.GenericService):
     serializer_class = BillingRequestSerializer
 
     def Total(self, request, context):
@@ -55,4 +55,3 @@ class BillingService(generics.GenericService):
 
         msg_serializer = MsgDetailSerializer(msg)
         return msg_serializer.message
-        

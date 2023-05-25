@@ -58,7 +58,13 @@ def get_success_orgs() -> "QuerySet[Org]":
         .annotate(**SUCCESS_ORG_QUERIES)
         .annotate(
             is_success_project=Case(
-                When(has_ia=True, has_flows=True, has_channel=True, has_msg=True, then=Value(True)),
+                When(
+                    has_ia=True,
+                    has_flows=True,
+                    has_channel=True,
+                    has_msg=True,
+                    then=Value(True),
+                ),
                 output_field=BooleanField(),
                 default=Value(False),
             )
@@ -77,7 +83,6 @@ def get_user_success_orgs_by_email(email: str) -> dict:
 
 
 def retrieve_success_org(org_uuid: str) -> Org:
-
     try:
         return get_success_orgs().get(uuid=org_uuid)
     except Org.DoesNotExist as error:

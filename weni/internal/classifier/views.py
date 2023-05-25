@@ -1,18 +1,10 @@
 from rest_framework import viewsets
-from rest_framework import generics
-from rest_framework import mixins
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from django.contrib.auth.models import User
-from django.db.models import Count, Prefetch, Q
-from django.urls import reverse
 from django.http import JsonResponse
 
-from temba.api.v2.views_base import BaseAPIView, ListAPIMixin
-from temba.contacts.models import Contact, ContactGroup
 from temba.classifiers.models import Classifier
 from temba.orgs.models import Org
 
@@ -21,12 +13,10 @@ from weni.internal.views import InternalGenericViewSet
 
 
 class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
-
     serializer_class = ClassifierSerializer
     lookup_field = "uuid"
 
     def get_queryset(self):
-
         is_active_possibilities = {
             "True": True,
             "False": False,
@@ -71,7 +61,6 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         return JsonResponse(data=serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, uuid=None):
-
         try:
             classifier = Classifier.objects.get(uuid=uuid)
         except Classifier.DoesNotExist:
@@ -80,7 +69,6 @@ class ClassifierEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         return JsonResponse(data=self.get_serializer(classifier).data, status=status.HTTP_200_OK)
 
     def destroy(self, request, uuid=None):
-
         data = {
             "uuid": uuid,
             "user": request.query_params.get("user_email"),

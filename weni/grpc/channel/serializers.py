@@ -14,7 +14,6 @@ from weni.grpc.channel import fields
 
 
 class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
-
     org = weni_serializers.OrgUUIDRelatedField(write_only=True)
     user = weni_serializers.UserEmailRelatedField(write_only=True)
     name = serializers.CharField()
@@ -22,7 +21,6 @@ class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
     uuid = serializers.UUIDField(read_only=True)
 
     def create(self, validated_data):
-        user = validated_data["user"]
         name = validated_data["name"]
 
         config = {CONFIG_BASE_URL: validated_data["base_url"]}
@@ -46,7 +44,6 @@ class WeniWebChatProtoSerializer(proto_serializers.ProtoSerializer):
 
 
 class ChannelProtoSerializer(proto_serializers.ModelProtoSerializer):
-
     user = weni_serializers.UserEmailRelatedField(write_only=True, required=True)
     config = serializers.SerializerMethodField()
     org = serializers.SerializerMethodField()
