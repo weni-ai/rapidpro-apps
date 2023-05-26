@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [2.4.2] - 2023-05-18
+- Filter active orgs to return statistics
+
+## [2.4.1] - 2023-05-17
+- Add external_api channel form in channel retrieve
+- Release ticketer instance before delete queue
+- Optimize search filter for active contacts
+
 ## [2.4.0] - 2023-05-03
 - Add Project model to internal app
 - Adjust Channel app to new project model
