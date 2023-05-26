@@ -12,7 +12,9 @@ class FlowService(generics.GenericService, AbstractService):
             name__icontains=request.flow_name,
             org=org.id,
             is_active=True,
-        ).exclude(is_archived=True)[:20]
+        ).exclude(
+            is_archived=True
+        )[:20]
 
         serializer = FlowProtoSerializer(queryset, many=True)
         for message in serializer.message:

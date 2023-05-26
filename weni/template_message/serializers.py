@@ -8,7 +8,6 @@ from temba.api.v2 import fields
 
 
 class TemplateMessageSerializers(WriteSerializer):
-
     channel = fields.ChannelField()
     content = serializers.CharField()
     name = serializers.CharField(write_only=True)

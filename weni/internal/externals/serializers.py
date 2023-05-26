@@ -6,7 +6,6 @@ from temba.externals.models import ExternalService
 
 
 class ExternalServicesSerializer(serializers.Serializer):
-
     uuid = serializers.UUIDField(read_only=True)
     type_code = serializers.CharField(write_only=True)
     type_fields = serializers.JSONField(write_only=True)

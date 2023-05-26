@@ -1,5 +1,3 @@
-from weni.internal.clients.connect import ConnectInternalClient
+from weni.internal.clients.connect import ConnectInternalClient  # noqa: F401
 
-__all__ = (
-    "ConnectInternalClient"
-)
+__all__ = "ConnectInternalClient"

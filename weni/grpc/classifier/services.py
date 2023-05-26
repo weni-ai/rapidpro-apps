@@ -13,7 +13,6 @@ class ClassifierService(
     generics.GenericService,
     AbstractService,
 ):
-
     serializer_class = ClassifierProtoSerializer
     queryset = Classifier.objects.all()
     lookup_field = "uuid"
