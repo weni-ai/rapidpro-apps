@@ -8,6 +8,7 @@ class SuccessOrgSerializer(serializers.Serializer):
     has_flows = serializers.BooleanField()
     has_channel = serializers.BooleanField()
     has_msg = serializers.BooleanField()
+    has_channel_production = serializers.BooleanField()
     is_success_project = serializers.BooleanField()
 
 

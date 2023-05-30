@@ -24,6 +24,9 @@ SUCCESS_ORG_QUERIES = dict(
     has_flows=Exists(Flow.objects.filter(org=OuterRef("pk"), is_active=True)),
     has_channel=Exists(Channel.objects.filter(org=OuterRef("pk"), is_active=True)),
     has_msg=Exists(Msg.objects.filter(org=OuterRef("pk"))),
+    has_channel_production=Exists(
+        Channel.objects.filter(org=OuterRef("pk"), is_active=True).exclude(name="WhatsApp: +558231420933")
+    ),
 )
 
 
@@ -63,6 +66,7 @@ def get_success_orgs() -> "QuerySet[Org]":
                     has_flows=True,
                     has_channel=True,
                     has_msg=True,
+                    has_channel_production=True,
                     then=Value(True),
                 ),
                 output_field=BooleanField(),
