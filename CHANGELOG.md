@@ -3,6 +3,7 @@
 ## [2.4.3] - 2023-05-30
 - Removes the ticketer object from the queue.release() method
 - Run black and flake8 in rp-apps
+- Add user to release ticketer
 
 ## [2.4.2] - 2023-05-18
 - Filter active orgs to return statistics
