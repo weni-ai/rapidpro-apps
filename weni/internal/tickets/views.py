@@ -21,7 +21,7 @@ class TicketerViewSet(
     lookup_field = "uuid"
 
     def perform_destroy(self, instance):
-        instance.release()
+        instance.release(self.request.user)
 
 
 class TicketerQueueViewSet(
