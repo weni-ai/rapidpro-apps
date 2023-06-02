@@ -10,7 +10,6 @@ from temba.orgs.models import Org
 
 
 class UserServiceTest(RPCTransactionTestCase):
-
     WRONG_EMAIL = "wrong@wrong.wrong"
     WRONG_UUID = "wrong-wrong-wrong-wrong-wrong."
 
@@ -214,7 +213,6 @@ class UserServiceTest(RPCTransactionTestCase):
         return len(false_valeues) == len(permissions.items()) - 1 and permission not in false_valeues
 
     def validate_response_user(self, response, user: User):
-
         self.assertEquals(response.id, user.id)
         self.assertEquals(response.username, user.username)
         self.assertEquals(response.email, user.email)

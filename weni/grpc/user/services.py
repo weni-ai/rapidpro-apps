@@ -22,7 +22,10 @@ def get_user(user_email: str) -> User:
 
 
 class UserPermissionService(
-    AbstractService, generics.GenericService, mixins.RetrieveModelMixin, mixins.UpdateModelMixin
+    AbstractService,
+    generics.GenericService,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
 ):
     def Retrieve(self, request, context):
         org = self.get_org_object(request.org_uuid, "uuid")
@@ -98,13 +101,11 @@ class UserPermissionService(
 
 
 class UserService(generics.GenericService, AbstractService, mixins.RetrieveModelMixin):
-
     serializer_class = UserProtoSerializer
 
     def Update(self, request, context):
-
         if request.language not in [language[0] for language in settings.LANGUAGES]:
-            self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Invalid argument: language")
+            self.context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Invalid argument: language")
 
         user = get_user(request.email)
         user_settings = user.get_settings()

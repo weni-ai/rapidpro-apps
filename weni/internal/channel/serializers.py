@@ -13,7 +13,6 @@ from rest_framework import exceptions
 from weni.serializers import fields as weni_serializers
 
 from temba.channels.models import Channel
-from temba.orgs.models import Org
 from temba.utils import analytics
 from weni.internal.models import Project
 
@@ -52,7 +51,6 @@ class ChannelWACSerializer(serializers.Serializer):
         schemes = channel_type.schemes
 
         org = validated_data["org"].org
-        name = validated_data.get("name")
         phone_number_id = validated_data.get("phone_number_id")
         config = validated_data.get("config", {})
         user = validated_data.get("user")
@@ -101,7 +99,7 @@ class CreateChannelSerializer(serializers.Serializer):
         url = self.create_channel(user, org.org, data, channel_type)
 
         if url is None:
-            raise exceptions.ValidationError(f"Url not created")
+            raise exceptions.ValidationError("Url not created")
 
         if "/users/login/?next=" in url:
             raise exceptions.ValidationError(f"User: {user.email} do not have permission in Org: {org.org.uuid}")
@@ -134,8 +132,8 @@ class ChannelSerializer(serializers.ModelSerializer):
 
     class Meta:
         extra_kwargs = {
-            'org': {'read_only': True},
-            'is_active': {'read_only': True},
+            "org": {"read_only": True},
+            "is_active": {"read_only": True},
         }
         model = Channel
         fields = (
@@ -145,7 +143,7 @@ class ChannelSerializer(serializers.ModelSerializer):
             "address",
             "org",
             "is_active",
-        ) 
+        )
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

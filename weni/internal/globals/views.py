@@ -31,7 +31,6 @@ class GlobalViewSet(
         except Org.DoesNotExist as error:
             raise ValidationError(detail={"message": str(error)})
 
-
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)

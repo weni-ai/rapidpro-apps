@@ -28,7 +28,7 @@ class SerializerMethodCharField(serializers.CharField):
     def bind(self, field_name, parent):
         # The method name defaults to `get_{field_name}`.
         if self.method_name is None:
-            self.method_name = 'get_{field_name}'.format(field_name=field_name)
+            self.method_name = "get_{field_name}".format(field_name=field_name)
 
         super().bind(field_name, parent)
 

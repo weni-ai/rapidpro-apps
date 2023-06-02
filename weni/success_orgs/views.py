@@ -20,13 +20,11 @@ from .serializers import UserSuccessOrgSerializer, SuccessOrgSerializer
 
 
 class ListSuccessOrgAPIView(APIView):
-
     renderer_classes = [JSONRenderer]
     authentication_classes = []
     permission_classes = []
 
     def check_permissions(self, request):
-
         auth = get_authorization_header(request).split()
 
         if not auth:
@@ -65,13 +63,11 @@ class ListSuccessOrgAPIView(APIView):
 
 
 class RetrieveSuccessOrgAPIView(APIView):
-
     authentication_classes = [InternalOIDCAuthentication]
     renderer_classes = [JSONRenderer]
     throttle_classes = []
 
     def get(self, request, uuid) -> Response:
-
         try:
             org = retrieve_success_org(uuid)
         except OrgDoesNotExist:

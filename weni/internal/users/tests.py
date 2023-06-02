@@ -10,7 +10,6 @@ from django.utils.http import urlencode
 from temba.api.models import APIToken
 
 from temba.tests import TembaTest
-from temba.orgs.models import Org
 from weni.internal.models import Project
 from weni.internal.users.views import UserEndpoint, UserPermissionEndpoint, UserViewSet
 
@@ -50,7 +49,10 @@ class TembaRequestMixin(ABC):
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.patch(
-            f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+            f"{url}",
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
         )
 
     def request_post(self, data):
@@ -58,7 +60,10 @@ class TembaRequestMixin(ABC):
         token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.post(
-            url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+            url,
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
         )
 
     def request_delete(self, data, **kwargs):
@@ -66,7 +71,10 @@ class TembaRequestMixin(ABC):
         token = APIToken.get_or_create(self.project, self.admin, Group.objects.get(name="Administrators"))
 
         return self.client.delete(
-            f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+            f"{url}",
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
         )
 
     @abstractmethod
@@ -81,7 +89,10 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         )
 
         self.project = Project.objects.create(
-            name="Test", timezone="Africa/Kigali", created_by=self.admin, modified_by=self.admin
+            name="Test",
+            timezone="Africa/Kigali",
+            created_by=self.admin,
+            modified_by=self.admin,
         )
         super().setUp()
 
@@ -90,15 +101,31 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         user = User.objects.first()
 
         destroy_wrong_permission = self.request_delete(
-            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="adm")
+            data=dict(
+                org_uuid=str(project.project_uuid),
+                user_email=user.email,
+                permission="adm",
+            )
         )
         self.assertEqual(destroy_wrong_permission.status_code, 400)
         self.assertEqual(destroy_wrong_permission.json()[0], "adm is not a valid permission!")
 
-        self.request_patch(data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="viewer"))
+        self.request_patch(
+            data=dict(
+                org_uuid=str(project.project_uuid),
+                user_email=user.email,
+                permission="viewer",
+            )
+        )
         user_permissions = self._get_user_permissions(project=project, user=user)
 
-        self.request_delete(data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="viewer"))
+        self.request_delete(
+            data=dict(
+                org_uuid=str(project.project_uuid),
+                user_email=user.email,
+                permission="viewer",
+            )
+        )
         user_permissions_removed = self._get_user_permissions(project=project, user=user)
 
         self.assertFalse(user_permissions_removed.get("viewer", False))
@@ -109,13 +136,21 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         user = User.objects.first()
 
         update_wrong_permission_response = self.request_patch(
-            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="adm")
+            data=dict(
+                org_uuid=str(project.project_uuid),
+                user_email=user.email,
+                permission="adm",
+            )
         )
         self.assertEqual(update_wrong_permission_response.status_code, 400)
         self.assertEqual(update_wrong_permission_response.json()[0], "adm is not a valid permission!")
 
         update_response = self.request_patch(
-            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="administrator")
+            data=dict(
+                org_uuid=str(project.project_uuid),
+                user_email=user.email,
+                permission="administrator",
+            )
         ).json()
         user_permissions = self._get_user_permissions(project, user)
 
@@ -123,7 +158,11 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         self.assertTrue(self._permission_is_unique_true(update_response, "administrator"))
 
         update_response = self.request_patch(
-            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="viewer")
+            data=dict(
+                org_uuid=str(project.project_uuid),
+                user_email=user.email,
+                permission="viewer",
+            )
         ).json()
         user_permissions = self._get_user_permissions(project, user)
 
@@ -131,7 +170,11 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         self.assertTrue(self._permission_is_unique_true(update_response, "viewer"))
 
         update_response = self.request_patch(
-            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="editor")
+            data=dict(
+                org_uuid=str(project.project_uuid),
+                user_email=user.email,
+                permission="editor",
+            )
         ).json()
         user_permissions = self._get_user_permissions(project, user)
 
@@ -139,7 +182,11 @@ class UserPermissionUpdateDestroyTestCase(TembaTest, TembaRequestMixin):
         self.assertTrue(self._permission_is_unique_true(update_response, "editor"))
 
         update_response = self.request_patch(
-            data=dict(org_uuid=str(project.project_uuid), user_email=user.email, permission="surveyor")
+            data=dict(
+                org_uuid=str(project.project_uuid),
+                user_email=user.email,
+                permission="surveyor",
+            )
         ).json()
         user_permissions = self._get_user_permissions(project, user)
 
@@ -185,7 +232,10 @@ class UserPermissionRetrieveTestCase(TembaTest, TembaRequestMixin):
             username="testuser", password="123", email="test@weni.ai", is_superuser=True
         )
         self.project = Project.objects.create(
-            name="Test", timezone="Africa/Kigali", created_by=self.admin, modified_by=self.admin
+            name="Test",
+            timezone="Africa/Kigali",
+            created_by=self.admin,
+            modified_by=self.admin,
         )
         super().setUp()
 

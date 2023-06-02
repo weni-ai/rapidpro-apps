@@ -12,13 +12,11 @@ from weni.grpc.org.serializers import SerializerUtils
 
 
 class OrgServiceTest(RPCTransactionTestCase):
-
     WRONG_ID = -1
     WRONG_UUID = "31313-dasda-dasdasd-23123"
     WRONG_EMAIL = "wrong@email.com"
 
     def setUp(self):
-
         User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
         User.objects.create_user(username="weniuser", password="123", email="wene@user.com")
 
@@ -41,7 +39,6 @@ class OrgServiceTest(RPCTransactionTestCase):
         self.assertEquals(user, SerializerUtils.get_object(User, user.pk))
 
     def test_list_orgs(self):
-
         with self.assertRaises(FakeRpcError):
             for org in self.stub_org_list_request():
                 ...

@@ -10,7 +10,6 @@ from weni.protobuf.flows import flow_pb2, flow_pb2_grpc
 
 class FlowServiceTest(RPCTransactionTestCase):
     def setUp(self):
-
         User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
 
         user = User.objects.first()
@@ -27,7 +26,6 @@ class FlowServiceTest(RPCTransactionTestCase):
         self.stub = flow_pb2_grpc.FlowControllerStub(self.channel)
 
     def test_list_flow(self):
-
         temba = Org.objects.get(name="Temba")
         weni = Org.objects.get(name="Weni")
 

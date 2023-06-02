@@ -40,7 +40,8 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
         serializer.is_valid(raise_exception=True)
 
         user, created = User.objects.get_or_create(
-            email=request.data.get("user_email"), defaults={"username": request.data.get("user_email")}
+            email=request.data.get("user_email"),
+            defaults={"username": request.data.get("user_email")},
         )
 
         project = Project.objects.create(
@@ -49,8 +50,7 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
             created_by=user,
             modified_by=user,
             plan="infinity",
-            project_uuid=request.data.get("uuid")
-
+            project_uuid=request.data.get("uuid"),
         )
 
         project.administrators.add(user)
