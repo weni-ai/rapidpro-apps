@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.4.4] - 2023-06-02
+- Change create external service to use project over org
+- Add has_channel_production flag in success orgs
+
 ## [2.4.3] - 2023-05-30
 - Removes the ticketer object from the queue.release() method
 - Run black and flake8 in rp-apps
