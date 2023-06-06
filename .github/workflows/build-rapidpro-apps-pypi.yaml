@@ -25,8 +25,14 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Install poetry
-      uses: Gr1N/setup-poetry@v7
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        source $HOME/.poetry/env
+        poetry self update 1.5.1
+
+    - name: Verify Poetry installation
+      run: poetry --version
 
     - name: Update version in pyproject.toml
       shell: bash
