@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.4.5] - 2023-06-07
+- Adjust Statistic app to new Project model
+- Fix error in CI
+
 ## [2.4.4] - 2023-06-02
 - Change create external service to use project over org
 - Add has_channel_production flag in success orgs
