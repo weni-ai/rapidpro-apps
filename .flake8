@@ -1,2 +1,3 @@
 [flake8]
 ignore=E501,F405,T003,E203,W503
+exclude=./.direnv/*,./.venv/*,./env/*,./config/*,./fab*,.git/*,static/bower/*,sitestatic/bower/,*/gen/*,./node_modules
