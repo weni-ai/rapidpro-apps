@@ -18,8 +18,6 @@ class ExternalServicesSerializer(serializers.Serializer):
     config = serializers.JSONField(read_only=True)
 
     def create(self, validated_data: dict):
-        validated_data = validated_data
-
         type_code = validated_data.get("type_code")
         type_fields = validated_data.get("type_fields")
         user = validated_data.get("user")
@@ -35,3 +33,12 @@ class ExternalServicesSerializer(serializers.Serializer):
         return type_serializer.save(
             type=type_, created_by=user, modified_by=user, org=project
         )
+
+
+class UpdateExternalServicesSerializer(serializers.Serializer):
+    config = serializers.JSONField()
+
+    def update(self, instance, validated_data: dict):
+        instance.config = validated_data.get("config", instance.config)
+        instance.save()
+        return instance
