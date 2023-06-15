@@ -1,18 +1,17 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from temba.flows.models import Flow
 from weni.serializers import fields as weni_fields
 
 User = get_user_model()
 
 
-class FlowSerializer(serializers.ModelSerializer):
-    project = weni_fields.ProjectUUIDRelatedField()
+class FlowSerializer(serializers.Serializer):
+    project = weni_fields.ProjectUUIDRelatedField(required=True, write_only=True)
     sample_flow = serializers.JSONField(write_only=True)
+    uuid = serializers.UUIDField(read_only=True)
 
     class Meta:
-        model = Flow
         fields = ("project", "uuid", "sample_flow")
 
     def create(self, validated_data):

@@ -68,8 +68,6 @@ class ListFlowTestCase(TembaTest, TembaRequestMixin):
 
         user = User.objects.first()
 
-        # print(Org.objects.all())
-
         temba = Project.objects.create(name="Temba", timezone="America/Maceio", created_by=user, modified_by=user)
         weni = Project.objects.create(name="Weni", timezone="America/Maceio", created_by=user, modified_by=user)
 
