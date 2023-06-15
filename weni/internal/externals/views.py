@@ -10,7 +10,10 @@ from rest_framework import status
 
 from weni.internal.authenticators import InternalOIDCAuthentication
 from weni.internal.permissions import CanCommunicateInternally
-from weni.internal.externals.serializers import ExternalServicesSerializer
+from weni.internal.externals.serializers import (
+    ExternalServicesSerializer,
+    UpdateExternalServicesSerializer,
+)
 from temba.externals.models import ExternalService
 
 
@@ -24,6 +27,10 @@ class ExternalServicesAPIView(APIView):
     pagination_class = None
     renderer_classes = [JSONRenderer]
     throttle_classes = []
+
+    def get_object(self):
+        uuid = self.kwargs.get("uuid")
+        return get_object_or_404(ExternalService, uuid=uuid)
 
     def post(self, request: "Request") -> Response:
         serializer = ExternalServicesSerializer(data=request.data)
@@ -39,3 +46,23 @@ class ExternalServicesAPIView(APIView):
         external_service.release(user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def patch(self, request, uuid=None):
+        return self.update(request, uuid)
+
+    def update(self, request, *args, **kwargs):
+        external_service = self.get_object()
+        serializer = UpdateExternalServicesSerializer(
+            external_service, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def get(self, request, uuid=None):
+        return self.retrieve(request, uuid)
+
+    def retrieve(self, request, uuid=None):
+        external_service = get_object_or_404(ExternalService, uuid=uuid)
+        serializer = ExternalServicesSerializer(external_service)
+        return Response(serializer.data)
