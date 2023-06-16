@@ -1,5 +1,5 @@
 from rest_framework import serializers
-
+from temba.externals.models import Prompt
 
 from weni.serializers import UserEmailRelatedField
 from temba.externals.models import ExternalService
@@ -35,3 +35,13 @@ class ExternalServicesSerializer(serializers.Serializer):
         return type_serializer.save(
             type=type_, created_by=user, modified_by=user, org=project
         )
+
+
+class PromptSerializer(serializers.Serializer):
+    uuid = serializers.UUIDField(read_only=True)
+    user = UserEmailRelatedField(write_only=True)
+    text = serializers.CharField()
+
+    def create(self, validated_data):
+        user = validated_data.pop("user")
+        return Prompt.objects.create(created_by=user, modified_by=user, **validated_data)
