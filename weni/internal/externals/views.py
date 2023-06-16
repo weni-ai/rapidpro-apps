@@ -7,11 +7,15 @@ from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from rest_framework import viewsets
 
 from weni.internal.authenticators import InternalOIDCAuthentication
 from weni.internal.permissions import CanCommunicateInternally
 from weni.internal.externals.serializers import ExternalServicesSerializer
+from weni.internal.externals.serializers import PromptSerializer
+
 from temba.externals.models import ExternalService
+from temba.externals.models import Prompt
 
 
 if TYPE_CHECKING:
@@ -38,4 +42,38 @@ class ExternalServicesAPIView(APIView):
 
         external_service.release(user)
 
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PromptViewSet(viewsets.ViewSet):
+    authentication_classes = [InternalOIDCAuthentication]
+    permission_classes = [IsAuthenticated, CanCommunicateInternally]
+    pagination_class = None
+    renderer_classes = [JSONRenderer]
+    throttle_classes = []
+    lookup_field = "uuid"
+
+    def create(self, request, external_uuid=None):
+        external_service = get_object_or_404(ExternalService, uuid=external_uuid)
+        serializer = PromptSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(chat_gpt_service=external_service)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, external_uuid=None, uuid=None):
+        queryset = Prompt.objects.filter(chat_gpt_service__uuid=external_uuid)
+        prompt = get_object_or_404(queryset, uuid=uuid)
+        serializer = PromptSerializer(prompt)
+        return Response(serializer.data)
+
+    def list(self, request, external_uuid=None):
+        queryset = Prompt.objects.filter(chat_gpt_service__uuid=external_uuid)
+        serializer = PromptSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def destroy(self, request, external_uuid=None, uuid=None):
+        queryset = Prompt.objects.filter(chat_gpt_service__uuid=external_uuid)
+        prompt = get_object_or_404(queryset, uuid=uuid)
+        prompt.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
