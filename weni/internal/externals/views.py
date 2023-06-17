@@ -101,6 +101,13 @@ class PromptViewSet(viewsets.ViewSet):
 
     def destroy(self, request, external_uuid=None, uuid=None):
         queryset = Prompt.objects.filter(chat_gpt_service__uuid=external_uuid)
-        prompt = get_object_or_404(queryset, uuid=uuid)
-        prompt.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+        try:
+            prompt = queryset.get(uuid=uuid)
+            prompt.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Prompt.DoesNotExist:
+            return Response(
+                data={"detail": f"Prompt {uuid} not found on flows"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
