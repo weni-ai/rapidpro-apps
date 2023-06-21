@@ -6,6 +6,13 @@ from temba.externals.models import ExternalService
 from weni.serializers.fields import ProjectUUIDRelatedField
 
 
+AI_MODELS = [
+    ("gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k"),
+    ("gpt-3.5-turbo", "gpt-3.5-turbo"),
+    ("gpt-4", "gpt-4"),
+]
+
+
 class ExternalServicesSerializer(serializers.Serializer):
     uuid = serializers.UUIDField(read_only=True)
     type_code = serializers.CharField(write_only=True)
@@ -18,8 +25,6 @@ class ExternalServicesSerializer(serializers.Serializer):
     config = serializers.JSONField(read_only=True)
 
     def create(self, validated_data: dict):
-        validated_data = validated_data
-
         type_code = validated_data.get("type_code")
         type_fields = validated_data.get("type_fields")
         user = validated_data.get("user")
@@ -35,3 +40,21 @@ class ExternalServicesSerializer(serializers.Serializer):
         return type_serializer.save(
             type=type_, created_by=user, modified_by=user, org=project
         )
+
+
+class UpdateExternalServicesSerializer(serializers.Serializer):
+    config = serializers.JSONField()
+
+    def validate(self, attrs):
+        config = attrs.get("config")
+        if config:
+            ai_model = config.get("ai_model")
+            if ai_model and ai_model not in [choice[0] for choice in AI_MODELS]:
+                raise serializers.ValidationError(f"{ai_model} is a invalid A.I Model")
+
+        return attrs
+
+    def update(self, instance, validated_data: dict):
+        instance.config = validated_data.get("config", instance.config)
+        instance.save()
+        return instance
