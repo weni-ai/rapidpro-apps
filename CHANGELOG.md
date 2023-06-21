@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.6.0] - 2023-06-21
+- Adding list and update methods to external service viewset
+- Create viewset for prompts
+
 ## [2.5.0] - 2023-06-07
 - Adjust Statistic app to new Project model
 - Fix error in CI
