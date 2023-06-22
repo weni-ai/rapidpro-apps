@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.0] - 2023-06-22
+- Adjust Flows app to new Project model
+
 ## [2.6.0] - 2023-06-21
 - Adding list and update methods to external service viewset
 - Create viewset for prompts
