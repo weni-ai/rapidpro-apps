@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.2] - 2023-06-23
+- Import generate_sent_report_messages
+
 ## [2.7.1] - 2023-06-23
 - Report of sent messages
 
