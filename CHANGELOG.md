@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.1] - 2023-06-23
+- Report of sent messages
+
 ## [2.7.0] - 2023-06-22
 - Adjust Flows app to new Project model
 
