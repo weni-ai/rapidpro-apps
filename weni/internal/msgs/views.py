@@ -69,6 +69,7 @@ class TemplateMessagesListView(viewsets.ViewSet):
                 kwargs=kwargs,
             )
         except Exception as e:
+            redis_client.delete(f"template-messages-lock:{org.id}")
             return Response(data=e, status=500)
 
         return Response(status=200)
