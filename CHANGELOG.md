@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.3] - 2023-06-29
+- Changes in the view and task generate_sent_report_messages
+
 ## [2.7.2] - 2023-06-23
 - Import generate_sent_report_messages
 
