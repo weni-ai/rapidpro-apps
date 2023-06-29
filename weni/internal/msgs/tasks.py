@@ -4,17 +4,19 @@ import logging
 from celery import shared_task
 
 from django_redis import get_redis_connection
+from django.template.loader import render_to_string
 from django.conf import settings
 from django.db import connection
-
-from openpyxl import Workbook
-
-from io import BytesIO
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
+
+from openpyxl import Workbook
+
+from io import BytesIO
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +24,10 @@ logger = logging.getLogger(__name__)
 @shared_task(name="generate_sent_report_messages")
 def generate_sent_report_messages(**kwargs):
     org_id = kwargs.get("org_id")
-    start_date = kwargs.get("start_date")
-    end_date = kwargs.get("end_date")
-    user = kwargs.get("user")
-    email_body = kwargs.get("email_body")
-    email_title = kwargs.get("email_title")
 
-    redis_client = get_redis_connection()
+    data = kwargs.get("data")
+    start_date = data["start_date"]
+    end_date = data["end_date"]
 
     query = f"""
         SELECT
@@ -52,19 +51,14 @@ def generate_sent_report_messages(**kwargs):
         ORDER BY
             COUNT(msg.id) DESC;
     """
-    filename = "Relatorio de Messagens.xlsx"
+    filename = "Mensagens Enviadas.xlsx"
 
     try:
-        data = fetch_query_results(query)
-        processed_data = process_query_results(data)
-        file = export_data_to_excel(processed_data)
-        send_report_file(
-            file_stream=file,
-            file_name=filename,
-            user=user,
-            title=email_title,
-            body=email_body,
-        )
+        redis_client = get_redis_connection()
+        query_data = fetch_query_results(query)
+        processed_query_data = process_query_results(query_data)
+        file = export_data_to_excel(processed_query_data)
+        send_report_file(file_stream=file, file_name=filename, data=data)
     except Exception as e:
         logger.info(f"Fail to generate report: ORG {org_id}: {e}")
     finally:
@@ -111,43 +105,28 @@ def export_data_to_excel(data):
     return file_stream
 
 
-def export_query_to_excel(query):
-    with connection.cursor() as cursor:
-        cursor.execute(query)
-
-        workbook = Workbook()
-        sheet = workbook.active
-
-        header = [desc[0] for desc in cursor.description]
-        sheet.append(header)
-
-        for row in cursor.fetchall():
-            sheet.append(row)
-
-        file_stream = BytesIO()
-        workbook.save(file_stream)
-        file_stream.seek(0)
-
-    return file_stream
-
-
-def send_report_file(file_stream, file_name, user, title, body):
-    email_subject = title
-    email_body = body
+def send_report_file(file_stream, file_name, data):
+    email_subject = data["title"]
+    user_email = data["user_email"]
 
     email_host = settings.EMAIL_HOST
     email_port = settings.EMAIL_PORT
     email_username = settings.EMAIL_HOST_USER
     email_password = settings.EMAIL_HOST_PASSWORD
     email_use_tls = settings.EMAIL_USE_TLS
+    from_email = settings.DEFAULT_FROM_EMAIL
 
+    email_body = render_to_string(
+        "msgs/msg_mail_body.haml",
+        {"project_name": data["project_name"]},
+    )
     try:
         message = MIMEMultipart()
         message["Subject"] = email_subject
-        message["From"] = "Weni"
-        message["To"] = user
+        message["From"] = from_email
+        message["To"] = data["user_email"]
 
-        body = MIMEText(email_body, "plain", "utf-8")
+        body = MIMEText(email_body, "html", "utf-8")
         message.attach(body)
 
         attachment = MIMEBase(
@@ -167,11 +146,12 @@ def send_report_file(file_stream, file_name, user, title, body):
             smtp_connection.starttls()
 
         smtp_connection.login(email_username, email_password)
-        result = smtp_connection.sendmail(email_username, user, message.as_string())
+        result = smtp_connection.sendmail(from_email, user_email, message.as_string())
         smtp_connection.quit()
 
         if result:
             for recipient, error_message in result.items():
                 logger.info(f"Fail send message to {recipient}, error: {error_message}")
+
     except Exception as e:
-        logger.warning(f"Fail to send messages report error: {e}")
+        logger.exception(f"Fail to send messages report: {e}")
