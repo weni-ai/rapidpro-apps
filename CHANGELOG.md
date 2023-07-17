@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.4] - 2023-07-17
+- Report send msgs change date filter to created on
+
 ## [2.7.3] - 2023-06-29
 - Changes in the view and task generate_sent_report_messages
 
