@@ -43,7 +43,7 @@ def generate_sent_report_messages(**kwargs):
             INNER JOIN public.flows_flow AS flow
                 ON flow.id = depent.flow_id
         WHERE
-            msg.sent_on BETWEEN '{start_date}' AND '{end_date}'
+            msg.created_on BETWEEN '{start_date}' AND '{end_date}'
             AND msg.metadata::jsonb -> 'templating' IS NOT NULL
             AND msg.org_id = {org_id}
         GROUP BY
