@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.5] - 2023-07-18
+- Add filter by status in template report
+
 ## [2.7.4] - 2023-07-17
 - Report send msgs change date filter to created on
 
