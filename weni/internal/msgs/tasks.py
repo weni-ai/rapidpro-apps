@@ -46,6 +46,7 @@ def generate_sent_report_messages(**kwargs):
             msg.created_on BETWEEN '{start_date}' AND '{end_date}'
             AND msg.metadata::jsonb -> 'templating' IS NOT NULL
             AND msg.org_id = {org_id}
+            AND msg.status IN ('S', 'D', 'V')
         GROUP BY
             template.name, flow.name
         ORDER BY
