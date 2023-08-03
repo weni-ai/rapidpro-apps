@@ -31,13 +31,17 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
     def get_queryset(self):
         channel_type = self.request.query_params.get("channel_type")
         org = self.request.query_params.get("org")
+        exclude_wpp_demo = self.request.query_params.get("exclude_wpp_demo") == "true"
         queryset = Channel.objects.all()
 
         if channel_type is not None:
-            return queryset.filter(channel_type=channel_type)
+            queryset = queryset.filter(channel_type=channel_type)
 
         if org is not None:
-            return queryset.filter(org__project__project_uuid=org)
+            queryset = queryset.filter(org__project__project_uuid=org)
+
+        if exclude_wpp_demo:
+            queryset = queryset.exclude(address="+558231420933")
 
         return queryset
 
