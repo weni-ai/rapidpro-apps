@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.6] - 2023-08-11
+- Add parameter to remove wpp-demo objects from the queryset list
+
 ## [2.7.5] - 2023-07-18
 - Add filter by status in template report
 
