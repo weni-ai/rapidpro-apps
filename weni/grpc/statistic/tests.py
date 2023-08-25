@@ -14,7 +14,6 @@ from weni.protobuf.flows import statistic_pb2, statistic_pb2_grpc
 
 class OrgStatisticServiceTest(test_grpc.RPCTransactionTestCase):
     def setUp(self):
-
         User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
         user = User.objects.get(username="testuser")
 
@@ -41,7 +40,6 @@ class OrgStatisticServiceTest(test_grpc.RPCTransactionTestCase):
             self.org_statistic_list_request(org_uuid="123")
 
         with DisableTriggersOn(Contact):
-
             test_contact = Contact.objects.create(name="Test Contact", org=org)
             Contact.objects.create(name="Weni Contact", org=org)
 

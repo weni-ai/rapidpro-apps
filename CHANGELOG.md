@@ -1,5 +1,110 @@
 ## [Unreleased]
 
+## [2.7.6] - 2023-08-11
+- Add parameter to remove wpp-demo objects from the queryset list
+
+## [2.7.5] - 2023-07-18
+- Add filter by status in template report
+
+## [2.7.4] - 2023-07-17
+- Report send msgs change date filter to created on
+
+## [2.7.3] - 2023-06-29
+- Changes in the view and task generate_sent_report_messages
+
+## [2.7.2] - 2023-06-23
+- Import generate_sent_report_messages
+
+## [2.7.1] - 2023-06-23
+- Report of sent messages
+
+## [2.7.0] - 2023-06-22
+- Adjust Flows app to new Project model
+
+## [2.6.0] - 2023-06-21
+- Adding list and update methods to external service viewset
+- Create viewset for prompts
+
+## [2.5.0] - 2023-06-07
+- Adjust Statistic app to new Project model
+- Fix error in CI
+
+## [2.4.4] - 2023-06-02
+- Change create external service to use project over org
+- Add has_channel_production flag in success orgs
+
+## [2.4.3] - 2023-05-30
+- Removes the ticketer object from the queue.release() method
+- Run black and flake8 in rp-apps
+- Add user to release ticketer
+
+## [2.4.2] - 2023-05-18
+- Filter active orgs to return statistics
+
+## [2.4.1] - 2023-05-17
+- Add external_api channel form in channel retrieve
+- Release ticketer instance before delete queue
+- Optimize search filter for active contacts
+
+## [2.4.0] - 2023-05-03
+- Add Project model to internal app
+- Adjust Channel app to new project model
+- Adjust Org app to new project model
+- Adjust Users app to new project model
+
+## [2.3.4] - 2023-04-27
+- Update permission endpoint from User permission
+- Update pre-commit config
+
+## [2.3.3] - 2023-04-20
+- Removing the internal ticketer from org serializer template
+- Add agent permission in get_permissions method
+- Add delete endpoint in external-services
+
+## [2.3.2] - 2023-04-14
+- Update globals endpoint to filter by org
+
+## [2.3.0] - 2023-04-06
+- Add endpoint allows the generic creation of an external service
+
+## [2.2.0] - 2023-03-30
+- Add endpoint that allows creating, retrieving, destroying and listing globals
+
+## [2.1.3] - 2023-02-17
+- Adjust the org field in the channel listing return
+- Fix: does not create activities when updating the channel.config at whatsapp and whatsapp-cloud
+
+## [2.1.2] - 2023-02-03
+- Fix change the has_issues field to False, when create flow
+
+## [2.1.1] - 2022-12-28
+- Fix error with magic package usage
+
+## [2.1.0] - 2022-12-27
+- Add success org retrieve endpoint
+- Create an internal client for the connect REST API
+- Create new Django App from recent activity
+- When creating a classifier syncs it synchronously
+
+## [2.0.1] - 2022-12-27
+- Feature: Add a new endpoint thats return file from Weni Bucket
+- Feature: Add is_active filter to User-Permission endpoint
+
+## [2.0.0] - 2022-12-23
+- Feature: Create endpoint for channel type
+
+## [1.0.34] - 2022-11-18
+- Feat: Create endpoint that returns success orgs
+
+## [1.0.33] - 2022-11-17
+- Fix:  Remove pagination_class from internal views
+- Feat: Add internal Flow endpoint
+- Feat: Add internal Classifier endpoint
+- Feat: Add internal Org endpoint
+- Feat: Add internal Channels endpoint
+- Feat: Add internal Statistic endpoint
+- Feat: Add internal User and User-Permission endpoint
+
 ## [1.0.32] - 2022-11-17
 - Feat: Use internal_tickter false on TemplateOrg creation
 

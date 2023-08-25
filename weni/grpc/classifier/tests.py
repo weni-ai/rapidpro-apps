@@ -14,12 +14,12 @@ def get_test_classifier(test: grpc_test.RPCTransactionTestCase) -> Classifier:
     creates a new classifier object containing an intention and returns it.
     """
     response = test.classifier_create_request(
-            classifier_type="Test Type",
-            user=test.admin.email,
-            org=str(test.org.uuid),
-            name="Test Name",
-            access_token=test.config["access_token"]
-        )
+        classifier_type="Test Type",
+        user=test.admin.email,
+        org=str(test.org.uuid),
+        name="Test Name",
+        access_token=test.config["access_token"],
+    )
 
     classifier = Classifier.objects.get(uuid=response.uuid)
 
@@ -29,7 +29,6 @@ def get_test_classifier(test: grpc_test.RPCTransactionTestCase) -> Classifier:
 
 
 class BaseClassifierServiceTest(grpc_test.RPCTransactionTestCase):
-
     def setUp(self):
         self.config = {"access_token": "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"}
 
@@ -37,7 +36,12 @@ class BaseClassifierServiceTest(grpc_test.RPCTransactionTestCase):
             username="testuser", password="123", email="test@weni.ai", is_superuser=True
         )
 
-        self.org = Org.objects.create(name="Weni", timezone="America/Maceio", created_by=self.admin, modified_by=self.admin)
+        self.org = Org.objects.create(
+            name="Weni",
+            timezone="America/Maceio",
+            created_by=self.admin,
+            modified_by=self.admin,
+        )
 
         super().setUp()
 
@@ -57,7 +61,6 @@ class BaseClassifierServiceTest(grpc_test.RPCTransactionTestCase):
 
 
 class ClassifierServiceTest(BaseClassifierServiceTest):
-
     def test_list_classifier(self):
         org = Org.objects.first()
         org_uuid = str(org.uuid)
@@ -127,7 +130,7 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
             user=user.email,
             org=str(org.uuid),
             name=name,
-            access_token=access_token
+            access_token=access_token,
         )
 
         self.assertEqual(response.name, name)
@@ -136,7 +139,6 @@ class ClassifierServiceTest(BaseClassifierServiceTest):
 
 
 class ClassifierServiceRetrieveTest(BaseClassifierServiceTest):
-
     def test_retrieve_classifier_by_valid_uuid(self):
         classifier = get_test_classifier(self)
         response = self.classifier_retrieve_request(uuid=str(classifier.uuid))
@@ -154,7 +156,6 @@ class ClassifierServiceRetrieveTest(BaseClassifierServiceTest):
 
 
 class ClassifierServiceDestroyTest(BaseClassifierServiceTest):
-
     def test_destroy_classifier_by_valid_uuid(self):
         classifier = get_test_classifier(self)
         self.assertEqual(classifier.intents.count(), 1)

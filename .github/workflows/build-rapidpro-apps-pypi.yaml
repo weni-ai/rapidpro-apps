@@ -1,0 +1,81 @@
+name: Build and Publish Rapidpro-apps With Poetry in PyPI
+on:
+  push:
+    tags: 
+      - '*.*.*'
+      - '*.*.*a*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set variables
+      shell: bash
+      run: |
+        TAG="$( echo "${GITHUB_REF}" | cut -d'/' -f3 )"
+        VERSION="${TAG}"
+        echo "VERSION=${VERSION}" | tee -a "${GITHUB_ENV}"
+
+    - name: Install python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        poetry self update 1.5.1
+
+    - name: Verify Poetry installation
+      run: poetry --version
+
+    - name: Update version in pyproject.toml
+      shell: bash
+      run: |
+        sed -i 's;^version *=.*$;version = "'$VERSION'";g' pyproject.toml
+
+    - name: Commit & Push changes in rapidpro-apps
+      if: ${{ !contains(env.VERSION, 'a') }}
+      uses: actions-js/push@master
+      with:
+        github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
+        repository: weni-ai/rapidpro-apps
+        directory: .
+        branch: "refs/heads/update/${{ env.VERSION }}"
+        message: "Update version of weni-rp-apps to ${{ env.VERSION }}"
+    
+    - name: Build package
+      run: poetry build
+
+    - name: Publish to pypi
+      shell: bash
+      run: |
+        poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
+        poetry publish
+
+    - name: Checkout Flows repository
+      uses: actions/checkout@master
+      with:
+        ref: main
+        repository: weni-ai/flows
+        token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
+        path: ./rapidpro/
+          
+    - name: Update version on pip-requires.txt
+      run: |
+        VERSION="${{ env.VERSION }}"
+        sed -i 's;^weni-rp-apps@==.*$;weni-rp-apps@=='$VERSION';g' ./rapidpro/docker/pip-requires.txt
+
+    - name: Commit & Push changes in Flows
+      uses: actions-js/push@master
+      with:
+        github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
+        repository: weni-ai/flows
+        directory: ./rapidpro/
+        branch: "refs/heads/update/weni-rp-apps-${{ env.VERSION }}"
+        message: "Update version of weni-rp-apps to ${{ env.VERSION }}"
+        

@@ -4,11 +4,17 @@ from rest_framework.generics import get_object_or_404
 from temba.tickets.models import Ticketer
 from weni.internal.views import InternalGenericViewSet
 from weni.internal.models import TicketerQueue
-from weni.internal.tickets.serializers import TicketerSerializer, TicketerQueueSerializer
+from weni.internal.tickets.serializers import (
+    TicketerSerializer,
+    TicketerQueueSerializer,
+)
 
 
 class TicketerViewSet(
-    mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, InternalGenericViewSet
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    InternalGenericViewSet,
 ):
     serializer_class = TicketerSerializer
     queryset = Ticketer.objects.filter(is_active=True)
@@ -19,7 +25,10 @@ class TicketerViewSet(
 
 
 class TicketerQueueViewSet(
-    mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, InternalGenericViewSet
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    InternalGenericViewSet,
 ):
     serializer_class = TicketerQueueSerializer
     queryset = TicketerQueue.objects
@@ -28,10 +37,12 @@ class TicketerQueueViewSet(
     @property
     def _ticketer(self):
         sector_uuid = self.kwargs.get("ticketer_uuid")
-        return get_object_or_404(Ticketer, config__sector_uuid=sector_uuid)
+        return get_object_or_404(
+            Ticketer, is_active=True, config__sector_uuid=sector_uuid
+        )
 
     def get_queryset(self):
-        return super().get_queryset().filter(ticketer=self._ticketer)
+        return super().get_queryset().filter(is_active=True, ticketer=self._ticketer)
 
     def perform_create(self, serializer):
         ticketer = self._ticketer
@@ -49,3 +60,6 @@ class TicketerQueueViewSet(
             self.http_method_not_allowed(request, *args, **kwargs)
 
         return super().update(request, *args, **kwargs)
+
+    def perform_destroy(self, instance):
+        instance.release()

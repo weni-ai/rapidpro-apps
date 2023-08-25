@@ -14,7 +14,6 @@ class AbstractService:
         return self._get_object(Org, value, query_parameter)
 
     def _get_object(self, model, value, query_parameter: str):
-
         query = {query_parameter: value}
 
         try:
