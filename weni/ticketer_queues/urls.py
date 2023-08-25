@@ -1,10 +1,10 @@
-from django.conf.urls import url
+from django.urls import re_path
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from weni.ticketer_queues.views import TicketerQueuesEndpoint
 
 urlpatterns = [
-    url(
+    re_path(
         r"ticketer_queues$",
         TicketerQueuesEndpoint.as_view(),
         name="api.v2.ticketer_queues",
