@@ -1,15 +1,15 @@
-from django.conf.urls import url
+from django.urls import re_path
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from .views import ContactAnalyticsEndpoint, FlowRunAnalyticsEndpoint
 
 urlpatterns = [
-    url(
+    re_path(
         r"^analytics/contacts/$",
         ContactAnalyticsEndpoint.as_view(),
         name="api.v2.analytics.contacts",
     ),
-    url(
+    re_path(
         r"^analytics/flow-runs/$",
         FlowRunAnalyticsEndpoint.as_view(),
         name="api.v2.analytics.flow_runs",

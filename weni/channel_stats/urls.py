@@ -1,10 +1,10 @@
-from django.conf.urls import url
+from django.urls import re_path
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from . import views
 
 urlpatterns = [
-    url(
+    re_path(
         r"^channel_stats$",
         views.ChannelStatsEndpoint.as_view(),
         name="api.v2.channel_stats.channels",

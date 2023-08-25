@@ -1,5 +1,4 @@
-from django.conf.urls import include, url
-from django.urls import path
+from django.urls import include, path, re_path
 
 from weni.auth.views import (
     check_user_legacy,
@@ -9,7 +8,7 @@ from weni.auth.views import (
 )
 
 urlpatterns = [
-    url(r"^oidc/", include("mozilla_django_oidc.urls")),
+    re_path(r"^oidc/", include("mozilla_django_oidc.urls")),
     path("check-user-legacy/<str:email>/", check_user_legacy, name="check-user-legacy"),
     path(
         "weni/<uuid:organization>/authenticate",
