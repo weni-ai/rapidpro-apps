@@ -1,6 +1,7 @@
 import requests
 
 from weni.internal.clients.base import BaseInternalClient
+from weni.internal.models import Project
 
 
 class ConnectInternalClient(BaseInternalClient):
@@ -21,6 +22,19 @@ class ConnectInternalClient(BaseInternalClient):
         )
         response = requests.post(
             self.get_url("/v1/recent-activity"),
+            headers=self.authenticator.headers,
+            json=body,
+        )
+
+        return response
+
+    def update_project(self, project: Project):
+        body = dict(
+            flow_organization=str(project.uuid),
+            flow_id=project.id,
+        )
+        response = requests.patch(
+            self.get_url(f"/v2/internals/connect/projects/{project.project_uuid}"),
             headers=self.authenticator.headers,
             json=body,
         )
