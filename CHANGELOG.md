@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.7] - 2023-09-14
+- Endpoint to update project
+
 ## [2.7.6] - 2023-08-11
 - Add parameter to remove wpp-demo objects from the queryset list
 
