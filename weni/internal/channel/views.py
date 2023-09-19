@@ -1,11 +1,13 @@
 import inspect
 
+from django.core import exceptions as django_exceptions
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework import exceptions as drf_exceptions
 from rest_framework import viewsets
 from rest_framework import status
 
@@ -13,6 +15,7 @@ from weni.internal.views import InternalGenericViewSet
 from django.conf import settings
 
 from temba.channels.models import Channel
+from weni.internal.models import Project
 from temba.channels.types import TYPES
 
 from .serializers import (
@@ -77,6 +80,19 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
 
     @action(methods=["POST"], detail=False)
     def create_wac(self, request):
+        project_uuid = request.data.get("org")
+
+        if not project_uuid:
+            raise drf_exceptions.ValidationError("“project_uuid” is a required field!")
+
+        try:
+            project = Project.objects.get(project_uuid=project_uuid)
+        except (django_exceptions.ValidationError, Project.DoesNotExist) as error:
+            raise drf_exceptions.ValidationError(error)
+
+        if request.user == project.created_by and request.user not in project.administrators.all():
+            project.administrators.add(request.user)
+
         serializer = ChannelWACSerializer(data=request.data)
 
         if not serializer.is_valid():
