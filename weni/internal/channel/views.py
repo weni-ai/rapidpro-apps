@@ -81,17 +81,23 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
     @action(methods=["POST"], detail=False)
     def create_wac(self, request):
         project_uuid = request.data.get("org")
+        user_email = request.data.get("user")
 
         if not project_uuid:
-            raise drf_exceptions.ValidationError("“project_uuid” is a required field!")
+            raise drf_exceptions.ValidationError("org is a required field!")
 
         try:
             project = Project.objects.get(project_uuid=project_uuid)
         except (django_exceptions.ValidationError, Project.DoesNotExist) as error:
             raise drf_exceptions.ValidationError(error)
 
-        if request.user == project.created_by and request.user not in project.administrators.all():
-            project.administrators.add(request.user)
+        try:
+            user = User.objects.get(email=user_email)
+        except (django_exceptions.ValidationError, User.DoesNotExist) as error:
+            raise drf_exceptions.ValidationError(error)
+
+        if user == project.created_by and user not in project.administrators.all():
+            project.administrators.add(user)
 
         serializer = ChannelWACSerializer(data=request.data)
 
