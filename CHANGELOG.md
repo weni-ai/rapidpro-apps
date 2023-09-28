@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.8] - 2023-09-28
+- Create user permission in project on creating WhatsApp(WA) Channel
+
 ## [2.7.7] - 2023-09-14
 - Endpoint to update project
 
