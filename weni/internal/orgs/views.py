@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework import exceptions
@@ -14,6 +15,7 @@ from weni.internal.orgs.serializers import (
     OrgCreateSerializer,
     OrgSerializer,
     OrgUpdateSerializer,
+    UpdateProjectSerializer,
 )
 
 from weni.internal.models import Project
@@ -84,7 +86,11 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
         modified_by = serializer.validated_data.get("modified_by", None)
         plan = serializer.validated_data.get("plan", None)
 
-        if modified_by and not self._user_has_permisson(modified_by, project) and not modified_by.is_superuser:
+        if (
+            modified_by
+            and not self._user_has_permisson(modified_by, project)
+            and not modified_by.is_superuser
+        ):
             raise exceptions.ValidationError(
                 f"User: {modified_by.pk} has no permission to update Org: {project.project_uuid}",
             )
@@ -129,3 +135,30 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
         surveyors = user.org_surveyors.filter(is_active=True)
 
         return admins.union(viewers, editors, surveyors)
+
+    @action(methods=["POST", "DELETE"], detail=True, url_path="update-vtex")
+    def update_vtex(self, request, project_uuid=None):
+        project = self.get_object()
+        serializer = UpdateProjectSerializer(project, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        modified_by = serializer.validated_data.get("modified_by", None)
+
+        if (
+            modified_by
+            and not self._user_has_permisson(modified_by, project)
+            and not modified_by.is_superuser
+        ):
+            raise exceptions.ValidationError(
+                f"User: {modified_by.pk} has no permission to update Org: {project.project_uuid}",
+            )
+
+        if request.method == "POST":
+            project.config["has_vtex"] = True
+            project.save(update_fields=["config"])
+            return Response(status=status.HTTP_200_OK, data=serializer.data)
+
+        elif request.method == "DELETE":
+            if "has_vtex" in project.config:
+                del project.config["has_vtex"]
+                project.save(update_fields=["config"])
+            return Response(status=status.HTTP_204_NO_CONTENT)

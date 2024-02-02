@@ -124,3 +124,12 @@ class OrgUpdateSerializer(serializers.ModelSerializer):
             "is_multi_org",
             "is_suspended",
         ]
+
+
+class UpdateProjectSerializer(serializers.ModelSerializer):
+    project_uuid = serializers.CharField(read_only=True)
+    modified_by = weni_serializers.UserEmailRelatedField(required=False, write_only=True)
+
+    class Meta:
+        model = Project
+        fields = ["project_uuid", "modified_by"]

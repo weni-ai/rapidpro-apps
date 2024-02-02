@@ -8,6 +8,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
 from django.utils.http import urlencode
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from weni.internal.models import Project
 from temba.api.models import APIToken
@@ -31,36 +32,56 @@ class TembaRequestMixin(ABC):
     def request_get(self, **query_params):
         url = self.reverse(self.get_url_namespace(), query_params=query_params)
         url = url.replace("channel", "channel.json")
-        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
+        token = APIToken.get_or_create(
+            self.org, self.admin, Group.objects.get(name="Administrators")
+        )
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_detail(self, uuid):
         url = self.reverse(self.get_url_namespace(), kwargs={"project_uuid": uuid})
-        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
+        token = APIToken.get_or_create(
+            self.org, self.admin, Group.objects.get(name="Administrators")
+        )
 
         return self.client.get(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_post(self, data):
         url = reverse(self.get_url_namespace())
-        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
+        token = APIToken.get_or_create(
+            self.org, self.admin, Group.objects.get(name="Administrators")
+        )
 
         return self.client.post(
-            url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+            url,
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
         )
 
     def request_delete(self, uuid, **query_params):
-        url = self.reverse(self.get_url_namespace(), kwargs={"project_uuid": uuid}, query_params=query_params)
-        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
+        url = self.reverse(
+            self.get_url_namespace(),
+            kwargs={"project_uuid": uuid},
+            query_params=query_params,
+        )
+        token = APIToken.get_or_create(
+            self.org, self.admin, Group.objects.get(name="Administrators")
+        )
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def request_patch(self, uuid, data):
         url = self.reverse(self.get_url_namespace(), kwargs={"project_uuid": uuid})
-        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
+        token = APIToken.get_or_create(
+            self.org, self.admin, Group.objects.get(name="Administrators")
+        )
 
         return self.client.patch(
-            url, HTTP_AUTHORIZATION=f"Token {token.key}", data=json.dumps(data), content_type="application/json"
+            url,
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
         )
 
     @abstractmethod
@@ -74,14 +95,24 @@ class OrgListTest(TembaTest, TembaRequestMixin):
     WRONG_EMAIL = "wrong@email.com"
 
     def setUp(self):
-        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        User.objects.create_user(username="weniuser", password="123", email="wene@user.com")
+        User.objects.create_user(
+            username="testuser", password="123", email="test@weni.ai"
+        )
+        User.objects.create_user(
+            username="weniuser", password="123", email="wene@user.com"
+        )
 
         user = User.objects.get(username="testuser")
 
-        Project.objects.create(name="Tembinha", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Project.objects.create(name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Project.objects.create(name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        Project.objects.create(
+            name="Tembinha", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Project.objects.create(
+            name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Project.objects.create(
+            name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
 
         super().setUp()
 
@@ -145,19 +176,35 @@ class OrgCreateTest(TembaTest, TembaRequestMixin):
     WRONG_EMAIL = "wrong@email.com"
 
     def setUp(self):
-        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        User.objects.create_user(username="weniuser", password="123", email="wene@user.com")
+        User.objects.create_user(
+            username="testuser", password="123", email="test@weni.ai"
+        )
+        User.objects.create_user(
+            username="weniuser", password="123", email="wene@user.com"
+        )
 
         user = User.objects.get(username="testuser")
 
         Project.objects.create(
-            name="Tembinha", timezone="Africa/Kigali", created_by=user, modified_by=user, plan="infinity"
+            name="Tembinha",
+            timezone="Africa/Kigali",
+            created_by=user,
+            modified_by=user,
+            plan="infinity",
         )
         Project.objects.create(
-            name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user, plan="infinity"
+            name="Weni",
+            timezone="Africa/Kigali",
+            created_by=user,
+            modified_by=user,
+            plan="infinity",
         )
         Project.objects.create(
-            name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user, plan="infinity"
+            name="Test",
+            timezone="Africa/Kigali",
+            created_by=user,
+            modified_by=user,
+            plan="infinity",
         )
 
         super().setUp()
@@ -166,12 +213,18 @@ class OrgCreateTest(TembaTest, TembaRequestMixin):
     def test_create_org(self, mock):
         org_name = "TestCreateOrg"
         user = User.objects.get(username="weniuser")
-        response = self.request_post(data=dict(name=org_name, timezone="Wrong/Zone", user_email=user.email)).json()
+        response = self.request_post(
+            data=dict(name=org_name, timezone="Wrong/Zone", user_email=user.email)
+        ).json()
 
-        self.assertEqual(response.get("timezone")[0], '"Wrong/Zone" is not a valid choice.')
+        self.assertEqual(
+            response.get("timezone")[0], '"Wrong/Zone" is not a valid choice.'
+        )
 
         response = self.request_post(
-            data=dict(name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com")
+            data=dict(
+                name=org_name, timezone="Africa/Kigali", user_email="newemail@email.com"
+            )
         ).json()
 
         newuser_qs = User.objects.filter(email="newemail@email.com")
@@ -198,7 +251,9 @@ class OrgCreateTest(TembaTest, TembaRequestMixin):
         self.assertEquals(administrator, newuser)
 
         response = self.request_post(
-            data=dict(name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com")
+            data=dict(
+                name="neworg", timezone="Africa/Kigali", user_email="newemail@email.com"
+            )
         ).json()
 
         self.assertEqual(User.objects.filter(email="newemail@email.com").count(), 1)
@@ -213,14 +268,24 @@ class OrgRetrieveTest(TembaTest, TembaRequestMixin):
     WRONG_EMAIL = "wrong@email.com"
 
     def setUp(self):
-        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        User.objects.create_user(username="weniuser", password="123", email="wene@user.com")
+        User.objects.create_user(
+            username="testuser", password="123", email="test@weni.ai"
+        )
+        User.objects.create_user(
+            username="weniuser", password="123", email="wene@user.com"
+        )
 
         user = User.objects.get(username="testuser")
 
-        Project.objects.create(name="Tembinha", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Project.objects.create(name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Project.objects.create(name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        Project.objects.create(
+            name="Tembinha", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Project.objects.create(
+            name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Project.objects.create(
+            name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
 
         super().setUp()
 
@@ -269,14 +334,24 @@ class OrgDestroyTest(TembaTest, TembaRequestMixin):
     WRONG_EMAIL = "wrong@email.com"
 
     def setUp(self):
-        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        User.objects.create_user(username="weniuser", password="123", email="wene@user.com")
+        User.objects.create_user(
+            username="testuser", password="123", email="test@weni.ai"
+        )
+        User.objects.create_user(
+            username="weniuser", password="123", email="wene@user.com"
+        )
 
         user = User.objects.get(username="testuser")
 
-        Project.objects.create(name="Tembinha", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Project.objects.create(name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Project.objects.create(name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        Project.objects.create(
+            name="Tembinha", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Project.objects.create(
+            name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Project.objects.create(
+            name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
 
         super().setUp()
 
@@ -306,14 +381,24 @@ class OrgUpdateTest(TembaTest, TembaRequestMixin):
     WRONG_EMAIL = "wrong@email.com"
 
     def setUp(self):
-        User.objects.create_user(username="testuser", password="123", email="test@weni.ai")
-        User.objects.create_user(username="weniuser", password="123", email="wene@user.com")
+        User.objects.create_user(
+            username="testuser", password="123", email="test@weni.ai"
+        )
+        User.objects.create_user(
+            username="weniuser", password="123", email="wene@user.com"
+        )
 
         user = User.objects.get(username="testuser")
 
-        Project.objects.create(name="Tembinha", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Project.objects.create(name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user)
-        Project.objects.create(name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user)
+        Project.objects.create(
+            name="Tembinha", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Project.objects.create(
+            name="Weni", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
+        Project.objects.create(
+            name="Test", timezone="Africa/Kigali", created_by=user, modified_by=user
+        )
 
         super().setUp()
 
@@ -322,7 +407,9 @@ class OrgUpdateTest(TembaTest, TembaRequestMixin):
 
         permission_error_message = f"User: {self.user.id} has no permission to update Org: {project.project_uuid}"
 
-        response = self.request_patch(uuid=str(project.project_uuid), data=dict(modified_by=self.user.email)).json()
+        response = self.request_patch(
+            uuid=str(project.project_uuid), data=dict(modified_by=self.user.email)
+        ).json()
 
         self.assertEqual(response[0], permission_error_message)
 
@@ -345,7 +432,9 @@ class OrgUpdateTest(TembaTest, TembaRequestMixin):
             "modified_by": self.user.email,
         }
 
-        response = self.request_patch(uuid=str(project.project_uuid), data=update_fields).json()
+        response = self.request_patch(
+            uuid=str(project.project_uuid), data=update_fields
+        ).json()
 
         updated_org = Project.objects.get(pk=project.pk)
 
@@ -380,3 +469,46 @@ class OrgUpdateTest(TembaTest, TembaRequestMixin):
 
     def get_url_namespace(self):
         return "orgs-detail"
+
+
+class ProjectUpdateVtexTest(TembaTest):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("orgs-list")
+        super().setUp()
+
+    def test_update_vtex_post(self):
+        project = Project.objects.create(
+            name="Test",
+            timezone="Africa/Kigali",
+            created_by=self.user,
+            modified_by=self.user,
+            config={},
+        )
+
+        url = self.url + f"{project.project_uuid}/update-vtex/"
+        data = {"user_email": self.user.email}
+
+        response = self.client.post(url, data, format="json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(project.config.get("has_vtex", True))
+
+    def test_update_vtex_delete(self):
+        project = Project.objects.create(
+            name="Test",
+            timezone="Africa/Kigali",
+            created_by=self.user,
+            modified_by=self.user,
+            config={"has_vtex": True},
+        )
+
+        url = self.url + f"{project.project_uuid}/update-vtex/"
+        data = {"user_email": self.user.email}
+
+        response = self.client.delete(url, data, format="json")
+
+        self.assertEqual(response.status_code, 204)
+
+        project.refresh_from_db()
+        self.assertNotIn("has_vtex", project.config)
