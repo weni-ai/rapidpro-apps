@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.10] - 2024-03-12
+- Remove analytics flows call
+
 ## [2.7.9] - 2024-02-02
 - Endpoint to update project config with has_vtex key
 
