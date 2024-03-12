@@ -134,6 +134,7 @@ class ContactAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
         }
 
 
+# This endpoint has been deactivate in March, 2024
 class FlowRunAnalyticsEndpoint(BaseAPIView, ListAPIMixin):
     """
     This endpoint shows the analytical data of the flow runs over a period of time.
