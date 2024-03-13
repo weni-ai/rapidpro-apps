@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.7.11] - 2024-03-13
+- Remove update user in WeniOIDC
+
 ## [2.7.10] - 2024-03-12
 - Remove analytics flows call
 
