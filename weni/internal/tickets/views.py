@@ -20,6 +20,13 @@ class TicketerViewSet(
     queryset = Ticketer.objects.filter(is_active=True)
     lookup_field = "uuid"
 
+    @property
+    def _ticketer(self):
+        sector_uuid = self.kwargs.get("sector_uuid")
+        return get_object_or_404(
+            Ticketer, is_active=True, config__sector_uuid=sector_uuid
+        )
+
     def perform_destroy(self, instance):
         instance.release(self.request.user)
 
