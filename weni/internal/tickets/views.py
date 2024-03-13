@@ -5,9 +5,31 @@ from temba.tickets.models import Ticketer
 from weni.internal.views import InternalGenericViewSet
 from weni.internal.models import TicketerQueue
 from weni.internal.tickets.serializers import (
+    TicketerConfigSerializer,
     TicketerSerializer,
     TicketerQueueSerializer,
 )
+
+
+class SectorViewSet(
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    InternalGenericViewSet,
+):
+    serializer_class = TicketerConfigSerializer
+    queryset = Ticketer.objects.filter(is_active=True)
+    lookup_field = "uuid"
+
+    @property
+    def _ticketer(self):
+        sector_uuid = self.kwargs.get("sector_uuid")
+        return get_object_or_404(
+            Ticketer, is_active=True, config__sector_uuid=sector_uuid
+        )
+
+    def perform_destroy(self, instance):
+        instance.release(self.request.user)
 
 
 class TicketerViewSet(
