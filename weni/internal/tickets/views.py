@@ -23,7 +23,7 @@ class SectorViewSet(
 
     @property
     def _ticketer(self):
-        sector_uuid = self.kwargs.get("sector_uuid")
+        sector_uuid = self.kwargs.get("ticketer_uuid")
         return get_object_or_404(
             Ticketer, is_active=True, config__sector_uuid=sector_uuid
         )
