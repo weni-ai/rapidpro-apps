@@ -5,6 +5,7 @@ from temba.tickets.models import Ticketer
 from weni.internal.views import InternalGenericViewSet
 from weni.internal.models import TicketerQueue
 from weni.internal.tickets.serializers import (
+    TicketerConfigSerializer,
     TicketerSerializer,
     TicketerQueueSerializer,
 )
@@ -16,7 +17,7 @@ class SectorViewSet(
     mixins.DestroyModelMixin,
     InternalGenericViewSet,
 ):
-    serializer_class = TicketerSerializer
+    serializer_class = TicketerConfigSerializer
     queryset = Ticketer.objects.filter(is_active=True)
     lookup_field = "uuid"
 
