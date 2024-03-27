@@ -1,4 +1,3 @@
-import celery
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -7,21 +6,23 @@ from temba.channels.models import Channel
 from temba.flows.models import Flow
 from temba.triggers.models import Trigger
 from temba.campaigns.models import Campaign
+from temba.event_driven.publisher.rabbitmq_publisher import RabbitmqPublisher
 
 
 def create_recent_activity(instance: models.Model, created: bool):
     if instance.is_active:
         action = "CREATE" if created else "UPDATE"
-
-        celery.execute.send_task(
-            "create_recent_activity",
-            kwargs=dict(
+        rabbitmq_publisher = RabbitmqPublisher()
+        rabbitmq_publisher.send_message(
+            body=dict(
                 action=action,
                 entity=instance.__class__.__name__.upper(),
                 entity_name=getattr(instance, "name", None),
                 user=instance.modified_by.email,
                 flow_organization=str(instance.org.uuid),
             ),
+            exchange="recent-activities.topic",
+            routing_key="",
         )
 
 
@@ -31,7 +32,7 @@ def channel_recent_activity_signal(sender, instance: Channel, created: bool, **k
     if instance.channel_type not in ["WA", "WAC"] or update_fields != frozenset(
         {
             "config",
-        }
+        },
     ):
         create_recent_activity(instance, created)
 
@@ -61,5 +62,7 @@ def trigger_recent_activity_signal(sender, instance: Trigger, created: bool, **k
 
 
 @receiver(post_save, sender=Campaign)
-def campaign_recent_activity_signal(sender, instance: Campaign, created: bool, **kwargs):
+def campaign_recent_activity_signal(
+    sender, instance: Campaign, created: bool, **kwargs
+):
     create_recent_activity(instance, created)
