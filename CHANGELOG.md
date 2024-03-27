@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.8.0] - 2024-03-27
+- Change recent activities to EDA
+- Endpoint to delete chats sector
+
 ## [2.7.11] - 2024-03-13
 - Remove update user in WeniOIDC
 
