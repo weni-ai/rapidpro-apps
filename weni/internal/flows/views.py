@@ -19,12 +19,16 @@ class ProjectFlowsViewSet(ListModelMixin, InternalGenericViewSet):
         serializer.is_valid(raise_exception=True)
 
         queryset = Flow.objects.filter(
-            name__icontains=serializer.validated_data.get("flow_name"),
             org=serializer.validated_data.get("project").org,
             is_active=True,
-        ).exclude(is_archived=True)[:20]
+        ).exclude(is_archived=True)
 
+        flow_name = serializer.validated_data.get("flow_name")
+
+        if flow_name:
+            queryset = queryset.filter(name__icontains=flow_name)
+    
         if queryset:
-            return queryset
+            return queryset[:20]
 
         raise NotFound()

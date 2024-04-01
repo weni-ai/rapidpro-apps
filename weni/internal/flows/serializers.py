@@ -27,7 +27,7 @@ class FlowSerializer(serializers.Serializer):
 
 
 class FlowListSerializer(serializers.Serializer):
-    flow_name = serializers.CharField(required=True, write_only=True)
+    flow_name = serializers.CharField(required=False, write_only=True)
     project = weni_fields.ProjectUUIDRelatedField(required=True, write_only=True)
     uuid = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
