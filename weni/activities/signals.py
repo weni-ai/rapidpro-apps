@@ -9,9 +9,14 @@ from temba.campaigns.models import Campaign
 from temba.event_driven.publisher.rabbitmq_publisher import RabbitmqPublisher
 
 
-def create_recent_activity(instance: models.Model, created: bool):
+def create_recent_activity(instance: models.Model, created: bool, delete=None):
+    routing_key = ""
     if instance.is_active:
-        action = "CREATE" if created else "UPDATE"
+        if delete:
+            action = "DELETE"
+            routing_key = "flow-delete"
+        else:
+            action = "CREATE" if created else "UPDATE"
         rabbitmq_publisher = RabbitmqPublisher()
         rabbitmq_publisher.send_message(
             body=dict(
@@ -22,7 +27,7 @@ def create_recent_activity(instance: models.Model, created: bool):
                 flow_organization=str(instance.org.uuid),
             ),
             exchange="recent-activities.topic",
-            routing_key="",
+            routing_key=routing_key,
         )
 
 
