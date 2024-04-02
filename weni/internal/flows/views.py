@@ -1,5 +1,6 @@
 from rest_framework.mixins import CreateModelMixin, ListModelMixin
 from rest_framework.exceptions import NotFound
+from rest_framework.pagination import PageNumberPagination
 
 from weni.internal.views import InternalGenericViewSet
 from weni.internal.flows.serializers import FlowSerializer, FlowListSerializer
@@ -7,8 +8,23 @@ from weni.internal.flows.serializers import FlowSerializer, FlowListSerializer
 from temba.flows.models import Flow
 
 
-class FlowViewSet(CreateModelMixin, InternalGenericViewSet):
+class FlowViewSet(CreateModelMixin, InternalGenericViewSet, ListModelMixin):
     serializer_class = FlowSerializer
+    pagination_class = PageNumberPagination
+
+    def get_queryset(self):
+        serializer = self.get_serializer(data=self.request.query_params.dict())
+        serializer.is_valid(raise_exception=True)
+
+        queryset = Flow.objects.filter(
+            org=serializer.validated_data.get("project").org,
+            is_active=True,
+        ).exclude(is_archived=True)
+
+        if queryset:
+            return self.paginate_queryset(queryset)  
+
+        raise NotFound()
 
 
 class ProjectFlowsViewSet(ListModelMixin, InternalGenericViewSet):
