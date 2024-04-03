@@ -24,7 +24,7 @@ def create_recent_activity(instance: models.Model, created: bool, delete=None):
                 entity=instance.__class__.__name__.upper(),
                 entity_name=getattr(instance, "name", None),
                 entity_uuid=str(instance.uuid),
-                project_uuid=str(instance.project.project_uuid),
+                project_uuid=str(instance.org.project.project_uuid),
                 user=instance.modified_by.email,
                 flow_organization=str(instance.org.uuid),
             ),
