@@ -8,9 +8,14 @@ from weni.internal.flows.serializers import FlowSerializer, FlowListSerializer
 from temba.flows.models import Flow
 
 
+class FlowPagination(PageNumberPagination):
+    page_size_query_param = 'page_size'
+    max_page_size = 20
+
+
 class FlowViewSet(CreateModelMixin, InternalGenericViewSet, ListModelMixin):
     serializer_class = FlowSerializer
-    pagination_class = PageNumberPagination
+    pagination_class = FlowPagination
 
     def get_queryset(self):
         serializer = self.get_serializer(data=self.request.query_params.dict())
@@ -22,7 +27,7 @@ class FlowViewSet(CreateModelMixin, InternalGenericViewSet, ListModelMixin):
         ).exclude(is_archived=True)
 
         if queryset:
-            return self.paginate_queryset(queryset)  
+            return queryset
 
         raise NotFound()
 
