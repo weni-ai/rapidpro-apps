@@ -9,7 +9,7 @@ from temba.flows.models import Flow
 
 
 class FlowPagination(PageNumberPagination):
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 20
 
 
@@ -25,6 +25,10 @@ class FlowViewSet(CreateModelMixin, InternalGenericViewSet, ListModelMixin):
             org=serializer.validated_data.get("project").org,
             is_active=True,
         ).exclude(is_archived=True)
+
+        flow_name = serializer.validated_data.get("flow_name")
+        if flow_name:
+            queryset = queryset.filter(name__icontains=flow_name)
 
         if queryset:
             return queryset
