@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.8.1] - 2024-04-10
+- Endpoint to list flows with pagination
+- Add option to send delete in flow activity
+
 ## [2.8.0] - 2024-03-27
 - Change recent activities to EDA
 - Endpoint to delete chats sector
