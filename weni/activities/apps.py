@@ -9,4 +9,3 @@ class ActivitiesConfig(AppConfig):
     def ready(self) -> None:
         if not settings.TESTING:
             from weni.activities import signals  # noqa: F401
-
