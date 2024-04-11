@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.2] - 2024-04-10
+- Update recent activities to avoid flows tests errors
+
 ## [2.8.1] - 2024-04-10
 - Endpoint to list flows with pagination
 - Add option to send delete in flow activity
