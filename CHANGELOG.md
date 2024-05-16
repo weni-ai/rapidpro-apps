@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.3] - 2024-05-16
+- Update project model to save project_uuid in org model
+
 ## [2.8.2] - 2024-04-10
 - Update recent activities to avoid flows tests errors
 
