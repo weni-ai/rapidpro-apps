@@ -37,3 +37,10 @@ class Project(Org):
     @property
     def org(self):
         return self.org_ptr
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            super().save(*args, **kwargs)
+
+        self.org_ptr.proj_uuid = self.project_uuid
+        self.org_ptr.save()
