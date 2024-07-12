@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.response import Response
@@ -83,6 +84,88 @@ class GlobalViewSet(
             self.perform_destroy(instance, user)
 
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance, user):
+        instance.is_active = False
+        instance.modified_by = user
+        instance.save()
+
+
+class GlobalRetailViewSet(InternalGenericViewSet):
+    def create(self, request, *args, **kwargs):
+        project_uuid = request.data.get("project_uuid")
+        name = request.data.get("name")
+        value = request.data.get("value")
+        user_email = request.data.get("user")
+
+        if not project_uuid:
+            raise ValidationError({"detail": "Project_uuid is required to create the object."})
+        
+        if not name:
+            raise ValidationError({"detail": "Name is required to create the object."})
+        
+        if not value:
+            raise ValidationError({"detail": "Value is required to create the object."})
+        
+        if not user_email:
+            raise ValidationError({"detail": "User is required to create the object."})
+        
+        user = get_object_or_404(User, email=user_email)
+        
+        project = get_object_or_404(Project, project_uuid=project_uuid)
+        
+        project_active_globals_limit = project.get_limit(project.LIMIT_GLOBALS)
+
+        if project.globals.filter(is_active=True).count() >= project_active_globals_limit:
+            raise ValidationError(f"Cannot create a new global as limit is {project_active_globals_limit}.")
+
+        if not Global.is_valid_name(name):
+            raise ValidationError("Can only contain letters, numbers and hypens.")
+ 
+
+        if not Global.is_valid_key(Global.make_key(name)):
+            raise ValidationError("Isn't a valid name")
+        
+        key = Global.make_key(name=name)
+        
+        global_instance= Global.get_or_create(
+            project,
+            user,
+            key,
+            value,
+            name
+        )
+
+        response = {
+            "project_uuid":global_instance.org.proj_uuid,
+            "key":global_instance.key,
+            "value":global_instance.value
+        }
+    
+        return Response(response, status=status.HTTP_201_CREATED)
+
+
+    @action(detail=False, methods=["delete"])
+    def delete(self, request, *args, **kwargs):
+        key = request.data.get("key")
+        user = request.user
+        project_uuid = request.data.get("project_uuid")
+
+        if not project_uuid:
+            raise ValidationError({"detail": "project_uuid is required to delete the object."})
+        if not key:
+            raise ValidationError({"detail": "key is required to delete the object."})
+
+        try:
+            project_object = Project.objects.get(project_uuid=project_uuid)
+        except Project.DoesNotExist:
+            raise ValidationError({"detail": "Project not found."})
+
+        instance = get_object_or_404(Global, key=key, org=project_object.org, is_active=True)
+
+        self.perform_destroy(instance, user)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance, user):
         instance.is_active = False
