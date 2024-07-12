@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 
 from temba.globals.models import Global
 from temba.orgs.models import Org
+from weni.internal.models import Project
 from weni.internal.views import InternalGenericViewSet
 from weni.internal.globals.serializers import GlobalSerializer
 
@@ -51,20 +52,37 @@ class GlobalViewSet(
         org_uuid = request.data.get("org")
         key = request.data.get("key")
         user = request.user
+        project_uuid = request.data.get("project_uuid")
 
-        if not org_uuid or not key:
-            raise ValidationError({"detail": "org and key are required to delete the object."})
+        if not org_uuid and not project_uuid:
+            raise ValidationError({"detail": "org or project_uuid is required to delete the object."})
 
-        try:
-            org_object = Org.objects.get(uuid=org_uuid)
-        except Org.DoesNotExist:
-            raise ValidationError({"detail": "Organization not found."})
+        if not key:
+            raise ValidationError({"detail": "key is required to delete the object."})
 
-        instance = get_object_or_404(Global, key=key, org=org_object, is_active=True)
+        if org_uuid:
+            try:
+                org_object = Org.objects.get(uuid=org_uuid)
+            except Org.DoesNotExist:
+                raise ValidationError({"detail": "Organization not found."})
 
-        self.perform_destroy(instance, user)
+            instance = get_object_or_404(Global, key=key, org=org_object, is_active=True)
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            self.perform_destroy(instance, user)
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        if project_uuid:
+            try:
+                project_object = Project.objects.get(project_uuid=project_uuid)
+            except Project.DoesNotExist:
+                raise ValidationError({"detail": "Project not found."})
+
+            instance = get_object_or_404(Global, key=key, org=project_object.org, is_active=True)
+
+            self.perform_destroy(instance, user)
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance, user):
         instance.is_active = False
