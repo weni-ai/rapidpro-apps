@@ -1,7 +1,10 @@
 ## [Unreleased]
 
-## [2.8.4] - 2024-07-15
+## [2.8.5] - 2024-07-15
 - Add delete endpoint in GlobalViewSet and new GlobalRetailGlobalViewSet
+
+## [2.8.4] - 2024-05-21
+- Fix: Adjust user token filters
 
 ## [2.8.3] - 2024-05-16
 - Update project model to save project_uuid in org model
