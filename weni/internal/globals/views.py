@@ -132,8 +132,8 @@ class GlobalRetailViewSet(InternalGenericViewSet):
             project,
             user,
             key,
-            value,
-            name
+            name,
+            value
         )
 
         response = {
