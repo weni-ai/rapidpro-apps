@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.6] - 2024-07-16
+- Fix error returning value in create globals_retail
+
 ## [2.8.5] - 2024-07-15
 - Add delete endpoint in GlobalViewSet and new GlobalRetailGlobalViewSet
 
