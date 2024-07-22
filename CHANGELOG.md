@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.7] - 2024-07-22
+- Fix build error
+
 ## [2.8.6] - 2024-07-16
 - Fix error returning value in create globals_retail
 
