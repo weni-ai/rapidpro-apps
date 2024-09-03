@@ -1,5 +1,23 @@
 ## [Unreleased]
 
+## [2.8.7] - 2024-07-22
+- Fix build error
+
+## [2.8.6] - 2024-07-16
+- Fix error returning value in create globals_retail
+
+## [2.8.5] - 2024-07-15
+- Add delete endpoint in GlobalViewSet and new GlobalRetailGlobalViewSet
+
+## [2.8.4] - 2024-05-21
+- Fix: Adjust user token filters
+
+## [2.8.3] - 2024-05-16
+- Update project model to save project_uuid in org model
+
+## [2.8.2] - 2024-04-10
+- Update recent activities to avoid flows tests errors
+
 ## [2.8.1] - 2024-04-10
 - Endpoint to list flows with pagination
 - Add option to send delete in flow activity
