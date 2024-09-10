@@ -68,13 +68,11 @@ class TemplateMessagesListView(viewsets.ViewSet):
         )
 
         try:
-            redis_client.set(lock_key, "locked")
             celery.execute.send_task(
                 "generate_sent_report_messages",
                 kwargs=kwargs,
             )
         except Exception as e:
-            # Remove the lock if an error occurs
             redis_client.delete(f"template-messages-lock:{org.id}")
             return Response(data=str(e), status=500)
 
