@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.9] - 2024-09-19
+- Add vtex adds in update-vtex endpoint
+
 ## [2.8.8] - 2024-09-11
 - Add client UTC to the template message report
 
