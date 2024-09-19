@@ -154,11 +154,16 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
 
         if request.method == "POST":
             project.config["has_vtex"] = True
+
+            if request.data.get("vtex_ads") is not None:
+                project.config["vtex_ads"] = request.data.get("vtex_ads", False)
+
             project.save(update_fields=["config"])
             return Response(status=status.HTTP_200_OK, data=serializer.data)
 
         elif request.method == "DELETE":
             if "has_vtex" in project.config:
                 del project.config["has_vtex"]
+                del project.config["vtex_ads"]
                 project.save(update_fields=["config"])
             return Response(status=status.HTTP_204_NO_CONTENT)
