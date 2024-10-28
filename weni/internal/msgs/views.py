@@ -1,4 +1,5 @@
 import celery
+import pytz
 
 from datetime import datetime
 
@@ -31,10 +32,8 @@ class TemplateMessagesListView(viewsets.ViewSet):
 
         org = get_object_or_404(Project, project_uuid=project_uuid)
 
-        # Check if email exists in flows
-        try:
-            User.objects.get(email=user_email)
-        except User.DoesNotExist:
+        # Validate if the email exists in flows
+        if not self.is_valid_user(user_email):
             return Response(
                 {
                     "detail": f"Error generating report. User: {user_email}, not found in flow"
@@ -42,44 +41,75 @@ class TemplateMessagesListView(viewsets.ViewSet):
                 status=403,
             )
 
-        # Convert string to datatime object
-        start_date_obj = datetime.strptime(start_date, "%m-%d-%Y")
-        end_date_obj = datetime.strptime(end_date, "%m-%d-%Y")
-
-        # Convert from datatime object to string
-        start_date_str = start_date_obj.strftime("%Y-%m-%d")
-        end_date_str = end_date_obj.strftime("%Y-%m-%d")
-
-        email_start_date = start_date_obj.strftime("%d/%m/%Y")
-        email_end_date = end_date_obj.strftime("%d/%m/%Y")
+        # Convert string dates to datetime objects and handle timezone
+        start_date_utc, end_date_utc, email_start_date, email_end_date = (
+            self.convert_dates_with_timezone(start_date, end_date, org.timezone)
+        )
 
         lock_key = f"template-messages-lock:{org.id}"
         redis_client = get_redis_connection()
         is_locked = redis_client.get(lock_key)
+
+        if is_locked:
+            return Response(data={"detail": "Request already in process"}, status=409)
+
         data = {
             "project_name": org.name.title(),
             "user_email": user_email,
             "title": f"Relatório de Mensagens Enviadas entre {email_start_date} e {email_end_date}",
-            "start_date": start_date_str,
-            "end_date": end_date_str,
+            "start_date": start_date_utc,
+            "end_date": end_date_utc,
         }
+
         kwargs = dict(
             org_id=org.id,
             user=user_email,
             data=data,
         )
 
-        if is_locked:
-            return Response(data={"detail": "Request already in process"}, status=409)
-
         try:
-            redis_client.set(lock_key, "locked")
             celery.execute.send_task(
                 "generate_sent_report_messages",
                 kwargs=kwargs,
             )
         except Exception as e:
             redis_client.delete(f"template-messages-lock:{org.id}")
-            return Response(data=e, status=500)
+            return Response(data=str(e), status=500)
 
         return Response(status=200)
+
+    def is_valid_user(self, email):
+        try:
+            User.objects.get(email=email)
+            return True
+        except User.DoesNotExist:
+            return False
+
+    def convert_dates_with_timezone(self, start_date, end_date, org_timezone):
+        # Fallback to UTC if the client's timezone is not set
+        client_timezone = pytz.timezone(str(org_timezone) if org_timezone else "UTC")
+
+        # Convert start and end dates to datetime objects
+        start_date_obj = datetime.strptime(start_date, "%m-%d-%Y")
+        end_date_obj = datetime.strptime(end_date, "%m-%d-%Y")
+
+        # Localize the dates to the client's timezone
+        start_date_client = client_timezone.localize(
+            datetime.combine(start_date_obj, datetime.min.time())
+        )
+        end_date_client = client_timezone.localize(
+            datetime.combine(end_date_obj, datetime.max.time())
+        )
+
+        # Convert dates to UTC
+        start_date_utc = start_date_client.astimezone(pytz.UTC).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        end_date_utc = end_date_client.astimezone(pytz.UTC).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        email_start_date = start_date_obj.strftime("%d/%m/%Y")
+        email_end_date = end_date_obj.strftime("%d/%m/%Y")
+
+        return start_date_utc, end_date_utc, email_start_date, email_end_date

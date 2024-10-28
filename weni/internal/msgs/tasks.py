@@ -24,46 +24,56 @@ logger = logging.getLogger(__name__)
 @shared_task(name="generate_sent_report_messages")
 def generate_sent_report_messages(**kwargs):
     org_id = kwargs.get("org_id")
-
     data = kwargs.get("data")
     start_date = data["start_date"]
     end_date = data["end_date"]
 
-    query = f"""
-        SELECT
-            template.name AS "Template",
-            flow.name AS "Fluxos Utilizados",
-            COUNT(msg.id) AS "Total por Template"
-        FROM
-            public.msgs_msg AS msg
-            INNER JOIN public.templates_template AS template
-                ON CAST(template.uuid AS text) = msg.metadata::json -> 'templating' -> 'template' ->> 'uuid'
-            INNER JOIN public.flows_flow_template_dependencies AS depent
-                ON depent.template_id = template.id
-            INNER JOIN public.flows_flow AS flow
-                ON flow.id = depent.flow_id
-        WHERE
-            msg.created_on BETWEEN '{start_date}' AND '{end_date}'
-            AND msg.metadata::jsonb -> 'templating' IS NOT NULL
-            AND msg.org_id = {org_id}
-            AND msg.status IN ('S', 'D', 'V')
-        GROUP BY
-            template.name, flow.name
-        ORDER BY
-            COUNT(msg.id) DESC;
-    """
-    filename = "Mensagens Enviadas.xlsx"
+    logger.info(f"Starting report messages to org {org_id}")
+
+    lock_key = f"template-messages-lock:{org_id}"
+    lock_ttl = 10800  # TTL of 3 hours in seconds
 
     try:
         redis_client = get_redis_connection()
+        redis_client.set(lock_key, "locked")
+        redis_client.expire(lock_key, lock_ttl)
+
+        logger.info(f"Starting task: generate_sent_report_messages for org {org_id}")
+
+        query = f"""
+            SELECT
+                template.name AS "Template",
+                flow.name AS "Fluxos Utilizados",
+                COUNT(msg.id) AS "Total por Template"
+            FROM
+                public.msgs_msg AS msg
+                INNER JOIN public.templates_template AS template
+                    ON CAST(template.uuid AS text) = msg.metadata::json -> 'templating' -> 'template' ->> 'uuid'
+                INNER JOIN public.flows_flow_template_dependencies AS depent
+                    ON depent.template_id = template.id
+                INNER JOIN public.flows_flow AS flow
+                    ON flow.id = depent.flow_id
+            WHERE
+                msg.created_on BETWEEN '{start_date}' AND '{end_date}'
+                AND msg.metadata::jsonb -> 'templating' IS NOT NULL
+                AND msg.org_id = {org_id}
+                AND msg.status IN ('S', 'D', 'V')
+            GROUP BY
+                template.name, flow.name
+            ORDER BY
+                COUNT(msg.id) DESC;
+        """
         query_data = fetch_query_results(query)
         processed_query_data = process_query_results(query_data)
         file = export_data_to_excel(processed_query_data)
-        send_report_file(file_stream=file, file_name=filename, data=data)
+        send_report_file(file_stream=file, file_name="Mensagens Enviadas.xlsx", data=data)
+        logger.info(f"Message Reports sent to org {org_id}")
+
     except Exception as e:
-        logger.info(f"Fail to generate report: ORG {org_id}: {e}")
+        logger.error(f"Fail to generate report for org {org_id}: {e}")
     finally:
-        redis_client.delete(f"template-messages-lock:{org_id}")
+        redis_client.delete(lock_key)
+        logger.info(f"Lock released for org {org_id}")
 
 
 def fetch_query_results(query):
