@@ -56,8 +56,9 @@ class TicketerQueueViewSet(
     @property
     def _ticketer(self):
         sector_uuid = self.kwargs.get("ticketer_uuid")
+        project_uuid = self.request.data.get("project_uuid")
         return get_object_or_404(
-            Ticketer, is_active=True, config__sector_uuid=sector_uuid
+            Ticketer, is_active=True, config__sector_uuid=sector_uuid, org__proj_uuid=project_uuid
         )
 
     def get_queryset(self):
