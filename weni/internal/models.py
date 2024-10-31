@@ -13,7 +13,6 @@ class TicketerQueue(Topic):
     ticketer = models.ForeignKey(
         Ticketer, on_delete=models.CASCADE, related_name="queues"
     )
-    queue_uuid = models.UUIDField(default=uuid4)
 
     class Meta:
         db_table = "internal_tickets_ticketerqueue"
