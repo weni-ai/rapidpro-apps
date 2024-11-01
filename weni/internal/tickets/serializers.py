@@ -39,7 +39,6 @@ class TicketerQueueSerializer(serializers.ModelSerializer):
         model = TicketerQueue
         fields = ("uuid", "name")
     
-    def to_internal_value(self, data):
-        data = data.copy()
-        data["queue_uuid"] = data.pop("uuid")
-        return super().to_internal_value(data)
+    def validate(self, attrs):
+        attrs["queue_uuid"] = attrs.pop("uuid")
+        return attrs
