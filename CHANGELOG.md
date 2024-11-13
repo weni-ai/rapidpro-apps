@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.11] - 2024-11-13
+- Fix bug in build image
+
 ## [2.8.10] - 2024-11-13
 - Add project_uuid filter in TicketerQueueViewSet
 
