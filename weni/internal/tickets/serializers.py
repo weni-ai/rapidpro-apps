@@ -38,3 +38,7 @@ class TicketerQueueSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketerQueue
         fields = ("uuid", "name")
+    
+    def validate(self, attrs):
+        attrs["queue_uuid"] = attrs.pop("uuid")
+        return attrs
