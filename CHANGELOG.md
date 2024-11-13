@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.10] - 2024-11-13
+- Add project_uuid filter in TicketerQueueViewSet
+
 ## [2.8.9] - 2024-09-19
 - Add vtex adds in update-vtex endpoint
 
