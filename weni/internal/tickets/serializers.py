@@ -15,7 +15,7 @@ class TicketerConfigSerializer(serializers.Serializer):
 
 
 class TicketerSerializer(serializers.ModelSerializer):
-    org = weni_serializers.OrgUUIDRelatedField(required=True)
+    org = weni_serializers.ProjectUUIDRelatedField(required=True)
     config = TicketerConfigSerializer(required=True)
 
     class Meta:
@@ -28,6 +28,7 @@ class TicketerSerializer(serializers.ModelSerializer):
 
         validated_data["created_by"] = user
         validated_data["modified_by"] = user
+        validated_data["org"] = validated_data["org"]
 
         return super().create(validated_data)
 
