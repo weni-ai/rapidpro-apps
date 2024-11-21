@@ -48,14 +48,14 @@ def generate_sent_report_messages(**kwargs):
             FROM
                 public.msgs_msg AS msg
                 INNER JOIN public.templates_template AS template
-                    ON CAST(template.uuid AS text) = msg.metadata::json -> 'templating' -> 'template' ->> 'uuid'
+                    ON template.name = msg.template
                 INNER JOIN public.flows_flow_template_dependencies AS depent
                     ON depent.template_id = template.id
                 INNER JOIN public.flows_flow AS flow
                     ON flow.id = depent.flow_id
             WHERE
                 msg.created_on BETWEEN '{start_date}' AND '{end_date}'
-                AND msg.metadata::jsonb -> 'templating' IS NOT NULL
+                AND msg.template IS NOT NULL
                 AND msg.org_id = {org_id}
                 AND msg.status IN ('S', 'D', 'V')
             GROUP BY
