@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.12] - 2024-11-21
+- Use template field in generate report messages task
+
 ## [2.8.11] - 2024-11-13
 - Fix bug in build image
 
