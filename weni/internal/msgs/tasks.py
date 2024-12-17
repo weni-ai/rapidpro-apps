@@ -78,7 +78,7 @@ def generate_sent_report_messages(**kwargs):
 
 def fetch_query_results(query):
     with connection.cursor() as cursor:
-        cursor.execute("SET application_name = 'archive';")
+        cursor.execute("SET application_name = 'flows_nokill';")
         cursor.execute(query)
         data = cursor.fetchall()
     return data
