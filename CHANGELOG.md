@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.13] - 2024-12-17
+- Set application name in generate report msgs query
+
 ## [2.8.12] - 2024-11-21
 - Use template field in generate report messages task
 
