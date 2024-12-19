@@ -10,3 +10,4 @@ class AuthConfig(AppConfig):
         from ..utils.app_config import update_urlpatterns
 
         update_urlpatterns(urlpatterns, "temba.urls")
+
