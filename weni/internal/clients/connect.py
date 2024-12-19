@@ -40,3 +40,4 @@ class ConnectInternalClient(BaseInternalClient):
         )
 
         return response
+
