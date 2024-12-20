@@ -1,6 +1,7 @@
 import requests
 
 from weni.internal.clients.base import BaseInternalClient
+from weni.internal.clients.decorators import retry_on_exception
 from weni.internal.models import Project
 
 
@@ -28,6 +29,7 @@ class ConnectInternalClient(BaseInternalClient):
 
         return response
 
+    @retry_on_exception()
     def update_project(self, project: Project):
         body = dict(
             flow_organization=str(project.uuid),
