@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.14] - 2024-12-26
+- Add retry in connect update project call
+
 ## [2.8.13] - 2024-12-17
 - Set application name in generate report msgs query
 
