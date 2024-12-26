@@ -27,7 +27,7 @@ def retry_on_exception(max_attempts=8, start_sleep_time=1, factor=2):
                         raise
                     elif status_code == 500:
                         print(f"A 500 error occurred: {str(e)}. Retrying...")
-                        raise
+                        logger.error(e)
 
                     if attempts >= 5:
                         if status_code == 429:
