@@ -84,9 +84,10 @@ def generate_sent_report_messages(**kwargs):
 
 
 def partition_date_range(start_date, end_date, delta):
+    adjusted_end_date = end_date + timedelta(days=1)
     current_date = start_date
-    while current_date < end_date:
-        batch_end = min(current_date + delta, end_date)
+    while current_date < adjusted_end_date:
+        batch_end = min(current_date + delta, adjusted_end_date)
         yield current_date, batch_end
         current_date = batch_end
 
@@ -100,16 +101,19 @@ def fetch_query_results(query):
 
 def process_query_results(data):
     processed_data = []
-    template_dict = {}
+    template_flow_dict = {}
+    
     for row in data:
         template_name, flow_name, total = row
-        if template_name not in template_dict:
-            template_dict[template_name] = {"flow_name": flow_name, "total": total}
+        key = (template_name, flow_name)
+        if key not in template_flow_dict:
+            template_flow_dict[key] = total
         else:
-            template_dict[template_name]["total"] += total
-
-    for template_name, data in template_dict.items():
-        processed_data.append((template_name, data["flow_name"], data["total"]))
+            template_flow_dict[key] += total
+    
+    for (template_name, flow_name), total in template_flow_dict.items():
+        processed_data.append((template_name, flow_name, total))
+    
     return processed_data
 
 
