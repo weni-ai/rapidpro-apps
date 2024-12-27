@@ -42,7 +42,7 @@ def generate_sent_report_messages(**kwargs):
         logger.info(f"Starting task: generate_sent_report_messages for org {org_id}")
 
         time_batches = partition_date_range(start_date, end_date, timedelta(hours=4))
-        consolidated_data = []
+        batch_data = []
 
         for batch_start, batch_end in time_batches:
             query = f"""
@@ -69,9 +69,9 @@ def generate_sent_report_messages(**kwargs):
                     COUNT(msg.id) DESC;
             """
             query_data = fetch_query_results(query)
-            consolidated_data.extend(query_data)
+            batch_data.extend(query_data)
 
-        processed_query_data = process_query_results(consolidated_data)
+        processed_query_data = process_query_results(batch_data)
         file = export_data_to_excel(processed_query_data)
         send_report_file(file_stream=file, file_name="Mensagens Enviadas.xlsx", data=data)
         logger.info(f"Message Reports sent to org {org_id}")
@@ -93,7 +93,6 @@ def partition_date_range(start_date, end_date, delta):
 
 def fetch_query_results(query):
     with connection.cursor() as cursor:
-        cursor.execute("SET application_name = 'flows_nokill';")
         cursor.execute(query)
         data = cursor.fetchall()
     return data
@@ -102,16 +101,15 @@ def fetch_query_results(query):
 def process_query_results(data):
     processed_data = []
     template_dict = {}
-
     for row in data:
         template_name, flow_name, total = row
-
         if template_name not in template_dict:
-            template_dict[template_name] = flow_name
-            processed_data.append((template_name, flow_name, total))
+            template_dict[template_name] = {"flow_name": flow_name, "total": total}
         else:
-            processed_data.append((template_name, flow_name))
+            template_dict[template_name]["total"] += total
 
+    for template_name, data in template_dict.items():
+        processed_data.append((template_name, data["flow_name"], data["total"]))
     return processed_data
 
 
