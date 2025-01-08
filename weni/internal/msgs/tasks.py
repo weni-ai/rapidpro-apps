@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import smtplib
 import logging
+from collections import defaultdict
 
 from celery import shared_task
 
@@ -100,22 +101,15 @@ def fetch_query_results(query):
 
 
 def process_query_results(data):
-    processed_data = []
-    template_flow_dict = {}
-    
+    grouped_data = defaultdict(int)
+
     for row in data:
         template_name, flow_name, total = row
         key = (template_name, flow_name)
-        if key not in template_flow_dict:
-            template_flow_dict[key] = total
-        else:
-            template_flow_dict[key] += total
-    
-    for (template_name, flow_name), total in template_flow_dict.items():
-        processed_data.append((template_name, flow_name, total))
-    
-    return processed_data
+        grouped_data[key] += total
 
+    processed_data = [(template, flow, total) for (template, flow), total in grouped_data.items()]
+    return processed_data
 
 def export_data_to_excel(data):
     workbook = Workbook()
