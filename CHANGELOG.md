@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.15] - 2025-01-17
+- Using batch to avoid database time limit
+
 ## [2.8.14] - 2024-12-26
 - Add retry in connect update project call
 
