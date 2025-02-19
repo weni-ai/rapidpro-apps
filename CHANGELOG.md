@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.8.16] - 2025-02-19
+- Add a parse date to ignore hour in start and end times
+
 ## [2.8.15] - 2025-01-17
 - Using batch to avoid database time limit
 
