@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import smtplib
 import logging
 from collections import defaultdict
+from dateutil import parser
 
 from celery import shared_task
 
@@ -27,8 +28,8 @@ logger = logging.getLogger(__name__)
 def generate_sent_report_messages(**kwargs):
     org_id = kwargs.get("org_id")
     data = kwargs.get("data")
-    start_date = datetime.strptime(data["start_date"], "%Y-%m-%d")
-    end_date = datetime.strptime(data["end_date"], "%Y-%m-%d")
+    start_date = parse_date(data["start_date"])
+    end_date = parse_date(data["end_date"])
 
     logger.info(f"Starting report messages to org {org_id}")
 
@@ -82,6 +83,11 @@ def generate_sent_report_messages(**kwargs):
     finally:
         redis_client.delete(lock_key)
         logger.info(f"Lock released for org {org_id}")
+
+
+def parse_date(date_str):
+    dt = parser.parse(date_str)
+    return datetime(dt.year, dt.month, dt.day)
 
 
 def partition_date_range(start_date, end_date, delta):
