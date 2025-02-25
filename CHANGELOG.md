@@ -1,5 +1,26 @@
 ## [Unreleased]
 
+## [2.8.16] - 2025-02-19
+- Add a parse date to ignore hour in start and end times
+
+## [2.8.15] - 2025-01-17
+- Using batch to avoid database time limit
+
+## [2.8.14] - 2024-12-26
+- Add retry in connect update project call
+
+## [2.8.13] - 2024-12-17
+- Set application name in generate report msgs query
+
+## [2.8.12] - 2024-11-21
+- Use template field in generate report messages task
+
+## [2.8.11] - 2024-11-13
+- Fix bug in build image
+
+## [2.8.10] - 2024-11-13
+- Add project_uuid filter in TicketerQueueViewSet
+
 ## [2.8.9] - 2024-09-19
 - Add vtex adds in update-vtex endpoint
 
