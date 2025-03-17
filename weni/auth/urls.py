@@ -12,17 +12,17 @@ urlpatterns = [
     url(r"^oidc/", include("mozilla_django_oidc.urls")),
     path("check-user-legacy/<str:email>/", check_user_legacy, name="check-user-legacy"),
     path(
-        "weni/<uuid:organization>/authenticate",
+        "weni/<uuid:project>/authenticate",
         WeniAuthenticationRequestView.as_view(),
         name="weni-authenticate",
     ),
     path(
-        "weni/<uuid:organization>/flow/<uuid:uuid>/editor",
+        "weni/<uuid:project>/flow/<uuid:uuid>/editor",
         FlowEditorRedirectView.as_view(),
         name="weni-flow-editor",
     ),
     path(
-        "weni/<uuid:organization>/config",
+        "weni/<uuid:project>/config",
         OrgHomeRedirectView.as_view(),
         name="weni-org-home",
     ),
