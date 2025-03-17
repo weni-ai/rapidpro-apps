@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.9.0] - 2025-03-17
+- Change org to project in session
+- Change OIDC authentication to use access token verification
+
 ## [2.8.16] - 2025-02-19
 - Add a parse date to ignore hour in start and end times
 
