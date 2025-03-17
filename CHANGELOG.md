@@ -1,5 +1,67 @@
 ## [Unreleased]
 
+## [2.8.16] - 2025-02-19
+- Add a parse date to ignore hour in start and end times
+
+## [2.8.15] - 2025-01-17
+- Using batch to avoid database time limit
+
+## [2.8.14] - 2024-12-26
+- Add retry in connect update project call
+
+## [2.8.13] - 2024-12-17
+- Set application name in generate report msgs query
+
+## [2.8.12] - 2024-11-21
+- Use template field in generate report messages task
+
+## [2.8.11] - 2024-11-13
+- Fix bug in build image
+
+## [2.8.10] - 2024-11-13
+- Add project_uuid filter in TicketerQueueViewSet
+
+## [2.8.9] - 2024-09-19
+- Add vtex adds in update-vtex endpoint
+
+## [2.8.8] - 2024-09-11
+- Add client UTC to the template message report
+
+## [2.8.7] - 2024-07-22
+- Fix build error
+
+## [2.8.6] - 2024-07-16
+- Fix error returning value in create globals_retail
+
+## [2.8.5] - 2024-07-15
+- Add delete endpoint in GlobalViewSet and new GlobalRetailGlobalViewSet
+
+## [2.8.4] - 2024-05-21
+- Fix: Adjust user token filters
+
+## [2.8.3] - 2024-05-16
+- Update project model to save project_uuid in org model
+
+## [2.8.2] - 2024-04-10
+- Update recent activities to avoid flows tests errors
+
+## [2.8.1] - 2024-04-10
+- Endpoint to list flows with pagination
+- Add option to send delete in flow activity
+
+## [2.8.0] - 2024-03-27
+- Change recent activities to EDA
+- Endpoint to delete chats sector
+
+## [2.7.11] - 2024-03-13
+- Remove update user in WeniOIDC
+
+## [2.7.10] - 2024-03-12
+- Remove analytics flows call
+
+## [2.7.9] - 2024-02-02
+- Endpoint to update project config with has_vtex key
+
 ## [2.7.8] - 2023-09-28
 - Create user permission in project on creating WhatsApp(WA) Channel
 

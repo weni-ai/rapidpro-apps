@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -41,9 +42,22 @@ class UserViewSet(InternalGenericViewSet):
         project = serializer.validated_data.get("project")
 
         try:
-            api_token = APIToken.objects.get(user=user, org=project.org)
-        except APIToken.DoesNotExist:
-            raise exceptions.PermissionDenied()
+            group_prometheus = Group.objects.get(name="Prometheus")
+        except Group.DoesNotExist:
+            raise exceptions.PermissionDenied("Group 'Prometheus' does not exist.")
+
+        api_tokens = APIToken.objects.filter(
+            is_active=True, user=user, org=project.org
+        ).exclude(role=group_prometheus)
+
+        if api_tokens.count() == 0:
+            raise exceptions.PermissionDenied("No active API token found for the user.")
+        elif api_tokens.count() > 1:
+            raise exceptions.PermissionDenied(
+                "Multiple active API tokens found for the user."
+            )
+
+        api_token = api_tokens.first()
 
         return Response(
             dict(
@@ -148,7 +162,9 @@ class UserEndpoint(InternalGenericViewSet, mixins.RetrieveModelMixin):
     def partial_update(self, request):
         instance = get_object_or_404(User, email=request.query_params.get("email"))
 
-        if request.data.get("language") not in [language[0] for language in settings.LANGUAGES]:
+        if request.data.get("language") not in [
+            language[0] for language in settings.LANGUAGES
+        ]:
             raise ValidationError("Invalid argument: language")
 
         user_settings = instance.get_settings()

@@ -8,8 +8,10 @@ User = get_user_model()
 
 class FlowSerializer(serializers.Serializer):
     project = weni_fields.ProjectUUIDRelatedField(required=True, write_only=True)
-    sample_flow = serializers.JSONField(write_only=True)
+    flow_name = serializers.CharField(required=False, write_only=True)
+    sample_flow = serializers.JSONField(required=False, write_only=True)
     uuid = serializers.UUIDField(read_only=True)
+    name = serializers.CharField(read_only=True)
 
     class Meta:
         fields = ("project", "uuid", "sample_flow")

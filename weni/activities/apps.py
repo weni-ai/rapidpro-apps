@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.conf import settings
 
 
 class ActivitiesConfig(AppConfig):
@@ -6,4 +7,5 @@ class ActivitiesConfig(AppConfig):
     name = "weni.activities"
 
     def ready(self) -> None:
-        from weni.activities import signals  # noqa: F401
+        if not settings.TESTING:
+            from weni.activities import signals  # noqa: F401
