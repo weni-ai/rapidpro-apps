@@ -16,7 +16,7 @@ class TicketerConfigSerializer(serializers.Serializer):
 
 class TicketerSerializer(serializers.ModelSerializer):
     org = weni_serializers.OrgUUIDRelatedField(required=True)
-    config = TicketerConfigSerializer(required=True)
+    config = serializers.DictField(required=True)
 
     class Meta:
         model = Ticketer
