@@ -16,7 +16,7 @@ class TicketerConfigSerializer(serializers.Serializer):
 
 class TicketerSerializer(serializers.ModelSerializer):
     org = weni_serializers.OrgUUIDRelatedField(required=True)
-    config = TicketerConfigSerializer(required=True)
+    config = serializers.DictField(required=True)
 
     class Meta:
         model = Ticketer
@@ -30,6 +30,17 @@ class TicketerSerializer(serializers.ModelSerializer):
         validated_data["modified_by"] = user
 
         return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        user = self.context["request"].user
+
+        instance.modified_by = user
+
+        if "config" in validated_data:
+            instance.config.update(validated_data["config"])
+            validated_data["config"] = instance.config
+
+        return super().update(instance, validated_data)
 
 
 class TicketerQueueSerializer(serializers.ModelSerializer):
