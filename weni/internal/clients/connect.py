@@ -28,3 +28,17 @@ class ConnectInternalClient(BaseInternalClient):
         )
 
         return response
+
+    @retry_on_exception()
+    def update_project(self, project: Project):
+        body = dict(
+            flow_organization=str(project.uuid),
+            flow_id=project.id,
+        )
+        response = requests.patch(
+            self.get_url(f"/v2/internals/connect/projects/{project.project_uuid}"),
+            headers=self.authenticator.headers,
+            json=body,
+        )
+
+        return response
