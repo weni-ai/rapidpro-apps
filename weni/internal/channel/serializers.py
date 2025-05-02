@@ -15,6 +15,7 @@ from weni.serializers import fields as weni_serializers
 from temba.channels.models import Channel
 from temba.utils import analytics
 from weni.internal.models import Project
+from weni.success_orgs.business import user_has_org_permission
 
 
 class ChannelWACSerializer(serializers.Serializer):
@@ -118,6 +119,9 @@ class CreateChannelSerializer(serializers.Serializer):
         middleware = SessionMiddleware()
         middleware.process_request(request)
         request.session.save()
+
+        if not user_has_org_permission(user, org):
+            org.administrators.add(user)
 
         user._org = org
         request.user = user
