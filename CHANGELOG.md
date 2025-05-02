@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.9.2] - 2025-05-02
+- Remove weni protobuffers
+- Add permission to user in org when create a channel
+
 ## [2.9.1] - 2025-03-27
 - Remove config validation in TicketerSerializer
 
