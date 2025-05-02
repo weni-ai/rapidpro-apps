@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.9.1] - 2025-03-27
+- Remove config validation in TicketerSerializer
+
 ## [2.9.0] - 2025-03-17
 - Change org to project in session
 - Change OIDC authentication to use access token verification
