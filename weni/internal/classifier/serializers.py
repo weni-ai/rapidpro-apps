@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from temba.classifiers.models import Classifier
-from weni.protobuf.flows import classifier_pb2
 from weni.grpc.core import serializers as weni_serializers
 
 
@@ -28,7 +27,6 @@ class ClassifierSerializer(serializers.Serializer):
 
     class Meta:
         model = Classifier
-        proto_class = classifier_pb2.Classifier
         fields = [
             "uuid",
             "is_active",
