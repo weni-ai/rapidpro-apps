@@ -41,8 +41,23 @@ class TicketerQueuesTest(TembaTest, RequestMixin):
             uuid=self.fake_chats_uuid,
             ticketer=self.ticketer,
         )
+        self.inactive_queue = TicketerQueue.objects.create(
+            created_by=self.user,
+            modified_by=self.user,
+            org=self.org,
+            name="Inactive Queue",
+            uuid=uuid4(),
+            ticketer=self.ticketer,
+            is_active=False,
+        )
 
     def test_ticketer_queues_endpoint(self):
         response = self.get_response(ticketer_uuid=self.ticketer.uuid)
         topic = Topic.objects.get(queue=self.queue)
         self.assertEqual(topic.name, response.json()[0]["name"])
+
+    def test_ticketer_queues_endpoint_with_inactive_queue(self):
+        response = self.get_response(ticketer_uuid=self.ticketer.uuid)
+        # should not include inactive queue
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(response.json()[0]["name"], self.queue.name)
