@@ -16,7 +16,7 @@ from weni.internal.users.urls import urlpatterns as users_urls
 from weni.internal.tickets.urls import urlpatterns as tickets_urls
 from weni.internal.classifier.urls import urlpatterns as classifier_urls
 from weni.internal.channel.urls import urlpatterns as channel_urls
-from weni.internal.statistic.urls import urlpatterns as statistics_urls
+# from weni.internal.statistic.urls import urlpatterns as statistics_urls
 from weni.internal.globals.urls import urlpatterns as globals_urls
 from weni.internal.externals.urls import urlpatterns as externals_urls
 from weni.internal.msgs.urls import urlpatterns as messages_urls
@@ -29,7 +29,7 @@ internal_urlpatterns += users_urls
 internal_urlpatterns += tickets_urls
 internal_urlpatterns += classifier_urls
 internal_urlpatterns += channel_urls
-internal_urlpatterns += statistics_urls
+# internal_urlpatterns += statistics_urls
 internal_urlpatterns += globals_urls
 internal_urlpatterns += externals_urls
 internal_urlpatterns += messages_urls
