@@ -1,8 +1,8 @@
-from rest_framework import routers
+# from rest_framework import routers
 
-from .views import StatisticEndpoint
+# from .views import StatisticEndpoint
 
-router = routers.DefaultRouter()
-router.register(r"statistic", StatisticEndpoint, basename="statistic")
+# router = routers.DefaultRouter()
+# router.register(r"statistic", StatisticEndpoint, basename="statistic")
 
-urlpatterns = router.urls
+# urlpatterns = router.urls
