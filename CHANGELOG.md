@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.9.3] - 2025-05-22
+- Set TPS in WAC creation
+- Disable statistic endpoint
+
 ## [2.9.2] - 2025-05-02
 - Remove weni protobuffers
 - Add permission to user in org when create a channel
