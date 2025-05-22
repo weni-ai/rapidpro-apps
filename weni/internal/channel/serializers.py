@@ -67,6 +67,7 @@ class ChannelWACSerializer(serializers.Serializer):
             schemes=schemes,
             created_by=user,
             modified_by=user,
+            tps=80,
         )
 
         analytics.track(user, "temba.channel_created", dict(channel_type=channel_type.code))
