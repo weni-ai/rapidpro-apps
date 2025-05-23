@@ -60,7 +60,8 @@ class WeniAuthenticationRequestView(OIDCAuthenticationRequestView):
         if request.user.is_authenticated:
             return self.login_success(request)
         else:
-            access_token = request.GET.get("access_token")
+            # get access token from headers Authorization: <token value>
+            access_token = request.headers.get("Authorization")
             if not self.verify_access_token(access_token):
                 return self.login_failure()
 
