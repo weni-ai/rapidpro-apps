@@ -58,12 +58,18 @@ class WeniAuthenticationRequestView(OIDCAuthenticationRequestView):
     @org_choose
     def get(self, request):
         if request.user.is_authenticated:
+            print("Already authenticated ✅")
             return self.login_success(request)
         else:
-            access_token = request.GET.get("access_token")
+            print("Not authenticated ❌", request.headers)
+            # get access token from headers Authorization: <token value>
+            access_token = request.headers.get("Authorization")
+            print("Access token ✅", access_token)
             if not self.verify_access_token(access_token):
+                print("Access token not valid ❌")
                 return self.login_failure()
 
+            print("Login with access token ✅")
             return self.login_with_access_token(request, access_token)
 
     def login_success(self, request):
@@ -86,29 +92,36 @@ class WeniAuthenticationRequestView(OIDCAuthenticationRequestView):
         )
 
         if response.status_code != 200:
+            print("Introspect failed ❌", response.status_code, response.json())
             return False
 
+        print("Introspect response ✅", response.json())
         return response.json().get("active", False)
 
     def login_with_access_token(self, request, access_token):
         headers = {
             "Authorization": f"Bearer {access_token}",
         }
+        print("User info endpoint ✅", settings.OIDC_OP_USER_ENDPOINT)
         response = requests.get(
             url=f"{settings.OIDC_OP_USER_ENDPOINT}",
             headers=headers,
         )
 
         if response.status_code != 200:
+            print("User info not found ❌", response.status_code, response.json())
             return self.login_failure()
 
         user_info = response.json()
+        print("User info ✅", user_info)
         user = User.objects.filter(email=user_info.get("email")).first()
         if not user:
+            print("User not found ❌", user_info.get("email"))
             return self.login_failure()
 
         auth.login(request, user, "weni.auth.backends.WeniOIDCAuthenticationBackend")
 
+        print("Login success ✅")
         return self.login_success(request)
 
 
