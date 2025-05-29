@@ -6,6 +6,7 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.contrib.messages.middleware import MessageMiddleware
 from django.shortcuts import get_object_or_404
 from django.test import RequestFactory
+from django.conf import settings
 
 from rest_framework import serializers
 from rest_framework import exceptions
@@ -33,6 +34,9 @@ class ChannelWACSerializer(serializers.Serializer):
         fields = ("user", "org", "phone_number_id", "uuid", "name", "address", "config")
 
     def validate_phone_number_id(self, value):
+        if str(value) == str(settings.ROUTER_PHONE_NUMBER_ID):
+            return value
+
         if Channel.objects.filter(is_active=True, address=value).exists():
             raise serializers.ValidationError(
                 {
