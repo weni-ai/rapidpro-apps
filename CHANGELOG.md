@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.9.4] - 2025-05-30
+- Allow multiple WAC routers
+
 ## [2.9.3] - 2025-05-22
 - Set TPS in WAC creation
 - Disable statistic endpoint
