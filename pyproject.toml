@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "weni-rp-apps"
-version = "2.9.4a3"
+version = "2.9.4"
 description = "Weni apps for Rapidpro Platform"
 authors = ["jcbalmeida"]
 license = "AGPL-3.0"

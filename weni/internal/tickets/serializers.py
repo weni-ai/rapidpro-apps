@@ -15,16 +15,24 @@ class TicketerConfigSerializer(serializers.Serializer):
 
 
 class TicketerSerializer(serializers.ModelSerializer):
-    org = weni_serializers.OrgUUIDRelatedField(required=True)
+    project = weni_serializers.ProjectUUIDRelatedField(write_only=True, required=True)
     config = serializers.DictField(required=True)
 
     class Meta:
         model = Ticketer
-        fields = ("uuid", "org", "ticketer_type", "name", "config")
+        fields = ("uuid", "project", "ticketer_type", "name", "config")
         read_only_fields = ("uuid",)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret["project"] = str(instance.org.proj_uuid) if instance.org else None
+        return ret
 
     def create(self, validated_data):
         user = self.context["request"].user
+        org = validated_data.pop("project")
+        
+        validated_data["org"] = org
 
         validated_data["created_by"] = user
         validated_data["modified_by"] = user
@@ -33,6 +41,9 @@ class TicketerSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         user = self.context["request"].user
+
+        if "project" in validated_data:
+            instance.org = validated_data.pop("project")
 
         instance.modified_by = user
 
