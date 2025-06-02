@@ -3,6 +3,7 @@ import json
 from django_grpc_framework import proto_serializers
 from rest_framework import serializers
 from django.core.validators import URLValidator
+from django.conf import settings
 
 from temba.channels.models import Channel
 from temba.utils.fields import validate_external_url
@@ -76,6 +77,9 @@ class ChannelWACSerializer(proto_serializers.ModelProtoSerializer):
         fields = ("user", "org", "phone_number_id", "uuid", "name", "address", "config")
 
     def validate_phone_number_id(self, value):
+        if str(value) == str(settings.ROUTER_PHONE_NUMBER_ID):
+            return value
+
         if Channel.objects.filter(is_active=True, address=value).exists():
             raise serializers.ValidationError("a Channel with that 'phone_number_id' alredy exists")
         return value
