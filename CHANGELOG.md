@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.10.0] - 2025-06-05
+- Change Org related uuid to Project Related uuid in Ticketer creation
+
 ## [2.9.4] - 2025-05-30
 - Allow multiple WAC routers
 
