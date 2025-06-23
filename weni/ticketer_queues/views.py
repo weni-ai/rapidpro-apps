@@ -22,7 +22,10 @@ class TicketerQueuesEndpoint(APIView):
         if ticketer_uuid is None:
             raise ValidationError("ticketer_uuid is required")
 
-        queues = TicketerQueue.objects.filter(ticketer__uuid=ticketer_uuid)
+        queues = TicketerQueue.objects.filter(
+            ticketer__uuid=ticketer_uuid,
+            is_active=True,
+        )
 
         serializer = TicketerQueueSerializer(queues, many=True)
         return Response(serializer.data)
