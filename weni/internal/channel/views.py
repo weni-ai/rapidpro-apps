@@ -11,6 +11,7 @@ from rest_framework import exceptions as drf_exceptions
 from rest_framework import viewsets
 from rest_framework import status
 
+from weni.internal.channel.publisher import publish_channel_event
 from weni.internal.views import InternalGenericViewSet
 from django.conf import settings
 
@@ -86,7 +87,9 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
             )
 
         serializer.save()
-
+        
+        channel_instance = Channel.objects.get(uuid=serializer.data["uuid"])
+        publish_channel_event(channel_instance, action="CREATE")
         return JsonResponse(data=serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, uuid=None):
@@ -94,6 +97,7 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         user = get_object_or_404(User, email=request.query_params.get("user"))
 
         channel.release(user)
+        publish_channel_event(channel, action="DELETE")
 
         return Response(status=status.HTTP_200_OK)
 
@@ -107,7 +111,8 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
             )
 
         serializer.save()
-
+        channel_instance = Channel.objects.get(uuid=serializer.data["uuid"])
+        publish_channel_event(channel_instance, action="CREATE")
         return JsonResponse(data=serializer.data, status=status.HTTP_200_OK)
 
 
