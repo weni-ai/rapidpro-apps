@@ -62,5 +62,7 @@ class TicketerQueueSerializer(serializers.ModelSerializer):
         fields = ("uuid", "name")
     
     def validate(self, attrs):
-        attrs["queue_uuid"] = attrs.pop("uuid")
+        if "uuid" in attrs:
+            attrs["queue_uuid"] = attrs.pop("uuid")
+
         return attrs
