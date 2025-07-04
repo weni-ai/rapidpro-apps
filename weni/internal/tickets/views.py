@@ -51,7 +51,7 @@ class TicketerQueueViewSet(
 ):
     serializer_class = TicketerQueueSerializer
     queryset = TicketerQueue.objects
-    lookup_field = "uuid"
+    lookup_field = "queue_uuid"
 
     @property
     def _ticketer(self):
