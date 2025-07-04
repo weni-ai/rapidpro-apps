@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.10.1] - 2025-07-04
+- Fix lookup field in ticketer queue view
+
 ## [2.10.0] - 2025-06-05
 - Change Org related uuid to Project Related uuid in Ticketer creation
 
