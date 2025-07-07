@@ -10,7 +10,7 @@ def publish_channel_event(channel: Channel, action: str):
         body=dict(
             action=action,
             uuid=channel.uuid,
-            project_uuid=channel.org.proj_uuid,
+            project_uuid=str(channel.org.proj_uuid),
             channel_type=channel.channel_type,
             waba=channel.config.get("waba", None) if channel.channel_type == "WAC" else None,
             phone_number=channel.config.get("phone_number", None) if channel.channel_type == "WAC" else None,
