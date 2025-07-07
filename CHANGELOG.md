@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.10.2] - 2025-07-07
+- Publisher to channel event
+
 ## [2.10.1] - 2025-07-04
 - Fix lookup field in ticketer queue view
 
