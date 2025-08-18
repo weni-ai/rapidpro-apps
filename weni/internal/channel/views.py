@@ -1,5 +1,6 @@
 import inspect
 
+from django.db.models import Q
 from django.core import exceptions as django_exceptions
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -45,7 +46,7 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
             queryset = queryset.filter(org__project__project_uuid=org)
 
         if exclude_wpp_demo:
-            queryset = queryset.exclude(address="+558231420933")
+            queryset = queryset.exclude(Q(address="+558231420933") | Q(config__contains='"router_token"'))
 
         return queryset
 
