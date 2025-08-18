@@ -14,6 +14,7 @@ def publish_channel_event(channel: Channel, action: str):
             channel_type=channel.channel_type,
             waba=channel.config.get("wa_waba_id", None) if channel.channel_type == "WAC" else None,
             phone_number=channel.config.get("wa_number", None) if channel.channel_type == "WAC" else None,
+            is_demo=True if channel.channel_type == "WAC" and channel.config.get("router_token", None) else False,
         ),
         exchange="channel-events.topic",
         routing_key="",
