@@ -1,7 +1,7 @@
 ## [Unreleased]
 
-## [2.10.3] - 2025-08-15
-- Fix error in channel publisher keys
+## [2.10.3] - 2025-08-19
+- Change channel events publisher to send is_demo and filter in list channels API
 
 ## [2.10.2] - 2025-07-07
 - Publisher to channel event
