@@ -152,6 +152,7 @@ class ChannelSerializer(serializers.ModelSerializer):
             "address",
             "org",
             "is_active",
+            "channel_type",
         )
 
     def to_representation(self, instance):
