@@ -107,9 +107,9 @@ class CreateChannelSerializer(serializers.Serializer):
 
         if url is None:
             if form_errors:
-                # Surface the exact validation errors returned by the claim form
-                raise exceptions.ValidationError(form_errors)
-            raise exceptions.ValidationError("Url not created")
+                # Surface the exact validation errors returned by the claim form in a standardized envelope
+                raise exceptions.ValidationError({"errors": form_errors})
+            raise exceptions.ValidationError({"errors": {"non_field_errors": ["Url not created"]}})
 
         if "/users/login/?next=" in url:
             raise exceptions.ValidationError({"permission": [f"User {user.email} is not allowed to create channel in org {org.org.uuid}"]})
@@ -183,6 +183,10 @@ class CreateChannelSerializer(serializers.Serializer):
                         errors_dict[field_name] = messages
         except Exception:
             return None
+
+        # Normalize common non-field error key from Django forms
+        if "__all__" in errors_dict:
+            errors_dict["non_field_errors"] = errors_dict.pop("__all__")
 
         return errors_dict or None
 
