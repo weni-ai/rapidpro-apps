@@ -15,7 +15,6 @@ from rest_framework.permissions import IsAuthenticated
 
 from weni.internal.channel.publisher import publish_channel_event
 from weni.internal.views import InternalGenericViewSet
-from weni.internal.permissions import CanCreateChannel
 from django.conf import settings
 
 from temba.channels.models import Channel
