@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.10.5] - 2025-10-13
+- Add returning detailed error from flows and add possibility to create channel without been internal
+
 ## [2.10.4] - 2025-08-26
 - Add channel_type in ChannelSerializer
 
