@@ -11,6 +11,7 @@ from rest_framework.decorators import action
 from rest_framework import exceptions as drf_exceptions
 from rest_framework import viewsets
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 
 from weni.internal.channel.publisher import publish_channel_event
 from weni.internal.views import InternalGenericViewSet
@@ -32,6 +33,12 @@ User = get_user_model()
 class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
     serializer_class = ChannelSerializer
     lookup_field = "uuid"
+
+    def get_permissions(self):
+        # Allow any authenticated user to reach create; enforce internal/org perms below
+        if self.action == "create":
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     def get_queryset(self):
         channel_type = self.request.query_params.get("channel_type")
@@ -77,10 +84,20 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         except (django_exceptions.ValidationError, User.DoesNotExist) as error:
             raise drf_exceptions.ValidationError(error)
 
-        if user == project.created_by and user not in project.administrators.all():
-            project.administrators.add(user)
+        # If caller isn't internal, enforce org permission channels.channel_claim for the acting user
+        is_internal = request.user.user_permissions.filter(codename="can_communicate_internally").exists()
+        if not is_internal:
+            # authenticated user must match payload user
+            if request.user.email != user.email:
+                return JsonResponse({"permission": ["Authenticated user must match payload user"]}, status=status.HTTP_403_FORBIDDEN)
 
-        serializer = CreateChannelSerializer(data=request.data)
+            # must have org-level permission to claim/create channels (admin or editor)
+            if not request.user.has_org_perm(project.org, "channels.channel_claim"):
+                return JsonResponse({"permission": ["User lacks channels.channel_claim on this org"]}, status=status.HTTP_403_FORBIDDEN)
+
+        # Do not auto-elevate user roles here; authorization is enforced via permissions
+
+        serializer = CreateChannelSerializer(data=request.data, context={"request": request})
 
         if not serializer.is_valid():
             return JsonResponse(
