@@ -164,6 +164,7 @@ class OrgViewSet(viewsets.ModelViewSet, InternalGenericViewSet):
         elif request.method == "DELETE":
             if "has_vtex" in project.config:
                 del project.config["has_vtex"]
+            if "vtex_ads" in project.config:
                 del project.config["vtex_ads"]
-                project.save(update_fields=["config"])
+            project.save(update_fields=["config"])
             return Response(status=status.HTTP_204_NO_CONTENT)
