@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.10.6] - 2025-10-16
+- Add validation to avoid vtex_ads delete error
+
 ## [2.10.5] - 2025-10-13
 - Add returning detailed error from flows and add possibility to create channel without been internal
 
