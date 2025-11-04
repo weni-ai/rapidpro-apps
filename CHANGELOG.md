@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.10.7] - 2025-11-04
+- Add create APIToken when not found
+
 ## [2.10.6] - 2025-10-16
 - Add validation to avoid vtex_ads delete error
 
