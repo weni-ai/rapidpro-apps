@@ -53,8 +53,7 @@ class UserViewSet(InternalGenericViewSet):
         ).exclude(role=group_prometheus)
 
         if api_tokens.count() == 0:
-            role = APIToken.get_default_role(project.org, user)
-            new_api_token = APIToken.get_or_create(org=project.org, user=user, role=role)
+            new_api_token = APIToken.get_or_create(org=project.org, user=user)
         elif api_tokens.count() > 1:
             raise exceptions.PermissionDenied(
                 "Multiple active API tokens found for the user."
