@@ -45,19 +45,22 @@ class UserViewSet(InternalGenericViewSet):
             group_prometheus = Group.objects.get(name="Prometheus")
         except Group.DoesNotExist:
             raise exceptions.PermissionDenied("Group 'Prometheus' does not exist.")
+        
+        new_api_token = None
 
         api_tokens = APIToken.objects.filter(
             is_active=True, user=user, org=project.org
         ).exclude(role=group_prometheus)
 
         if api_tokens.count() == 0:
-            raise exceptions.PermissionDenied("No active API token found for the user.")
+            role = APIToken.get_default_role(project.org, user)
+            new_api_token = APIToken.get_or_create(org=project.org, user=user, role=role)
         elif api_tokens.count() > 1:
             raise exceptions.PermissionDenied(
                 "Multiple active API tokens found for the user."
             )
 
-        api_token = api_tokens.first()
+        api_token = new_api_token if new_api_token else api_tokens.first()
 
         return Response(
             dict(
