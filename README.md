@@ -18,6 +18,13 @@ $ pre-commit install
 
 <br>
 
+## Running (important)
+This repository is **not a standalone Django project** (there is no `manage.py` here). It provides Django apps meant to be installed into a **RapidPro** instance (or another Django project).
+
+To test it running, you should run **RapidPro's** `manage.py` after installing this package into the same virtualenv.
+
+<br>
+
 ## Install using pip
 <details>
 <summary>Click to expand</summary><br>
