@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.10.8] - 2026-01-12
+- Updating dependencies
+
 ## [2.10.7] - 2025-11-04
 - Add create APIToken when not found
 
