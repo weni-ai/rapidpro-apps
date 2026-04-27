@@ -12,7 +12,7 @@ from weni.activities.recent_activities import create_recent_activity
 @receiver(post_save, sender=Channel)
 def channel_recent_activity_signal(sender, instance: Channel, created: bool, **kwargs):
     update_fields = kwargs.get("update_fields")
-    if instance.channel_type not in ["WA", "WAC"] or update_fields != frozenset(
+    if instance.channel_type not in ["WA", "WAC", "TM"] or update_fields != frozenset(
         {
             "config",
         },

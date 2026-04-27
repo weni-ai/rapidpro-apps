@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.10.9] - 2026-04-27
+- Not send recent activities in Teams token update
+
 ## [2.10.8] - 2026-01-12
 - Updating dependencies
 
