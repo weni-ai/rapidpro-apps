@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [2.10.9] - 2026-04-27
+- Not send recent activities in Teams token update
+
+## [2.10.8] - 2026-01-12
+- Updating dependencies
+
+## [2.10.7] - 2025-11-04
+- Add create APIToken when not found
+
 ## [2.10.6] - 2025-10-16
 - Add validation to avoid vtex_ads delete error
 
