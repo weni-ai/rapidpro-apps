@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.11.0] - 2026-07-02
+- Add queue porpuse field in TicketerQueue model
+
 ## [2.10.9] - 2026-04-27
 - Not send recent activities in Teams token update
 
