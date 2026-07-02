@@ -56,10 +56,16 @@ class TicketerSerializer(serializers.ModelSerializer):
 
 class TicketerQueueSerializer(serializers.ModelSerializer):
     uuid = serializers.UUIDField(required=True)
+    queue_purpose = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=TicketerQueue.MAX_QUEUE_PURPOSE_LEN,
+    )
 
     class Meta:
         model = TicketerQueue
-        fields = ("uuid", "name")
+        fields = ("uuid", "name", "queue_purpose")
     
     def validate(self, attrs):
         if "uuid" in attrs:

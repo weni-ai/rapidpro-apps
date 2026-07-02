@@ -7,12 +7,15 @@ from temba.orgs.models import Org
 
 
 class TicketerQueue(Topic):
+    MAX_QUEUE_PURPOSE_LEN = 1000
+
     topic = models.OneToOneField(
         Topic, on_delete=models.CASCADE, parent_link=True, related_name="queue"
     )
     ticketer = models.ForeignKey(
         Ticketer, on_delete=models.CASCADE, related_name="queues"
     )
+    queue_purpose = models.TextField(blank=True, null=True, max_length=MAX_QUEUE_PURPOSE_LEN)
 
     class Meta:
         db_table = "internal_tickets_ticketerqueue"

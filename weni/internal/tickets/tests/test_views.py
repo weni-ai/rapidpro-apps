@@ -25,6 +25,8 @@ class TicketerQueueViewTestMixin(object):
         super().setUp()
 
         self.ticketer = Ticketer.create(self.org, self.user, RocketChatType.slug, "Email (bob@acme.com)", {})
+        self.ticketer.config = {"sector_uuid": str(self.ticketer.uuid)}
+        self.ticketer.save(update_fields=("config",))
         self.queue = TicketerQueue.objects.create(
             created_by=self.user,
             modified_by=self.user,
@@ -54,8 +56,13 @@ class CreateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
         kwargs = dict(ticketer_uuid=str(self.ticketer.uuid))
 
         url = reverse("ticketer-queues-list", kwargs=kwargs)
-        self.request("post", url, data={"uuid": uuid, "name": "123"}, **kwargs)
-        self.assertTrue(self.ticketer.queues.filter(uuid=uuid).exists())
+        self.request(
+            "post",
+            url,
+            data={"uuid": uuid, "name": "123", "project_uuid": str(self.org.proj_uuid)},
+            **kwargs,
+        )
+        self.assertTrue(self.ticketer.queues.filter(queue_uuid=uuid).exists())
 
 
 class UpdateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
@@ -73,6 +80,33 @@ class UpdateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
 
         self.assertEqual(self.queue.name, new_name)
         self.assertNotEqual(self.queue.name, old_name)
+
+    def test_update_queue_purpose(self):
+        kwargs = dict(ticketer_uuid=str(self.ticketer.uuid), uuid=str(self.queue.queue_uuid))
+        url = reverse("ticketer-queues-detail", kwargs=kwargs)
+        purpose = "Conversations related to billing and invoices"
+
+        self.request("patch", url, data={"queue_purpose": purpose}, **kwargs)
+        self.queue.refresh_from_db()
+
+        self.assertEqual(self.queue.queue_purpose, purpose)
+
+    def test_create_queue_with_purpose(self):
+        uuid = str(uuid4())
+        kwargs = dict(ticketer_uuid=str(self.ticketer.uuid))
+        purpose = "Conversations related to payment issues"
+
+        url = reverse("ticketer-queues-list", kwargs=kwargs)
+        self.request(
+            "post",
+            url,
+            data={"uuid": uuid, "name": "Payments", "queue_purpose": purpose, "project_uuid": str(self.org.proj_uuid)},
+            **kwargs,
+        )
+
+        queue = self.ticketer.queues.get(queue_uuid=uuid)
+        self.assertEqual(queue.name, "Payments")
+        self.assertEqual(queue.queue_purpose, purpose)
 
 
 class DestroyTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
