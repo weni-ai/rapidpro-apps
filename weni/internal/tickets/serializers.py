@@ -55,7 +55,7 @@ class TicketerSerializer(serializers.ModelSerializer):
 
 
 class TicketerQueueSerializer(serializers.ModelSerializer):
-    uuid = serializers.UUIDField(required=True)
+    uuid = serializers.UUIDField(required=False)
     queue_purpose = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -66,9 +66,38 @@ class TicketerQueueSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketerQueue
         fields = ("uuid", "name", "queue_purpose")
-    
+
+    def get_extra_kwargs(self):
+        extra_kwargs = super().get_extra_kwargs()
+        if self.instance is None:
+            extra_kwargs.setdefault("uuid", {})
+            extra_kwargs["uuid"]["required"] = True
+        return extra_kwargs
+
     def validate(self, attrs):
         if "uuid" in attrs:
             attrs["queue_uuid"] = attrs.pop("uuid")
 
         return attrs
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["uuid"] = str(instance.queue_uuid)
+        return data
+
+    def create(self, validated_data):
+        if "queue_uuid" not in validated_data:
+            raise serializers.ValidationError({"uuid": "This field is required."})
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop("queue_uuid", None)
+        queue_purpose = validated_data.pop("queue_purpose", serializers.empty)
+
+        instance = super().update(instance, validated_data)
+
+        if queue_purpose is not serializers.empty:
+            TicketerQueue.objects.filter(pk=instance.pk).update(queue_purpose=queue_purpose)
+            instance.queue_purpose = queue_purpose
+
+        return instance

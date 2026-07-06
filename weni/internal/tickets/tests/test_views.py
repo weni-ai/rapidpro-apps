@@ -68,28 +68,97 @@ class CreateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
 class UpdateTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
     action = dict(patch="partial_update")
 
+    def _detail_kwargs(self, queue_uuid=None):
+        return dict(
+            ticketer_uuid=str(self.ticketer.uuid),
+            queue_uuid=str(queue_uuid or self.queue.queue_uuid),
+        )
+
     def test_update_queue(self):
-        kwargs = dict(ticketer_uuid=str(self.ticketer.uuid), uuid=str(self.queue.uuid))
+        kwargs = self._detail_kwargs(self.queue.queue_uuid)
         url = reverse("ticketer-queues-detail", kwargs=kwargs)
 
         old_name = self.queue.name
         new_name = "Fake Name 2"
 
-        self.request("patch", url, data={"name": new_name}, **kwargs)
+        self.request(
+            "patch",
+            url,
+            data={"name": new_name, "project_uuid": str(self.org.proj_uuid)},
+            **kwargs,
+        )
         self.queue.refresh_from_db()
 
         self.assertEqual(self.queue.name, new_name)
         self.assertNotEqual(self.queue.name, old_name)
 
     def test_update_queue_purpose(self):
-        kwargs = dict(ticketer_uuid=str(self.ticketer.uuid), uuid=str(self.queue.queue_uuid))
+        kwargs = self._detail_kwargs()
         url = reverse("ticketer-queues-detail", kwargs=kwargs)
         purpose = "Conversations related to billing and invoices"
 
-        self.request("patch", url, data={"queue_purpose": purpose}, **kwargs)
+        response = self.request(
+            "patch",
+            url,
+            data={"queue_purpose": purpose, "project_uuid": str(self.org.proj_uuid)},
+            **kwargs,
+        )
         self.queue.refresh_from_db()
 
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(self.queue.queue_purpose, purpose)
+        self.assertEqual(response.json["queue_purpose"], purpose)
+
+    def test_update_queue_purpose_with_topic_uuid_in_url(self):
+        kwargs = self._detail_kwargs(self.queue.uuid)
+        url = reverse("ticketer-queues-detail", kwargs=kwargs)
+        purpose = "Conversations related to payment issues"
+
+        response = self.request(
+            "patch",
+            url,
+            data={"queue_purpose": purpose, "project_uuid": str(self.org.proj_uuid)},
+            **kwargs,
+        )
+        self.queue.refresh_from_db()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.queue.queue_purpose, purpose)
+
+    def test_update_queue_purpose_with_project_uuid_in_query_params(self):
+        kwargs = self._detail_kwargs()
+        url = reverse("ticketer-queues-detail", kwargs=kwargs)
+        purpose = "Conversations related to subscriptions"
+
+        response = self.request(
+            "patch",
+            f"{url}?project_uuid={self.org.proj_uuid}",
+            data={"queue_purpose": purpose},
+            **kwargs,
+        )
+        self.queue.refresh_from_db()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.queue.queue_purpose, purpose)
+
+    def test_update_queue_purpose_with_name(self):
+        kwargs = self._detail_kwargs()
+        url = reverse("ticketer-queues-detail", kwargs=kwargs)
+        purpose = "Atendimento técnico prioritário"
+        new_name = "Suporte"
+
+        response = self.request(
+            "patch",
+            url,
+            data={"name": new_name, "queue_purpose": purpose, "project_uuid": str(self.org.proj_uuid)},
+            **kwargs,
+        )
+        self.queue.refresh_from_db()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.queue.name, new_name)
+        self.assertEqual(self.queue.queue_purpose, purpose)
+        self.assertEqual(response.json["queue_purpose"], purpose)
 
     def test_create_queue_with_purpose(self):
         uuid = str(uuid4())
@@ -113,7 +182,7 @@ class DestroyTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
     action = dict(delete="destroy")
 
     def test_destroy_queue(self):
-        kwargs = dict(ticketer_uuid=str(self.ticketer.uuid), uuid=str(self.queue.uuid))
+        kwargs = dict(ticketer_uuid=str(self.ticketer.uuid), queue_uuid=str(self.queue.queue_uuid))
 
         url = reverse("ticketer-queues-detail", kwargs=kwargs)
 
@@ -121,7 +190,7 @@ class DestroyTicketerQueueViewTestCase(TicketerQueueViewTestMixin, TembaTest):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_destroy_non_existing_queue(self):
-        kwargs = dict(ticketer_uuid=str(self.ticketer.uuid), uuid=str(uuid4()))
+        kwargs = dict(ticketer_uuid=str(self.ticketer.uuid), queue_uuid=str(uuid4()))
 
         url = reverse("ticketer-queues-detail", kwargs=kwargs)
 
