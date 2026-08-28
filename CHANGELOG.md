@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.12.0] - 2026-08-21
+- Dual-publish recent activities to ChangeHistory
+
 ## [2.11.0] - 2026-07-02
 - Add queue porpuse field in TicketerQueue model
 
