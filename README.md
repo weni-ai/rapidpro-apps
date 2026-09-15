@@ -98,6 +98,3 @@ Done. Now you can go back to rapidpro and help us "Unleash Human Potential"
 
 - [Channel Stats](channel_stats/README.md)
 - [Analytics API](analytics_api/README.md)
-
-
-So that your app can be identify by this script, do you need follow all recomendations of [gRPC Development Patterns](https://github.com/Ilhasoft/rapidpro-apps/wiki/gRPC-Development-Patterns)
