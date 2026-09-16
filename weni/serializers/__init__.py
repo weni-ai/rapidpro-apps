@@ -1,1 +1,6 @@
-from weni.serializers.fields import UserEmailRelatedField, OrgUUIDRelatedField, ProjectUUIDRelatedField  # noqa: F401
+from weni.serializers.fields import (  # noqa: F401
+    UserEmailRelatedField,
+    OrgUUIDRelatedField,
+    ProjectUUIDRelatedField,
+    SerializerMethodCharField,
+)

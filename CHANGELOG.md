@@ -1,4 +1,5 @@
 ## [Unreleased]
+- Remove gRPC apps, handlers, tests and related dependencies
 
 ## [2.12.0] - 2026-08-21
 - Dual-publish recent activities to ChangeHistory

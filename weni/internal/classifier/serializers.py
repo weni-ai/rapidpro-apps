@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from temba.classifiers.models import Classifier
-from weni.grpc.core import serializers as weni_serializers
+from weni.serializers import fields as weni_serializers
 
 
 class ClassifierSerializer(serializers.Serializer):
