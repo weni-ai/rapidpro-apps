@@ -23,7 +23,7 @@ jobs:
     - name: Install python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.9'
+        python-version: '3.10'
 
     - name: Install Poetry
       run: |
@@ -65,10 +65,9 @@ jobs:
         token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
         path: ./rapidpro/
           
-    - name: Update version on pip-requires.txt
-      run: |
-        VERSION="${{ env.VERSION }}"
-        sed -i 's;^weni-rp-apps@==.*$;weni-rp-apps@=='$VERSION';g' ./rapidpro/docker/pip-requires.txt
+    - name: Update weni-rp-apps version in Flows
+      working-directory: ./rapidpro
+      run: poetry add "weni-rp-apps==${{ env.VERSION }}" --allow-prereleases --no-interaction
 
     - name: Commit & Push changes in Flows
       uses: actions-js/push@master
