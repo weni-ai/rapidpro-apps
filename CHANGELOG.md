@@ -1,4 +1,5 @@
 ## [Unreleased]
+- Remove gRPC apps, handlers, tests and related dependencies
 
 ## [2.11.0] - 2026-07-02
 - Add queue porpuse field in TicketerQueue model
