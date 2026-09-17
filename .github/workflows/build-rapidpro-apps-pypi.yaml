@@ -67,7 +67,26 @@ jobs:
           
     - name: Update weni-rp-apps version in Flows
       working-directory: ./rapidpro
-      run: poetry add "weni-rp-apps==${{ env.VERSION }}" --allow-prereleases --no-interaction
+      env:
+        VERSION: ${{ env.VERSION }}
+      run: |
+        echo "Waiting for weni-rp-apps ${VERSION} on PyPI..."
+        for i in $(seq 1 24); do
+          if curl -fsSL "https://pypi.org/pypi/weni-rp-apps/${VERSION}/json" >/dev/null; then
+            echo "Found weni-rp-apps ${VERSION} on PyPI"
+            break
+          fi
+          if [ "$i" -eq 24 ]; then
+            echo "Timed out waiting for weni-rp-apps ${VERSION} on PyPI"
+            exit 1
+          fi
+          echo "Not visible yet (${i}/24), retrying in 5s..."
+          sleep 5
+        done
+
+        poetry config virtualenvs.create false
+        poetry cache clear pypi --all -n || true
+        poetry add "weni-rp-apps@${VERSION}" --allow-prereleases --lock --no-interaction
 
     - name: Commit & Push changes in Flows
       uses: actions-js/push@master
