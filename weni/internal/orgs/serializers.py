@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from weni.internal.models import Project
-from weni.grpc.core import serializers as weni_serializers
+from weni.serializers import fields as weni_serializers
 
 
 User = get_user_model()

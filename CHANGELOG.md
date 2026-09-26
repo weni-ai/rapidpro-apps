@@ -1,4 +1,5 @@
 ## [Unreleased]
+- Remove gRPC apps, handlers, tests and related dependencies
 
 ## [2.11.2] - 2026-09-25
 - fix pypi publish pipeline
