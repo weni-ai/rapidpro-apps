@@ -215,3 +215,61 @@ class ChannelSerializer(serializers.ModelSerializer):
         ret["org"] = instance.org.project.project_uuid if hasattr(instance.org, "project") else None
 
         return ret
+
+
+class UpdateChannelSerializer(serializers.Serializer):
+    """
+    Writable channel fields.
+
+    PUT replaces ``config``. PATCH merges ``config`` into the stored object.
+    ``uuid``, ``org``, ``channel_type`` and ``is_active`` stay unchanged.
+    """
+
+    name = serializers.CharField(required=False, allow_blank=False, max_length=128)
+    address = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=255)
+    config = serializers.JSONField(required=False)
+    user = serializers.EmailField(required=False, write_only=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.partial:
+            self.fields["name"].required = True
+            self.fields["address"].required = True
+            self.fields["config"].required = True
+
+    def validate_config(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("config must be a JSON object.")
+        return value
+
+    def validate_user(self, value):
+        try:
+            return User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
+
+    def validate(self, attrs):
+        if self.partial and not any(field in attrs for field in ("name", "address", "config")):
+            raise serializers.ValidationError("At least one of name, address or config is required.")
+        return attrs
+
+    def update(self, instance, validated_data):
+        user = validated_data.pop("user", None)
+
+        if "name" in validated_data:
+            instance.name = validated_data["name"]
+        if "address" in validated_data:
+            instance.address = validated_data["address"]
+        if "config" in validated_data:
+            if self.partial:
+                merged = dict(instance.config or {})
+                merged.update(validated_data["config"])
+                instance.config = merged
+            else:
+                instance.config = validated_data["config"]
+
+        if user is not None:
+            instance.modified_by = user
+
+        instance.save()
+        return instance
