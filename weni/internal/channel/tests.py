@@ -61,6 +61,28 @@ class TembaRequestMixin(ABC):
 
         return self.client.delete(f"{url}", HTTP_AUTHORIZATION=f"Token {token.key}")
 
+    def request_put(self, uuid, data):
+        url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
+
+        return self.client.put(
+            url,
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+
+    def request_patch(self, uuid, data):
+        url = self.reverse(self.get_url_namespace(), kwargs={"uuid": uuid})
+        token = APIToken.get_or_create(self.org, self.admin, Group.objects.get(name="Administrators"))
+
+        return self.client.patch(
+            url,
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+
     @abstractmethod
     def get_url_namespace(self):
         ...
@@ -221,6 +243,95 @@ class RetrieveChannelTestCase(TembaTest, TembaRequestMixin):
         self.assertEqual(response.get("name"), self.channel_obj.name)
         self.assertEqual(response.get("address"), self.channel_obj.address)
         self.assertEqual(response.get("config"), self.channel_obj.config)
+
+    def get_url_namespace(self):
+        return "channel-detail"
+
+
+class UpdateChannelTestCase(TembaTest, TembaRequestMixin):
+    def setUp(self):
+        self.user = User.objects.create_user(username="fake@weni.ai", password="123", email="fake@weni.ai")
+        self.project = Project.objects.create(
+            name="Weni",
+            timezone="America/Sao_Paulo",
+            created_by=self.user,
+            modified_by=self.user,
+        )
+
+        super().setUp()
+
+        self.channel_obj = Channel.create(
+            self.project.org,
+            self.user,
+            None,
+            "WWC",
+            "Test WWC",
+            "test",
+            {"fake_key": "fake_value"},
+        )
+
+    @patch("weni.internal.channel.views.publish_channel_event")
+    def test_patch_updates_name_and_merges_config(self, mock_publish):
+        response = self.request_patch(
+            uuid=str(self.channel_obj.uuid),
+            data={"name": "Renamed", "config": {"extra": "1"}, "user": self.user.email},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        channel = Channel.objects.get(id=self.channel_obj.id)
+
+        self.assertEqual(channel.name, "Renamed")
+        self.assertEqual(channel.address, "test")
+        self.assertEqual(channel.config, {"fake_key": "fake_value", "extra": "1"})
+        self.assertEqual(channel.channel_type, "WWC")
+        self.assertEqual(channel.modified_by, self.user)
+        self.assertEqual(body.get("name"), "Renamed")
+        self.assertEqual(body.get("config"), {"fake_key": "fake_value", "extra": "1"})
+        mock_publish.assert_called_once_with(channel, action="UPDATE")
+
+    @patch("weni.internal.channel.views.publish_channel_event")
+    def test_put_replaces_config(self, mock_publish):
+        response = self.request_put(
+            uuid=str(self.channel_obj.uuid),
+            data={"name": "Replaced", "address": "new-address", "config": {"only": "this"}},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        channel = Channel.objects.get(id=self.channel_obj.id)
+
+        self.assertEqual(channel.name, "Replaced")
+        self.assertEqual(channel.address, "new-address")
+        self.assertEqual(channel.config, {"only": "this"})
+        self.assertEqual(channel.channel_type, "WWC")
+        mock_publish.assert_called_once_with(channel, action="UPDATE")
+
+    def test_put_requires_name_address_and_config(self):
+        response = self.request_put(uuid=str(self.channel_obj.uuid), data={"name": "Only name"})
+
+        self.assertEqual(response.status_code, 400)
+        channel = Channel.objects.get(id=self.channel_obj.id)
+        self.assertEqual(channel.name, "Test WWC")
+
+    def test_patch_requires_a_writable_field(self):
+        response = self.request_patch(uuid=str(self.channel_obj.uuid), data={"user": self.user.email})
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_patch_rejects_non_object_config(self):
+        response = self.request_patch(uuid=str(self.channel_obj.uuid), data={"config": ["not", "an", "object"]})
+
+        self.assertEqual(response.status_code, 400)
+        channel = Channel.objects.get(id=self.channel_obj.id)
+        self.assertEqual(channel.config, {"fake_key": "fake_value"})
+
+    def test_update_missing_channel_returns_404(self):
+        response = self.request_patch(
+            uuid="00000000-0000-4000-8000-000000000000",
+            data={"name": "Missing"},
+        )
+
+        self.assertEqual(response.status_code, 404)
 
     def get_url_namespace(self):
         return "channel-detail"
