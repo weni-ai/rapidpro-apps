@@ -1,7 +1,10 @@
 ## [Unreleased]
 
-## [2.12.0] - 2026-08-21
+## [2.12.0] - 2026-10-13
 - Dual-publish recent activities to ChangeHistory
+
+## [2.11.2] - 2026-09-25
+- fix pypi publish pipeline
 
 ## [2.11.0] - 2026-07-02
 - Add queue porpuse field in TicketerQueue model

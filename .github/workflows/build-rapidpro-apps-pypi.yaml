@@ -23,12 +23,12 @@ jobs:
     - name: Install python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.9'
+        python-version: '3.10'
 
     - name: Install Poetry
       run: |
-        curl -sSL https://install.python-poetry.org | python3 -
-        poetry self update 1.5.1
+        curl -sSL https://install.python-poetry.org | python3 - --version 2.2.1
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Verify Poetry installation
       run: poetry --version
@@ -65,10 +65,31 @@ jobs:
         token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
         path: ./rapidpro/
           
-    - name: Update version on pip-requires.txt
+    - name: Update weni-rp-apps version in Flows
+      working-directory: ./rapidpro
+      env:
+        VERSION: ${{ env.VERSION }}
       run: |
-        VERSION="${{ env.VERSION }}"
-        sed -i 's;^weni-rp-apps@==.*$;weni-rp-apps@=='$VERSION';g' ./rapidpro/docker/pip-requires.txt
+        echo "Waiting for weni-rp-apps ${VERSION} on PyPI..."
+        for i in $(seq 1 24); do
+          if curl -fsSL "https://pypi.org/pypi/weni-rp-apps/${VERSION}/json" >/dev/null; then
+            echo "Found weni-rp-apps ${VERSION} on PyPI"
+            break
+          fi
+          if [ "$i" -eq 24 ]; then
+            echo "Timed out waiting for weni-rp-apps ${VERSION} on PyPI"
+            exit 1
+          fi
+          echo "Not visible yet (${i}/24), retrying in 5s..."
+          sleep 5
+        done
+
+        POETRY_PYTHON="${HOME}/.local/share/pypoetry/venv/bin/python"
+        if [ ! -x "${POETRY_PYTHON}" ]; then
+          echo "Poetry venv python not found at ${POETRY_PYTHON}"
+          exit 1
+        fi
+        "${POETRY_PYTHON}" "${GITHUB_WORKSPACE}/.github/scripts/bump_flows_weni_rp_apps.py"
 
     - name: Commit & Push changes in Flows
       uses: actions-js/push@master
