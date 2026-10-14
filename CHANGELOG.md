@@ -1,5 +1,6 @@
 ## [Unreleased]
 - Remove gRPC apps, handlers, tests and related dependencies
+- Publish ChangeHistory UPDATE on flow editor saves and fix Trigger notifications
 
 ## [2.12.0] - 2026-08-21
 - Dual-publish recent activities to ChangeHistory

@@ -27,6 +27,6 @@ def notify_change_history(instance, created: bool, delete: bool = False):
         action=action,
         entity=entity,
         module=Module.FLOWS,
-        object_id=str(instance.uuid),
+        object_id=str(getattr(instance, "uuid", None) or instance.pk),
         object_name=getattr(instance, "name", None),
     )
