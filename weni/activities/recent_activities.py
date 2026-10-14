@@ -42,15 +42,31 @@ def _publish_legacy_recent_activity(instance: models.Model, created: bool, delet
         )
 
 
+def _publish_change_history(instance: models.Model, created: bool, delete=None):
+    if not getattr(settings, "CHANGE_HISTORY_ENABLED", True):
+        return
+
+    try:
+        notify_change_history(instance, created, delete=bool(delete))
+    except Exception:
+        logger.exception("Failed to publish change history for %s", instance)
+
+
 def create_recent_activity(instance: models.Model, created: bool, delete=None):
     if not instance.is_active:
         return
 
     if getattr(settings, "RECENT_ACTIVITIES_LEGACY_ENABLED", True):
-        _publish_legacy_recent_activity(instance, created, delete)
-
-    if getattr(settings, "CHANGE_HISTORY_ENABLED", True):
         try:
-            notify_change_history(instance, created, delete=bool(delete))
+            _publish_legacy_recent_activity(instance, created, delete)
         except Exception:
-            logger.exception("Failed to publish change history for %s", instance)
+            logger.exception("Failed to publish legacy recent activity for %s", instance)
+
+    _publish_change_history(instance, created, delete)
+
+
+def create_change_history_activity(instance: models.Model, created: bool):
+    if not instance.is_active:
+        return
+
+    _publish_change_history(instance, created)
