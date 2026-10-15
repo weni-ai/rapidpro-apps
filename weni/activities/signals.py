@@ -6,7 +6,20 @@ from temba.flows.models import Flow
 from temba.triggers.models import Trigger
 from temba.campaigns.models import Campaign
 
-from weni.activities.recent_activities import create_recent_activity
+from weni.activities.recent_activities import create_change_history_activity, create_recent_activity
+
+FLOW_REVISION_UPDATE_FIELDS = frozenset(
+    {
+        "version_number",
+        "modified_on",
+        "saved_on",
+        "modified_by",
+        "metadata",
+        "saved_by",
+        "base_language",
+        "has_issues",
+    }
+)
 
 
 @receiver(post_save, sender=Channel)
@@ -23,20 +36,11 @@ def channel_recent_activity_signal(sender, instance: Channel, created: bool, **k
 @receiver(post_save, sender=Flow)
 def flow_recent_activity_signal(sender, instance: Flow, created: bool, **kwargs):
     update_fields = kwargs.get("update_fields")
-    if update_fields != frozenset(
-        {
-            "version_number",
-            "modified_on",
-            "saved_on",
-            "modified_by",
-            "metadata",
-            "saved_by",
-            "base_language",
-            "has_issues",
-        }
-    ):
-        # This condition prevents two events from being sent when creating a flow
+    if update_fields != FLOW_REVISION_UPDATE_FIELDS:
         create_recent_activity(instance, created)
+    elif instance.revisions.exists():
+        # Editor saves; the first revision is skipped because it belongs to the flow creation
+        create_change_history_activity(instance, created=False)
 
 
 @receiver(post_save, sender=Trigger)
