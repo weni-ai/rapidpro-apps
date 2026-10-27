@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from django.test import SimpleTestCase, override_settings
 
-from weni.activities.change_history import notify_change_history
+from weni.activities.change_history import PREVIOUS_NAME_ATTR, notify_change_history
 from weni.activities.recent_activities import create_change_history_activity, create_recent_activity
 from weni_commons.change_history import Action, Entity, Module
 
@@ -47,7 +47,37 @@ class NotifyChangeHistoryTestCase(SimpleTestCase):
             module=Module.FLOWS,
             object_id=str(instance.uuid),
             object_name="Test Flow",
+            old_value=None,
+            new_value=None,
         )
+
+    @patch("weni.activities.change_history.Notifier.notify_change")
+    def test_update_sends_previous_and_current_name(self, notify_change_mock):
+        instance = _build_instance(class_name="Flow", name="B")
+        instance.__dict__[PREVIOUS_NAME_ATTR] = "A"
+
+        notify_change_history(instance, created=False)
+
+        kwargs = notify_change_mock.call_args.kwargs
+        self.assertEqual(kwargs["action"], Action.UPDATE)
+        self.assertEqual(kwargs["old_value"], "A")
+        self.assertEqual(kwargs["new_value"], "B")
+        self.assertEqual(kwargs["object_name"], "B")
+        self.assertNotIn(PREVIOUS_NAME_ATTR, instance.__dict__)
+
+    @patch("weni.activities.change_history.Notifier.notify_change")
+    def test_update_without_rename_sends_no_values(self, notify_change_mock):
+        unchanged = _build_instance(class_name="Channel", name="Same")
+        unchanged.__dict__[PREVIOUS_NAME_ATTR] = "Same"
+        without_previous = _build_instance(class_name="Campaign", name="Campaign")
+
+        for instance in (unchanged, without_previous):
+            with self.subTest(instance=instance.__class__.__name__):
+                notify_change_history(instance, created=False)
+
+                kwargs = notify_change_mock.call_args.kwargs
+                self.assertIsNone(kwargs["old_value"])
+                self.assertIsNone(kwargs["new_value"])
 
     @patch("weni.activities.change_history.Notifier.notify_change")
     def test_update_action(self, notify_change_mock):

@@ -2,10 +2,12 @@ from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase
 
+from weni.activities.change_history import PREVIOUS_NAME_ATTR
 from weni.activities.signals import (
     FLOW_REVISION_UPDATE_FIELDS,
     channel_recent_activity_signal,
     flow_recent_activity_signal,
+    remember_previous_name,
     trigger_recent_activity_signal,
 )
 
@@ -141,3 +143,65 @@ class TriggerRecentActivitySignalTestCase(SimpleTestCase):
 
         create_recent_activity_mock.assert_called_once_with(trigger, True)
         change_history_mock.assert_not_called()
+
+
+def _build_saved_instance(is_system=False):
+    instance = Mock(pk=1, is_system=is_system)
+    instance._state.adding = False
+    return instance
+
+
+def _build_sender(previous_name="A"):
+    sender = Mock()
+    sender._base_manager.filter.return_value.values_list.return_value.first.return_value = previous_name
+    return sender
+
+
+class RememberPreviousNameTestCase(SimpleTestCase):
+    def test_pre_save_remembers_previous_name(self):
+        sender = _build_sender(previous_name="A")
+        instance = _build_saved_instance()
+
+        remember_previous_name(sender=sender, instance=instance, update_fields=None)
+
+        sender._base_manager.filter.assert_called_once_with(pk=1)
+        self.assertEqual(instance.__dict__[PREVIOUS_NAME_ATTR], "A")
+
+    def test_pre_save_queries_when_name_in_update_fields(self):
+        sender = _build_sender(previous_name="A")
+        instance = _build_saved_instance()
+
+        remember_previous_name(
+            sender=sender, instance=instance, update_fields=frozenset({"name", "expires_after_minutes"})
+        )
+
+        self.assertEqual(instance.__dict__[PREVIOUS_NAME_ATTR], "A")
+
+    def test_pre_save_skips_query_when_name_not_in_update_fields(self):
+        sender = _build_sender()
+        instance = _build_saved_instance()
+        instance.__dict__[PREVIOUS_NAME_ATTR] = "stale"
+
+        remember_previous_name(sender=sender, instance=instance, update_fields=FLOW_REVISION_UPDATE_FIELDS)
+
+        sender._base_manager.filter.assert_not_called()
+        self.assertNotIn(PREVIOUS_NAME_ATTR, instance.__dict__)
+
+    def test_pre_save_skips_new_instances(self):
+        sender = _build_sender()
+        instance = _build_saved_instance()
+        instance._state.adding = True
+
+        remember_previous_name(sender=sender, instance=instance, update_fields=None)
+
+        sender._base_manager.filter.assert_not_called()
+        self.assertNotIn(PREVIOUS_NAME_ATTR, instance.__dict__)
+
+    def test_pre_save_skips_system_flows(self):
+        sender = _build_sender()
+        instance = _build_saved_instance(is_system=True)
+
+        remember_previous_name(sender=sender, instance=instance, update_fields=None)
+
+        sender._base_manager.filter.assert_not_called()
+        self.assertNotIn(PREVIOUS_NAME_ATTR, instance.__dict__)

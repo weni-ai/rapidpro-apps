@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from temba.channels.models import Channel
@@ -6,6 +6,7 @@ from temba.flows.models import Flow
 from temba.triggers.models import Trigger
 from temba.campaigns.models import Campaign
 
+from weni.activities.change_history import PREVIOUS_NAME_ATTR
 from weni.activities.recent_activities import create_change_history_activity, create_recent_activity
 
 FLOW_REVISION_UPDATE_FIELDS = frozenset(
@@ -24,6 +25,24 @@ FLOW_REVISION_UPDATE_FIELDS = frozenset(
 
 def _is_release(instance, update_fields) -> bool:
     return update_fields is not None and "is_active" in update_fields and not instance.is_active
+
+
+@receiver(pre_save, sender=Flow)
+@receiver(pre_save, sender=Channel)
+@receiver(pre_save, sender=Campaign)
+def remember_previous_name(sender, instance, update_fields=None, **kwargs):
+    # the same instance can be saved more than once, so never keep a name from an earlier save
+    instance.__dict__.pop(PREVIOUS_NAME_ATTR, None)
+
+    if instance._state.adding or instance.pk is None:
+        return
+    if update_fields is not None and "name" not in update_fields:
+        return
+    if getattr(instance, "is_system", False):
+        return
+
+    previous = sender._base_manager.filter(pk=instance.pk).values_list("name", flat=True).first()
+    setattr(instance, PREVIOUS_NAME_ATTR, previous)
 
 
 @receiver(post_save, sender=Channel)

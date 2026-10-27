@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.12.2] - 2026-10-27
+- Send previous and current name on ChangeHistory rename events
+
 ## [2.12.1] - 2026-10-27
 - Publish ChangeHistory DELETE on flow, channel and trigger deletion
 
