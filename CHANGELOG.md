@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [2.13.1] - 2026-11-05
+- Publish ChangeHistory DELETE on flow, channel and trigger deletion
+- Send previous and current name on ChangeHistory rename events
+- Publish ChangeHistory DEACTIVATE/ACTIVATE on flow and trigger archive/restore (requires weni-commons 1.7.0)
+
 ## [2.13.0] - 2026-10-27
 - feature: adding update api for external channels
 
