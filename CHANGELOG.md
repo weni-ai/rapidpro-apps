@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.12.1] - 2026-10-27
+- Publish ChangeHistory DELETE on flow, channel and trigger deletion
+
 ## [2.12.0] - 2026-10-15
 - Dual-publish recent activities to ChangeHistory
 - Publish ChangeHistory UPDATE on flow editor saves and fix Trigger notifications

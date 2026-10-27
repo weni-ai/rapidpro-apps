@@ -47,6 +47,10 @@ def _publish_change_history(instance: models.Model, created: bool, delete=None):
         return
 
     try:
+        # objects released together with their org are not part of the project history
+        if not instance.org.is_active:
+            return
+
         notify_change_history(instance, created, delete=bool(delete))
     except Exception:
         logger.exception("Failed to publish change history for %s", instance)
@@ -62,11 +66,14 @@ def create_recent_activity(instance: models.Model, created: bool, delete=None):
         except Exception:
             logger.exception("Failed to publish legacy recent activity for %s", instance)
 
-    _publish_change_history(instance, created, delete)
+    # an active instance flagged as deleted is an archive (Flow.archive): it can still be
+    # restored, and its post_save already published the Change History UPDATE
+    if not delete:
+        _publish_change_history(instance, created)
 
 
-def create_change_history_activity(instance: models.Model, created: bool):
-    if not instance.is_active:
+def create_change_history_activity(instance: models.Model, created: bool, delete: bool = False):
+    if not instance.is_active and not delete:
         return
 
-    _publish_change_history(instance, created)
+    _publish_change_history(instance, created, delete)
