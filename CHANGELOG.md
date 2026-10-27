@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.13.0] - 2026-10-27
+- feature: adding update api for external channels
+
 ## [2.12.0] - 2026-10-15
 - Dual-publish recent activities to ChangeHistory
 - Publish ChangeHistory UPDATE on flow editor saves and fix Trigger notifications

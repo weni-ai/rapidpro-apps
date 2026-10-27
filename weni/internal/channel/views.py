@@ -25,6 +25,7 @@ from .serializers import (
     ChannelSerializer,
     CreateChannelSerializer,
     ChannelWACSerializer,
+    UpdateChannelSerializer,
 )
 
 User = get_user_model()
@@ -132,6 +133,26 @@ class ChannelEndpoint(viewsets.ModelViewSet, InternalGenericViewSet):
         channel_instance = Channel.objects.get(uuid=serializer.data["uuid"])
         publish_channel_event(channel_instance, action="CREATE")
         return JsonResponse(data=serializer.data, status=status.HTTP_200_OK)
+
+    def update(self, request, uuid=None, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+
+        try:
+            channel = Channel.objects.get(uuid=uuid)
+        except Channel.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UpdateChannelSerializer(channel, data=request.data, partial=partial)
+        if not serializer.is_valid():
+            return JsonResponse(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        channel = serializer.save()
+        publish_channel_event(channel, action="UPDATE")
+        return JsonResponse(data=ChannelSerializer(channel).data, status=status.HTTP_200_OK)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
 
 
 class AvailableChannels(viewsets.ViewSet, InternalGenericViewSet):
