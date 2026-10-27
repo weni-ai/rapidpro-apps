@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from django.test import SimpleTestCase, override_settings
 
-from weni.activities.change_history import notify_change_history
+from weni.activities.change_history import PREVIOUS_NAME_ATTR, notify_change_history
 from weni.activities.recent_activities import create_change_history_activity, create_recent_activity
 from weni_commons.change_history import Action, Entity, Module
 
@@ -14,6 +14,7 @@ def _build_instance(
     is_active=True,
     name="Test Flow",
     modified_on=None,
+    org_is_active=True,
 ):
     instance = Mock()
     instance.is_active = is_active
@@ -23,6 +24,7 @@ def _build_instance(
     instance.modified_by = Mock(email="user@example.com")
     instance.org = Mock(
         uuid=uuid4(),
+        is_active=org_is_active,
         project=Mock(project_uuid=uuid4()),
     )
     instance.modified_on = modified_on or datetime(2026, 8, 21, 12, 0, tzinfo=timezone.utc)
@@ -45,7 +47,37 @@ class NotifyChangeHistoryTestCase(SimpleTestCase):
             module=Module.FLOWS,
             object_id=str(instance.uuid),
             object_name="Test Flow",
+            old_value=None,
+            new_value=None,
         )
+
+    @patch("weni.activities.change_history.Notifier.notify_change")
+    def test_update_sends_previous_and_current_name(self, notify_change_mock):
+        instance = _build_instance(class_name="Flow", name="B")
+        instance.__dict__[PREVIOUS_NAME_ATTR] = "A"
+
+        notify_change_history(instance, created=False)
+
+        kwargs = notify_change_mock.call_args.kwargs
+        self.assertEqual(kwargs["action"], Action.UPDATE)
+        self.assertEqual(kwargs["old_value"], "A")
+        self.assertEqual(kwargs["new_value"], "B")
+        self.assertEqual(kwargs["object_name"], "B")
+        self.assertNotIn(PREVIOUS_NAME_ATTR, instance.__dict__)
+
+    @patch("weni.activities.change_history.Notifier.notify_change")
+    def test_update_without_rename_sends_no_values(self, notify_change_mock):
+        unchanged = _build_instance(class_name="Channel", name="Same")
+        unchanged.__dict__[PREVIOUS_NAME_ATTR] = "Same"
+        without_previous = _build_instance(class_name="Campaign", name="Campaign")
+
+        for instance in (unchanged, without_previous):
+            with self.subTest(instance=instance.__class__.__name__):
+                notify_change_history(instance, created=False)
+
+                kwargs = notify_change_mock.call_args.kwargs
+                self.assertIsNone(kwargs["old_value"])
+                self.assertIsNone(kwargs["new_value"])
 
     @patch("weni.activities.change_history.Notifier.notify_change")
     def test_update_action(self, notify_change_mock):
@@ -70,6 +102,16 @@ class NotifyChangeHistoryTestCase(SimpleTestCase):
         self.assertEqual(kwargs["entity"], Entity.FLOW)
 
     @patch("weni.activities.change_history.Notifier.notify_change")
+    def test_explicit_action_overrides_created_and_delete(self, notify_change_mock):
+        instance = _build_instance(class_name="Trigger")
+
+        notify_change_history(instance, created=False, action=Action.DEACTIVATE)
+
+        kwargs = notify_change_mock.call_args.kwargs
+        self.assertEqual(kwargs["action"], Action.DEACTIVATE)
+        self.assertEqual(kwargs["entity"], Entity.TRIGGER)
+
+    @patch("weni.activities.change_history.Notifier.notify_change")
     def test_entity_without_uuid_uses_pk(self, notify_change_mock):
         instance = _build_instance(class_name="Trigger")
         del instance.uuid
@@ -92,6 +134,7 @@ class NotifyChangeHistoryTestCase(SimpleTestCase):
         notify_change_mock.assert_not_called()
 
 
+@override_settings(CHANGE_HISTORY_ENABLED=True)
 class CreateRecentActivityTestCase(SimpleTestCase):
     @patch("weni.activities.recent_activities.notify_change_history")
     @patch("weni.activities.recent_activities._publish_legacy_recent_activity")
@@ -105,7 +148,7 @@ class CreateRecentActivityTestCase(SimpleTestCase):
         create_recent_activity(instance, created=True)
 
         publish_legacy_mock.assert_called_once_with(instance, True, None)
-        notify_change_history_mock.assert_called_once_with(instance, True, delete=False)
+        notify_change_history_mock.assert_called_once_with(instance, True, delete=False, action=None)
 
     @patch("weni.activities.recent_activities.notify_change_history")
     @patch("weni.activities.recent_activities._publish_legacy_recent_activity")
@@ -134,7 +177,7 @@ class CreateRecentActivityTestCase(SimpleTestCase):
         create_recent_activity(instance, created=True)
 
         publish_legacy_mock.assert_not_called()
-        notify_change_history_mock.assert_called_once_with(instance, True, delete=False)
+        notify_change_history_mock.assert_called_once_with(instance, True, delete=False, action=None)
 
     @override_settings(CHANGE_HISTORY_ENABLED=False)
     @patch("weni.activities.recent_activities.notify_change_history")
@@ -182,12 +225,12 @@ class CreateRecentActivityTestCase(SimpleTestCase):
 
         create_recent_activity(instance, created=True)
 
-        notify_change_history_mock.assert_called_once_with(instance, True, delete=False)
+        notify_change_history_mock.assert_called_once_with(instance, True, delete=False, action=None)
         logger_mock.exception.assert_called_once()
 
     @patch("weni.activities.recent_activities.notify_change_history")
     @patch("weni.activities.recent_activities._publish_legacy_recent_activity")
-    def test_delete_flag_is_forwarded(
+    def test_archive_delete_skips_change_history(
         self,
         publish_legacy_mock,
         notify_change_history_mock,
@@ -197,9 +240,38 @@ class CreateRecentActivityTestCase(SimpleTestCase):
         create_recent_activity(instance, created=False, delete=True)
 
         publish_legacy_mock.assert_called_once_with(instance, False, True)
-        notify_change_history_mock.assert_called_once_with(instance, False, delete=True)
+        notify_change_history_mock.assert_not_called()
+
+    @patch("weni.activities.recent_activities.notify_change_history")
+    @patch("weni.activities.recent_activities._publish_legacy_recent_activity")
+    def test_change_history_action_is_forwarded_and_legacy_is_unchanged(
+        self,
+        publish_legacy_mock,
+        notify_change_history_mock,
+    ):
+        instance = _build_instance()
+
+        create_recent_activity(instance, created=False, change_history_action=Action.ACTIVATE)
+
+        publish_legacy_mock.assert_called_once_with(instance, False, None)
+        notify_change_history_mock.assert_called_once_with(instance, False, delete=False, action=Action.ACTIVATE)
+
+    @patch("weni.activities.recent_activities.notify_change_history")
+    @patch("weni.activities.recent_activities._publish_legacy_recent_activity")
+    def test_inactive_org_skips_change_history(
+        self,
+        publish_legacy_mock,
+        notify_change_history_mock,
+    ):
+        instance = _build_instance(org_is_active=False)
+
+        create_recent_activity(instance, created=True)
+
+        publish_legacy_mock.assert_called_once_with(instance, True, None)
+        notify_change_history_mock.assert_not_called()
 
 
+@override_settings(CHANGE_HISTORY_ENABLED=True)
 class CreateChangeHistoryActivityTestCase(SimpleTestCase):
     @patch("weni.activities.recent_activities.notify_change_history")
     @patch("weni.activities.recent_activities._publish_legacy_recent_activity")
@@ -209,7 +281,7 @@ class CreateChangeHistoryActivityTestCase(SimpleTestCase):
         create_change_history_activity(instance, created=False)
 
         publish_legacy_mock.assert_not_called()
-        notify_change_history_mock.assert_called_once_with(instance, False, delete=False)
+        notify_change_history_mock.assert_called_once_with(instance, False, delete=False, action=None)
 
     @override_settings(CHANGE_HISTORY_ENABLED=False)
     @patch("weni.activities.recent_activities.notify_change_history")
@@ -221,5 +293,21 @@ class CreateChangeHistoryActivityTestCase(SimpleTestCase):
     @patch("weni.activities.recent_activities.notify_change_history")
     def test_inactive_instance_is_ignored(self, notify_change_history_mock):
         create_change_history_activity(_build_instance(is_active=False), created=False)
+
+        notify_change_history_mock.assert_not_called()
+
+    @patch("weni.activities.recent_activities.notify_change_history")
+    def test_change_history_delete_publishes_for_inactive_instance(self, notify_change_history_mock):
+        instance = _build_instance(is_active=False)
+
+        create_change_history_activity(instance, created=False, delete=True)
+
+        notify_change_history_mock.assert_called_once_with(instance, False, delete=True, action=None)
+
+    @patch("weni.activities.recent_activities.notify_change_history")
+    def test_delete_with_inactive_org_is_ignored(self, notify_change_history_mock):
+        instance = _build_instance(is_active=False, org_is_active=False)
+
+        create_change_history_activity(instance, created=False, delete=True)
 
         notify_change_history_mock.assert_not_called()

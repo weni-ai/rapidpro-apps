@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [2.12.1] - 2026-10-27
+- Publish ChangeHistory DELETE on flow, channel and trigger deletion
+- Send previous and current name on ChangeHistory rename events
+- Publish ChangeHistory DEACTIVATE/ACTIVATE on flow and trigger archive/restore (requires weni-commons 1.7.0a1)
+
 ## [2.12.0] - 2026-10-15
 - Dual-publish recent activities to ChangeHistory
 - Publish ChangeHistory UPDATE on flow editor saves and fix Trigger notifications

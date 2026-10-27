@@ -21,7 +21,7 @@ pre-commit = "^2.20.0"
 drf-nested-routers = "^0.93.4"
 grpcio = ">=1.71.0,<2.0.0"
 protobuf = ">=6.30.0,<7.0.0"
-weni-commons = ">=1.6.2"
+weni-commons = {version = ">=1.7.0a1", allow-prereleases = true}
 
 [tool.poetry.dev-dependencies]
 grpcio-tools = ">=1.57.0,<2.0.0"
