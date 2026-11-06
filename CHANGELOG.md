@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [2.13.2] - 2026-11-06
+- fix: sign Zendesk file callback downloads
+
 ## [2.13.1] - 2026-11-05
 - Publish ChangeHistory DELETE on flow, channel and trigger deletion
 - Send previous and current name on ChangeHistory rename events
